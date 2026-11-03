@@ -1,0 +1,65 @@
+import { toAppError } from '@infra/supabase';
+
+import { membershipAdapter } from './membershipAdapter';
+import { membershipApi } from './membershipApi';
+import type { GymMember, Membership, PendingRequest } from './membershipTypes';
+
+async function listMine(userId: string): Promise<Membership[]> {
+  try {
+    const rows = await membershipApi.listMine(userId);
+    return rows.map(membershipAdapter.toMembership);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+async function listByGym(gymId: string): Promise<GymMember[]> {
+  try {
+    const rows = await membershipApi.listByGym(gymId);
+    return rows.map(membershipAdapter.toGymMember);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+async function listPending(gymId: string): Promise<PendingRequest[]> {
+  try {
+    const rows = await membershipApi.listPending(gymId);
+    return rows.map(membershipAdapter.toPendingRequest);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+async function remove(membershipId: string): Promise<void> {
+  try {
+    await membershipApi.remove(membershipId);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+async function requestWithInvite(token: string): Promise<string> {
+  try {
+    return await membershipApi.request(token);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+async function decide(membershipId: string, approve: boolean): Promise<void> {
+  try {
+    await membershipApi.decide(membershipId, approve);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+export const membershipService = {
+  listMine,
+  listByGym,
+  listPending,
+  remove,
+  requestWithInvite,
+  decide,
+};

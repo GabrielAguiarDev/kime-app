@@ -1,0 +1,61 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@components": [
+        "./src/components"
+      ],
+      "@components/*": [
+        "./src/components/*"
+      ],
+      "@domain": [
+        "./src/domain"
+      ],
+      "@domain/*": [
+        "./src/domain/*"
+      ],
+      "@infra": [
+        "./src/infra"
+      ],
+      "@infra/*": [
+        "./src/infra/*"
+      ],
+      "@screens/*": [
+        "./src/screens/*"
+      ],
+      "@services/*": [
+        "./src/services/*"
+      ],
+      "@theme": [
+        "./src/theme"
+      ],
+      "@theme/*": [
+        "./src/theme/*"
+      ],
+      "@utils/*": [
+        "./src/utils/*"
+      ],
+      "@dev/*": [
+        "./src/dev/*"
+      ]
+    },
+    "types": [
+      "jest",
+      "node"
+    ]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "supabase"
+  ]
+}

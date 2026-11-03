@@ -1,0 +1,59 @@
+import type { Session } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+
+import { keyValueStorage, queryClient, StorageKeys, supabase } from '@infra';
+
+interface SessionContextValue {
+  session: Session | null;
+  userId: string | undefined;
+  /** True until the persisted session has been read at boot. */
+  isRestoring: boolean;
+}
+
+const SessionContext = createContext<SessionContextValue | null>(null);
+
+export function SessionProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isRestoring, setIsRestoring] = useState(true);
+  const wasSignedIn = useRef(false);
+
+  useEffect(() => {
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch(() => setSession(null))
+      .finally(() => setIsRestoring(false));
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  // Everything that belongs to a user dies with their session (sign-out or
+  // expired refresh token). Runs as an effect so screens unmount first.
+  // The pending invite token survives on purpose: it is consumed after the
+  // next sign-in/sign-up.
+  useEffect(() => {
+    if (session) {
+      wasSignedIn.current = true;
+      return;
+    }
+    if (wasSignedIn.current) {
+      wasSignedIn.current = false;
+      queryClient.clear();
+      keyValueStorage.remove(StorageKeys.activeGymId);
+    }
+  }, [session]);
+
+  return (
+    <SessionContext.Provider value={{ session, userId: session?.user.id, isRestoring }}>
+      {children}
+    </SessionContext.Provider>
+  );
+}
+
+export function useSession(): SessionContextValue {
+  const ctx = useContext(SessionContext);
+  if (!ctx) throw new Error('useSession must be used inside SessionProvider');
+  return ctx;
+}

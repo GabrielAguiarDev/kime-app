@@ -1,0 +1,73 @@
+{
+  "name": "kimi",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@expo-google-fonts/barlow": "^0.4.1",
+    "@expo-google-fonts/barlow-condensed": "^0.4.1",
+    "@expo/vector-icons": "^15.0.2",
+    "@shopify/restyle": "^2.4.5",
+    "@supabase/supabase-js": "^2.118.0",
+    "@tanstack/react-query": "^5.105.3",
+    "expo": "~58.0.23",
+    "expo-apple-authentication": "~58.0.2",
+    "expo-constants": "~58.0.15",
+    "expo-crypto": "~58.0.7",
+    "expo-dev-client": "~58.0.18",
+    "expo-font": "~58.0.11",
+    "expo-haptics": "~58.0.7",
+    "expo-linking": "~58.0.16",
+    "expo-router": "~58.0.30",
+    "expo-splash-screen": "~58.0.13",
+    "expo-sqlite": "~58.0.15",
+    "expo-status-bar": "~58.0.4",
+    "expo-system-ui": "~58.0.7",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-screens": "~4.30.1"
+  },
+  "devDependencies": {
+    "@types/jest": "30.0.0",
+    "@types/react": "~19.3.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~58.0.4",
+    "jest": "~30.5.2",
+    "jest-expo": "~58.0.14",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start --dev-client",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "db:types": "supabase gen types typescript > src/infra/supabase/database.types.ts",
+    "test": "jest"
+  },
+  "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/supabase/",
+      "<rootDir>/ios/",
+      "<rootDir>/android/"
+    ],
+    "moduleNameMapper": {
+      "^@components$": "<rootDir>/src/components",
+      "^@components/(.*)$": "<rootDir>/src/components/$1",
+      "^@domain/(.*)$": "<rootDir>/src/domain/$1",
+      "^@infra$": "<rootDir>/src/infra",
+      "^@infra/(.*)$": "<rootDir>/src/infra/$1",
+      "^@services/(.*)$": "<rootDir>/src/services/$1",
+      "^@theme$": "<rootDir>/src/theme",
+      "^@utils/(.*)$": "<rootDir>/src/utils/$1",
+      "^@dev/(.*)$": "<rootDir>/src/dev/$1"
+    }
+  }
+}
