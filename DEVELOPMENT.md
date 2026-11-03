@@ -1,7 +1,7 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: Fase 1 (Fundação) — 2026-11-03
+> Última atualização: Fase 1 + adaptação ao DESIGN-SYSTEM.md — 2026-11-03
 
 ## 1. Visão geral
 
@@ -24,15 +24,14 @@ App mobile multi-academia de artes marciais (a spec completa do usuário está n
   - Migrations em `supabase/migrations`, testes pgTAP em `supabase/tests/database`.
 - **Sessão Supabase:** persistida com `expo-sqlite/localStorage/install`, como recomenda o guia oficial do Expo. Auto-refresh ligado ao `AppState`.
 - **Preferências locais** (academia ativa, token de convite pendente): `expo-sqlite/kv-store` (síncrono), em `infra/storage`.
-- **Design** (sem `design/` nem Figma; proposta derivada da spec e aprovada pelo usuário):
-  - Base neutra grafite/off-white e destaque **vermelho** `#E10600` (dark: `#F2241B`).
-  - Erro e "recusado" usam o mesmo matiz, mas sempre com ícone + texto e nunca como botão preenchido. O vermelho preenchido é só para a ação primária.
-  - Barlow Condensed (números grandes, títulos, botões) + Barlow (texto).
-  - Raios 6/8/12, nunca pílula. Elementos táteis com borda inferior de 4px (`theme.edge.tactile`), num tom `*Edge` mais escuro.
-- **Produto** (decisões do usuário, 2026-11-03):
-  - Cadastro aberto = cria academia e vira professor.
-  - Alunos e professores extras entram SÓ por link reutilizável (um por academia + papel), via deep link `kimi://convite/<token>`. O vínculo fica **pendente** até um professor aprovar.
-  - Login por e-mail+senha + Apple/Google.
+- **Design:** segue o `DESIGN-SYSTEM.md` (raiz). Ele vale sobre qualquer outra instrução de design.
+  - **Tokens:** `tokens.json` é a fonte única. `npm run tokens` gera `src/theme/tokens.ts`, `widgets/ios/KimiTokens.swift` e `widgets/android/KimiTokens.kt`; `npm run tokens:check` falha se estiverem desatualizados (rode antes de commitar). Nunca escrever cor/tamanho solto no código: usar o tema (`useAppTheme()`, props do restyle).
+  - **Destaque laranja** `accent` `#D9400A` (escuro `#F05A1E`). O vermelho antigo (`#E10600`) saiu.
+  - **Tema escuro por padrão; o usuário troca em Perfil → Aparência** (Escuro / Claro / Seguir o sistema). Decisão do usuário que vale sobre o "seguir o sistema" do DESIGN-SYSTEM.md. A escolha fica no kv-store (`StorageKeys.appearance`) e é aplicada com `Appearance.setColorScheme` em `services/appearance.ts`, chamada no topo do `_layout.tsx` antes do primeiro render (sem piscar claro). O `userInterfaceStyle` fica `automatic` para a opção "Seguir o sistema" funcionar; o splash é sempre escuro. Splash e ícone adaptativo leem as cores de `tokens.json` via `app.config.ts`.
+  - **Fontes:** Barlow Condensed (display/título) + Inter (texto). Todas as variantes de texto usam `tabular-nums`.
+  - **Ícones:** Phosphor (`phosphor-react-native`, importado ícone a ícone em `components/Icon`); `bold` normal, `fill` ativo. Para um ícone novo, adicionar ao mapa `ICONS`.
+  - **Edges `success`/`warning`/`danger`** não estão no documento: foram derivadas a 25% mais escuras, como ele manda.
+- **Ícone e mascote:** fontes em `assets/brand/`: `kimi-icon.png` (ícone redesenhado, 1254px, sem alpha; o monocromático do Android é extraído da faixa laranja dele), `kimi-mascot.svg` = bravo, `kimi-mascot-celebrating.svg` = olhos redondos. No ícone adaptativo do Android a arte vai a 70% para os olhos caberem na área segura. O app renderiza os SVGs do mascote com `expo-image` (`<Mascot size="hero|empty|feedback" />`). Os PNGs de ícone/splash são gerados por `scripts/brand/render-icons.sh` (macOS); depois, `npx expo prebuild`. Mascote só em estados vazios, folha de feedback, onboarding e telas de marco.
 - **Sem animações** (o usuário faz o movimento). Cada estado visual fica separado, com `// TODO(motion): ...`.
 - **Ambiente:** Node 22, npm 10, Xcode 26.6, Docker OK, simulador "iPhone 17 Pro". **Android SDK ausente** na máquina.
 
@@ -51,9 +50,13 @@ src/
   domain/{Auth,Gym,Membership,Profile}/  xApi, xAdapter, xService, xTypes, xRules, useCases/, index
   infra/                env, supabase (client, database.types gerado, supabaseError), query, storage
   services/             session/, activeGym/, pendingInvite, useConsumePendingInvite
-  components/           Box, Text, Icon, Button (tátil), TextButton, TextField, Screen, Card, EmptyState
-  theme/                palette, fonts, theme (light/dark), useAppTheme, useSchemeTheme
+  components/           Box, Text, Icon, Button (tátil), TextButton (fantasma), TextField, Screen, Card,
+                        EmptyState, Mascot, ProgressBar, WaterRing, BigCounter, StatusBadge, BeltChip, FeedbackSheet
+  theme/                tokens (GERADO), fonts, theme (light/dark), useAppTheme, useSchemeTheme, useIsDark
   utils/                deepLinks, haptics
+scripts/tokens/            gerador de tokens (TS/Swift/Kotlin)
+scripts/brand/             renderização dos PNGs de ícone/splash a partir dos SVGs
+widgets/{ios,android}/     tokens gerados para os widgets (os targets nativos chegam nas fases 3/4)
 ```
 
 - **Aliases:** `@components`, `@domain/*`, `@infra`, `@screens/*`, `@services/*`, `@theme`, `@utils/*`. Estão no tsconfig (o Metro lê) e no `jest.moduleNameMapper`.
@@ -69,7 +72,7 @@ src/
 - **Academia ativa:** `ActiveGymProvider` resolve com `resolveActiveMembership` (a guardada no kv-store se ainda ativa, senão a primeira ativa). Troca no Perfil.
 - **Erros:** services fazem `throw toAppError(e)`. As RPCs levantam códigos de máquina (`invite_invalid`...) como mensagem da exception. A UI usa `errorMessage(e)` (pt-BR) de `@infra`.
 - **Tipos do banco:** `npm run db:types` após cada migration.
-- **Componentes:** `Screen` sempre esconde as barras de rolagem e recebe `footer` para a ação primária fixa. Dentro das tabs, usar `bottomInset={false}`.
+- **Componentes:** `Screen` sempre esconde as barras de rolagem e recebe `footer` para a ação primária fixa, ou `feedback` para a `FeedbackSheet`. Dentro das tabs, usar `bottomInset={false}`. `Button` e `Card` tocável disparam o haptic leve sozinhos. `EmptyState` usa o mascote (96) por padrão e `visual="icon"` (48) dentro de cards/seções.
 
 ## 4. Mapa de progresso (fases)
 

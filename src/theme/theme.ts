@@ -1,185 +1,96 @@
 import { createTheme } from '@shopify/restyle';
+import type { TextStyle } from 'react-native';
 
-import { palette } from './palette';
 import { fontFamily } from './fonts';
+import { tokens } from './tokens';
 
-/**
- * Semantic color tokens. Each "fill" color has a `*Edge` companion: the darker
- * bottom border that gives tactile buttons/cards their depth.
- */
-const lightColors = {
-  background: palette.offWhite,
-  surface: palette.white,
-  surfaceMuted: palette.graphite100,
-  border: palette.graphite200,
-  borderStrong: palette.graphite400,
+type Scheme = 'light' | 'dark';
 
-  text: palette.graphite900,
-  textMuted: palette.graphite500,
-  textOnPrimary: palette.white,
-  textOnStatus: palette.white,
+/** `#RRGGBB` + opacity token → rgba(). Use only with values from tokens.opacity. */
+export function withAlpha(hex: string, opacity: number): string {
+  const v = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(v.slice(i, i + 2), 16));
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
 
-  primary: palette.red500,
-  primaryEdge: palette.red700,
-  primarySoft: palette.red50,
+function buildColors(scheme: Scheme) {
+  const c = tokens.color[scheme];
+  const { opacity } = tokens;
+  const belt = tokens.color.belt;
+  return {
+    ...c,
+    ...tokens.color.on,
 
-  // "Recusado"/errors share the accent hue but always come with icon + text,
-  // never as a filled button (filled red is reserved for the primary action).
-  danger: palette.red500,
-  dangerSoft: palette.red50,
+    // Soft fills (section 3): selected card, status badges, feedback sheet, progress shine.
+    accentSelected: withAlpha(c.accent, opacity.selected),
+    badgePending: withAlpha(c.warning, opacity.badgePending),
+    badgeConfirmed: withAlpha(c.success, opacity.badgeConfirmed),
+    badgeRejected: withAlpha(c.danger, opacity.badgeRejected),
+    feedbackAccent: withAlpha(c.accent, opacity.feedback),
+    feedbackWater: withAlpha(c.water, opacity.feedback),
+    feedbackSuccess: withAlpha(c.success, opacity.feedback),
+    feedbackWarning: withAlpha(c.warning, opacity.feedback),
+    feedbackDanger: withAlpha(c.danger, opacity.feedback),
+    progressShine: withAlpha(tokens.color.on.shine, opacity.shine),
 
-  success: palette.green500,
-  successEdge: palette.green700,
-  successSoft: palette.green50,
+    beltWhite: belt.white,
+    beltGray: belt.gray,
+    beltYellow: belt.yellow,
+    beltOrange: belt.orange,
+    beltGreen: belt.green,
+    beltBlue: belt.blue,
+    beltPurple: belt.purple,
+    beltBrown: belt.brown,
+    beltBlack: belt.black,
+    beltRed: belt.red,
 
-  warning: palette.amber500,
-  warningEdge: palette.amber700,
-  warningSoft: palette.amber50,
+    transparent: 'transparent',
+  };
+}
 
-  neutralFill: palette.white,
-  neutralEdge: palette.graphite200,
-
-  tabIcon: palette.graphite400,
-  tabIconActive: palette.red500,
-
-  transparent: 'transparent',
-
-  beltWhite: palette.beltWhite,
-  beltBlue: palette.beltBlue,
-  beltPurple: palette.beltPurple,
-  beltBrown: palette.beltBrown,
-  beltBlack: palette.beltBlack,
-};
-
+const lightColors = buildColors('light');
 export type ColorToken = keyof typeof lightColors;
+const darkColors: Record<ColorToken, string> = buildColors('dark');
 
-const darkColors: Record<ColorToken, string> = {
-  ...lightColors,
-  background: palette.graphite900,
-  surface: palette.graphite850,
-  surfaceMuted: palette.graphite800,
-  border: palette.graphite700,
-  borderStrong: palette.graphite500,
+type ScaleName = keyof typeof tokens.font.scale;
 
-  text: palette.offWhite,
-  textMuted: palette.graphite400,
+/** Every text uses tabular figures so numbers don't jump when they change. */
+const TABULAR: TextStyle['fontVariant'] = ['tabular-nums'];
 
-  primary: palette.red400,
-  primaryEdge: palette.red700,
-  primarySoft: palette.red950,
-
-  danger: palette.red400,
-  dangerSoft: palette.red950,
-
-  successSoft: palette.green950,
-  warningSoft: palette.amber950,
-
-  neutralFill: palette.graphite850,
-  neutralEdge: palette.graphite950,
-
-  tabIcon: palette.graphite500,
-  tabIconActive: palette.red400,
-};
+function textVariant(name: ScaleName) {
+  const t: (typeof tokens.font.scale)[ScaleName] & { letterSpacing?: number; uppercase?: boolean } =
+    tokens.font.scale[name];
+  return {
+    fontFamily: fontFamily[t.family],
+    fontSize: t.size,
+    lineHeight: t.lineHeight,
+    fontVariant: TABULAR,
+    color: 'text' as const,
+    ...(t.letterSpacing ? { letterSpacing: t.letterSpacing } : {}),
+    ...(t.uppercase ? { textTransform: 'uppercase' as const } : {}),
+  };
+}
 
 export const lightTheme = createTheme({
   colors: lightColors,
-  spacing: {
-    none: 0,
-    s2: 2,
-    s4: 4,
-    s8: 8,
-    s12: 12,
-    s16: 16,
-    s20: 20,
-    s24: 24,
-    s32: 32,
-    s40: 40,
-    s56: 56,
-  },
-  // Slightly rounded everywhere. No pill shapes.
-  borderRadii: {
-    none: 0,
-    s: 6,
-    m: 8,
-    l: 12,
-  },
-  // Height of the darker bottom edge on tactile elements.
-  edge: {
-    tactile: 4,
-  },
+  spacing: { none: 0, ...tokens.space },
+  // Slightly rounded everywhere. Never pill-shaped (the progress bar radius is the only half-height one).
+  borderRadii: { none: 0, ...tokens.radius },
+  border: tokens.border,
+  size: tokens.size,
+  opacity: tokens.opacity,
   textVariants: {
-    defaults: {
-      fontFamily: fontFamily.regular,
-      fontSize: 16,
-      lineHeight: 22,
-      color: 'text',
-    },
-    // Big condensed numbers: ml, days, classes.
-    displayXL: {
-      fontFamily: fontFamily.condensedExtraBold,
-      fontSize: 72,
-      lineHeight: 74,
-      color: 'text',
-    },
-    display: {
-      fontFamily: fontFamily.condensedExtraBold,
-      fontSize: 48,
-      lineHeight: 52,
-      color: 'text',
-    },
-    number: {
-      fontFamily: fontFamily.condensedBold,
-      fontSize: 28,
-      lineHeight: 32,
-      color: 'text',
-    },
-    title: {
-      fontFamily: fontFamily.condensedBold,
-      fontSize: 32,
-      lineHeight: 36,
-      color: 'text',
-      textTransform: 'uppercase',
-    },
-    heading: {
-      fontFamily: fontFamily.bold,
-      fontSize: 20,
-      lineHeight: 26,
-      color: 'text',
-    },
-    body: {
-      fontFamily: fontFamily.regular,
-      fontSize: 16,
-      lineHeight: 22,
-      color: 'text',
-    },
-    bodyBold: {
-      fontFamily: fontFamily.semiBold,
-      fontSize: 16,
-      lineHeight: 22,
-      color: 'text',
-    },
-    caption: {
-      fontFamily: fontFamily.medium,
-      fontSize: 13,
-      lineHeight: 18,
-      color: 'textMuted',
-    },
-    label: {
-      fontFamily: fontFamily.condensedBold,
-      fontSize: 14,
-      lineHeight: 18,
-      letterSpacing: 0.8,
-      color: 'textMuted',
-      textTransform: 'uppercase',
-    },
-    button: {
-      fontFamily: fontFamily.condensedBold,
-      fontSize: 18,
-      lineHeight: 22,
-      letterSpacing: 0.8,
-      color: 'text',
-      textTransform: 'uppercase',
-    },
+    defaults: textVariant('body'),
+    displayXl: textVariant('displayXl'),
+    displayLg: textVariant('displayLg'),
+    title: textVariant('title'),
+    heading: textVariant('heading'),
+    body: textVariant('body'),
+    bodyStrong: textVariant('bodyStrong'),
+    caption: { ...textVariant('caption'), color: 'textMuted' as const },
+    /** Caption in caps: big-counter labels and section labels. */
+    captionCaps: { ...textVariant('caption'), color: 'textMuted' as const, textTransform: 'uppercase' as const },
+    button: textVariant('button'),
   },
   breakpoints: {},
 });
@@ -190,3 +101,5 @@ export const darkTheme: Theme = {
   ...lightTheme,
   colors: darkColors as Theme['colors'],
 };
+
+export type BeltColor = Extract<ColorToken, `belt${string}`>;

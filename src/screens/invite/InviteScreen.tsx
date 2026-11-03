@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, EmptyState, Screen, Text, TextButton } from '@components';
+import { Box, Button, Card, EmptyState, FeedbackSheet, Screen, Text, TextButton } from '@components';
 import { useInvitePreview } from '@domain/Gym';
 import { roleLabel, useRequestMembership } from '@domain/Membership';
 import { errorMessage } from '@infra';
@@ -35,7 +35,6 @@ export function InviteScreen() {
       <Screen scrollable={false} footer={<TextButton title="Fechar" onPress={close} />}>
         <Box flex={1} justifyContent="center">
           <EmptyState
-            icon="link-outline"
             title={isError ? 'Não foi possível abrir o convite' : 'Convite inválido'}
             description={
               isError
@@ -44,21 +43,6 @@ export function InviteScreen() {
             }
             action={isError ? <Button title="Tentar de novo" variant="secondary" onPress={() => refetch()} /> : undefined}
           />
-        </Box>
-      </Screen>
-    );
-  }
-
-  // Visual state: request sent (celebration moment).
-  if (sent) {
-    return (
-      <Screen scrollable={false} footer={<Button title="Continuar" onPress={() => router.replace('/')} />}>
-        <Box flex={1} justifyContent="center" gap="s12">
-          {/* TODO(motion): celebration entrance for the "pedido enviado" state. */}
-          <Text variant="title">Pedido enviado</Text>
-          <Text variant="body" color="textMuted">
-            Assim que um professor da {preview.gymName} aprovar, você entra na academia.
-          </Text>
         </Box>
       </Screen>
     );
@@ -98,9 +82,21 @@ export function InviteScreen() {
     </>
   );
 
+  // Visual state: request sent (celebration moment) — feedback sheet at the bottom.
+  const sentFeedback = sent ? (
+    <FeedbackSheet
+      tone="success"
+      title="Pedido enviado"
+      message={`Assim que um professor da ${preview.gymName} aprovar, você entra na academia.`}
+      actionLabel="Continuar"
+      onAction={() => router.replace('/')}
+    />
+  ) : undefined;
+
   return (
     <Screen
       scrollable={false}
+      feedback={sentFeedback}
       footer={
         <>
           {session ? signedInActions : signedOutActions}
@@ -109,10 +105,10 @@ export function InviteScreen() {
       }
     >
       <Box flex={1} justifyContent="center" gap="s16">
-        <Text variant="label">Convite</Text>
+        <Text variant="captionCaps">Convite</Text>
         <Card gap="s8">
           <Text variant="title">{preview.gymName}</Text>
-          <Text variant="bodyBold" color="textMuted">
+          <Text variant="bodyStrong" color="textMuted">
             Entrar como {roleLabel[preview.role].toLowerCase()}
           </Text>
         </Card>

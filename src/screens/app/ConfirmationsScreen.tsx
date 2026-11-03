@@ -14,17 +14,18 @@ export function ConfirmationsScreen() {
   return (
     <Screen title="Confirmações" bottomInset={false}>
       <Box gap="s12">
-        <Text variant="label">Pedidos de entrada</Text>
+        <Text variant="captionCaps">Pedidos de entrada</Text>
         {requests.isLoading ? <ActivityIndicator /> : null}
         {requests.isError ? (
           <EmptyState
-            icon="cloud-offline-outline"
+            visual="icon"
+            icon="offline"
             title="Não foi possível carregar os pedidos"
             action={<Button title="Tentar de novo" variant="secondary" onPress={() => requests.refetch()} />}
           />
         ) : null}
         {requests.data?.length === 0 ? (
-          <EmptyState icon="checkmark-done-outline" title="Tudo em dia" description="Nenhum pedido pendente." />
+          <EmptyState visual="icon" icon="checks" title="Tudo em dia" description="Nenhum pedido pendente." />
         ) : null}
         {requests.data?.map((request) => (
           <RequestCard key={request.membershipId} request={request} />
@@ -62,10 +63,10 @@ function RequestCard({ request }: { request: PendingRequest }) {
 
   return (
     <Card gap="s12">
-      <Box gap="s2">
+      <Box gap="s4">
         <Text variant="heading">{request.fullName}</Text>
         <Text variant="caption">{request.email}</Text>
-        <Text variant="label" color={request.role === 'professor' ? 'warning' : 'textMuted'}>
+        <Text variant="captionCaps" color={request.role === 'professor' ? 'text' : 'textMuted'}>
           Quer entrar como {roleLabel[request.role].toLowerCase()}
         </Text>
       </Box>
@@ -74,7 +75,7 @@ function RequestCard({ request }: { request: PendingRequest }) {
           <Button title="Recusar" variant="secondary" disabled={decide.isPending} onPress={() => run(false)} />
         </Box>
         <Box flex={1}>
-          <Button title="Aprovar" variant="success" loading={decide.isPending} onPress={confirmApprove} />
+          <Button title="Aprovar" variant="primary" loading={decide.isPending} onPress={confirmApprove} />
         </Box>
       </Box>
     </Card>

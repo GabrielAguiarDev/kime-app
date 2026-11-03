@@ -23,7 +23,7 @@ export function AppleSignInButton() {
     <Button
       title="Continuar com Apple"
       variant="secondary"
-      icon="logo-apple"
+      icon="apple"
       loading={isPending}
       onPress={() => mutate(undefined, { onError: (e) => Alert.alert('Entrar', errorMessage(e)) })}
     />

@@ -5,6 +5,6 @@
 export const DEV_PASSWORD = 'kimi12345';
 
 export const devAccounts = [
-  { label: 'Entrar como aluno', email: 'aluno@kimi.dev', icon: 'person-outline' },
-  { label: 'Entrar como professor', email: 'professor@kimi.dev', icon: 'ribbon-outline' },
+  { label: 'Entrar como aluno', email: 'aluno@kimi.dev', icon: 'user' },
+  { label: 'Entrar como professor', email: 'professor@kimi.dev', icon: 'professor' },
 ] as const;

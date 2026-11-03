@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "br.com.kimi.app",
@@ -13,7 +13,6 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#121417",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -30,14 +29,7 @@
       "expo-sqlite",
       "expo-font",
       "expo-apple-authentication",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#121417",
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 120
-        }
-      ]
+      "expo-image"
     ],
     "scheme": "kimi",
     "experiments": {

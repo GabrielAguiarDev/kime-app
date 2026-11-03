@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
-    "@expo-google-fonts/barlow": "^0.4.1",
     "@expo-google-fonts/barlow-condensed": "^0.4.1",
-    "@expo/vector-icons": "^15.0.2",
+    "@expo-google-fonts/inter": "^0.4.2",
     "@shopify/restyle": "^2.4.5",
     "@supabase/supabase-js": "^2.118.0",
     "@tanstack/react-query": "^5.105.3",
@@ -16,17 +15,20 @@
     "expo-dev-client": "~58.0.18",
     "expo-font": "~58.0.11",
     "expo-haptics": "~58.0.7",
+    "expo-image": "~58.0.18",
     "expo-linking": "~58.0.16",
     "expo-router": "~58.0.30",
     "expo-splash-screen": "~58.0.13",
     "expo-sqlite": "~58.0.15",
     "expo-status-bar": "~58.0.4",
     "expo-system-ui": "~58.0.7",
+    "phosphor-react-native": "^3.0.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
     "react-native-safe-area-context": "~5.11.1",
-    "react-native-screens": "~4.30.1"
+    "react-native-screens": "~4.30.1",
+    "react-native-svg": "15.16.0"
   },
   "devDependencies": {
     "@types/jest": "30.0.0",
@@ -39,15 +41,17 @@
   },
   "scripts": {
     "start": "expo start --dev-client",
-    "ios": "expo run:ios",
-    "android": "expo run:android",
+    "ios": "expo run:ios --device",
+    "android": "expo run:android --device",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript > src/infra/supabase/database.types.ts",
-    "test": "jest"
+    "test": "jest",
+    "tokens": "node scripts/tokens/generate.mjs",
+    "tokens:check": "node scripts/tokens/generate.mjs --check"
   },
   "private": true,
   "jest": {

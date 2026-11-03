@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { ActivityIndicator, Alert } from 'react-native';
 
-import { Box, Button, Card, EmptyState, Icon, Screen, Text, TextButton } from '@components';
+import { Box, Button, Card, EmptyState, Mascot, Screen, StatusBadge, Text, TextButton } from '@components';
 import { useSignOut } from '@domain/Auth';
 import { roleLabel } from '@domain/Membership';
 import { errorMessage } from '@infra';
@@ -42,7 +42,6 @@ export function WelcomeScreen() {
       <Screen scrollable={false} footer={footer}>
         <Box flex={1} justifyContent="center">
           <EmptyState
-            icon="cloud-offline-outline"
             title="Não foi possível carregar suas academias"
             description="Verifique sua conexão."
             action={<Button title="Tentar de novo" variant="secondary" onPress={refetch} />}
@@ -61,11 +60,11 @@ export function WelcomeScreen() {
           </Text>
           {pending.map((m) => (
             <Card key={m.id} flexDirection="row" alignItems="center" gap="s12">
-              <Icon name="time-outline" color="warning" />
               <Box flex={1}>
-                <Text variant="bodyBold">{m.gymName}</Text>
-                <Text variant="caption">{roleLabel[m.role]} · pendente</Text>
+                <Text variant="bodyStrong">{m.gymName}</Text>
+                <Text variant="caption">{roleLabel[m.role]}</Text>
               </Box>
+              <StatusBadge status="pending" />
             </Card>
           ))}
           <Box marginTop="s8">
@@ -85,6 +84,7 @@ export function WelcomeScreen() {
   return (
     <Screen scrollable={false} footer={footer}>
       <Box flex={1} justifyContent="center" gap="s12">
+        <Mascot size="hero" />
         <Text variant="title">Bem-vindo ao Kimi</Text>
         <Text variant="body" color="textMuted">
           Professor? Cadastre sua academia e convide seus alunos.

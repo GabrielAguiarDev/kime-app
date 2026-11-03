@@ -7,6 +7,7 @@ import Storage from 'expo-sqlite/kv-store';
 export const StorageKeys = {
   activeGymId: 'kimi.activeGymId',
   pendingInviteToken: 'kimi.pendingInviteToken',
+  appearance: 'kimi.appearance',
 } as const;
 
 type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

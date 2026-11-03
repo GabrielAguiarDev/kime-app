@@ -1,37 +1,11 @@
-import { Pressable, type PressableProps } from 'react-native';
+import { Button, type ButtonProps, type GhostColor } from './Button';
 
-import type { ColorToken } from '@theme';
-
-import { Text } from '../Text/Text';
-
-interface TextButtonProps extends Omit<PressableProps, 'children'> {
-  title: string;
-  color?: ColorToken;
+interface TextButtonProps extends Omit<ButtonProps, 'variant' | 'ghostColor'> {
+  /** Default `accent`. `textMuted` for low-priority links, `danger` for destructive ones. */
+  color?: GhostColor;
 }
 
-/**
- * Low-emphasis action (links, "Sair"). Visual states: rest, pressed (dimmed),
- * disabled (muted color).
- */
-export function TextButton({ title, color = 'primary', disabled, ...props }: TextButtonProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
-      hitSlop={8}
-      disabled={disabled}
-      {...props}
-    >
-      {({ pressed }) => (
-        <Text
-          variant="bodyBold"
-          color={disabled ? 'borderStrong' : color}
-          opacity={pressed ? 0.6 : 1}
-          textAlign="center"
-        >
-          {title}
-        </Text>
-      )}
-    </Pressable>
-  );
+/** Low-emphasis action: the "Fantasma" (ghost) variant of the tactile button (3.1). */
+export function TextButton({ color = 'accent', ...props }: TextButtonProps) {
+  return <Button variant="ghost" ghostColor={color} {...props} />;
 }

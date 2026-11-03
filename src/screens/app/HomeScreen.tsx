@@ -13,13 +13,14 @@ export function HomeScreen() {
   return (
     <Screen bottomInset={false}>
       <Box gap="s4" marginBottom="s24">
-        <Text variant="label">{active ? `${active.gymName} · ${roleLabel[active.role]}` : ''}</Text>
+        <Text variant="captionCaps">{active ? `${active.gymName} · ${roleLabel[active.role]}` : ''}</Text>
         <Text variant="title">{firstName ? `Olá, ${firstName}` : 'Olá'}</Text>
       </Box>
       {/* Phase 2+: class progress, water and countdown cards land here. */}
       <Card>
         <EmptyState
-          icon="barbell-outline"
+          visual="icon"
+          icon="barbell"
           title="Seu progresso aparece aqui"
           description="Aulas, faixa e sequência semanal chegam na próxima etapa."
         />

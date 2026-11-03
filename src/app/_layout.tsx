@@ -14,11 +14,14 @@ import { useColorScheme } from 'react-native';
 
 import { queryClient } from '@infra';
 import { ActiveGymProvider, useActiveGym } from '@services/activeGym';
+import { initAppearance } from '@services/appearance';
 import { useConsumePendingInvite } from '@services/useConsumePendingInvite';
 import { SessionProvider, useSession } from '@services/session';
 import { fontAssets, useSchemeTheme } from '@theme';
 
 SplashScreen.preventAutoHideAsync();
+// Apply the saved theme (default dark) before anything renders.
+initAppearance();
 
 export default function RootLayout() {
   const theme = useSchemeTheme();
@@ -31,11 +34,11 @@ export default function RootLayout() {
       ...base,
       colors: {
         ...base.colors,
-        background: theme.colors.background,
+        background: theme.colors.bg,
         card: theme.colors.surface,
         text: theme.colors.text,
         border: theme.colors.border,
-        primary: theme.colors.primary,
+        primary: theme.colors.accent,
       },
     };
   }, [scheme, theme]);

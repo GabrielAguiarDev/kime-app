@@ -1,29 +1,20 @@
 import {
-  Barlow_400Regular,
-  Barlow_500Medium,
-  Barlow_600SemiBold,
-  Barlow_700Bold,
-} from '@expo-google-fonts/barlow';
-import {
   BarlowCondensed_700Bold,
   BarlowCondensed_800ExtraBold,
 } from '@expo-google-fonts/barlow-condensed';
+import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 
-/** Font map loaded at boot (see src/app/_layout.tsx). */
+import { tokens } from './tokens';
+
+/** Font map loaded at boot (see src/app/_layout.tsx). Keys are the family names used in tokens.json. */
 export const fontAssets = {
-  Barlow_400Regular,
-  Barlow_500Medium,
-  Barlow_600SemiBold,
-  Barlow_700Bold,
   BarlowCondensed_700Bold,
   BarlowCondensed_800ExtraBold,
+  Inter_400Regular,
+  Inter_600SemiBold,
+  Inter_700Bold,
 };
 
-export const fontFamily = {
-  regular: 'Barlow_400Regular',
-  medium: 'Barlow_500Medium',
-  semiBold: 'Barlow_600SemiBold',
-  bold: 'Barlow_700Bold',
-  condensedBold: 'BarlowCondensed_700Bold',
-  condensedExtraBold: 'BarlowCondensed_800ExtraBold',
-} as const satisfies Record<string, keyof typeof fontAssets>;
+/** Font families from tokens.json — the type check fails if a token names a font that isn't loaded. */
+export const fontFamily: Record<keyof typeof tokens.font.family, keyof typeof fontAssets> =
+  tokens.font.family;

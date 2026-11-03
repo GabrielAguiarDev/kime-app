@@ -1,30 +1,41 @@
-import { ActivityIndicator, Pressable, type PressableProps } from 'react-native';
+import { ActivityIndicator, Pressable, type GestureResponderEvent, type PressableProps } from 'react-native';
 
 import { useAppTheme, type ColorToken } from '@theme';
+import { haptics } from '@utils/haptics';
 
 import { Box } from '../Box/Box';
 import { Icon, type IconName } from '../Icon/Icon';
 import { Text } from '../Text/Text';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'success';
+export type ButtonVariant = 'primary' | 'water' | 'secondary' | 'danger' | 'ghost';
+
+/** Ghost buttons may use a muted or danger text for low-priority / destructive links. */
+export type GhostColor = Extract<ColorToken, 'accent' | 'textMuted' | 'danger'>;
 
 /**
- * Visual state of the tactile button. Each one is a separate static style —
- * there is no animation between them.
- *  - rest:     raised, darker bottom edge visible
- *  - pressed:  edge collapses, face moves down by the edge height
- *  - disabled: flat, muted
- *  - loading:  rest look with spinner, not pressable
+ * Visual state of the tactile button (DESIGN-SYSTEM.md, 3.1). Each one is a separate static
+ * style — changes are instant, with no transition.
+ *  - rest:     raised, solid bottom edge (4px) visible
+ *  - pressed:  face moves down 4px and the edge disappears ("sinks")
+ *  - disabled: `disabled` fill, no edge, muted text
+ *  - loading:  rest look with a spinner, not pressable
  */
 export type ButtonVisualState = 'rest' | 'pressed' | 'disabled' | 'loading';
 
-const VARIANTS: Record<
-  ButtonVariant,
-  { fill: ColorToken; edge: ColorToken; text: ColorToken; border?: ColorToken }
-> = {
-  primary: { fill: 'primary', edge: 'primaryEdge', text: 'textOnPrimary' },
-  success: { fill: 'success', edge: 'successEdge', text: 'textOnStatus' },
-  secondary: { fill: 'neutralFill', edge: 'neutralEdge', text: 'text', border: 'border' },
+type VariantStyle = { fill: ColorToken; edge: ColorToken | null; text: ColorToken; border?: ColorToken };
+
+const VARIANTS: Record<Exclude<ButtonVariant, 'ghost'>, VariantStyle> = {
+  primary: { fill: 'accent', edge: 'accentEdge', text: 'onAccent' },
+  water: { fill: 'water', edge: 'waterEdge', text: 'onWater' },
+  secondary: { fill: 'surface', edge: 'edge', text: 'text', border: 'border' },
+  danger: { fill: 'danger', edge: 'dangerEdge', text: 'onDanger' },
+};
+
+/** Pressed fill of the ghost variant, matching its text color. */
+const GHOST_PRESSED: Record<GhostColor, ColorToken> = {
+  accent: 'accentSelected',
+  danger: 'badgeRejected',
+  textMuted: 'border',
 };
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
@@ -32,6 +43,10 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
   variant?: ButtonVariant;
   icon?: IconName;
   loading?: boolean;
+  /** Full width by default (3.1). */
+  fullWidth?: boolean;
+  /** Text color for the ghost variant only (default `accent`). */
+  ghostColor?: GhostColor;
 }
 
 export function Button({
@@ -39,19 +54,32 @@ export function Button({
   variant = 'primary',
   icon,
   loading = false,
+  fullWidth = true,
+  ghostColor = 'accent',
   disabled,
+  onPress,
   ...pressableProps
 }: ButtonProps) {
-  const { edge, colors } = useAppTheme();
-  const v = VARIANTS[variant];
-  const isDisabled = disabled || loading;
+  const theme = useAppTheme();
+  const isDisabled = !!disabled || loading;
+  const isGhost = variant === 'ghost';
+  const v: VariantStyle = isGhost
+    ? { fill: 'transparent', edge: null, text: ghostColor }
+    : VARIANTS[variant];
+
+  const handlePress = (e: GestureResponderEvent) => {
+    haptics.tap();
+    onPress?.(e);
+  };
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: !!isDisabled, busy: loading }}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       accessibilityLabel={title}
       disabled={isDisabled}
+      onPress={handlePress}
+      style={{ alignSelf: fullWidth ? 'stretch' : 'flex-start' }}
       {...pressableProps}
     >
       {({ pressed }) => {
@@ -62,23 +90,31 @@ export function Button({
             : pressed
               ? 'pressed'
               : 'rest';
-        // TODO(motion): animate edge collapse + face translateY between rest and pressed.
-        const edgeHeight = state === 'pressed' || state === 'disabled' ? 0 : edge.tactile;
-        const offset = edge.tactile - edgeHeight;
+        // TODO(motion): tactile button sinking on press (edge collapses, face moves down) and rising back.
+        const edgeHeight = v.edge && (state === 'rest' || state === 'loading') ? theme.border.edgeWidth : 0;
+        // Keeps the total height constant: what the edge loses goes on top.
+        const offset = v.edge ? theme.border.edgeWidth - edgeHeight : 0;
+        const faceColor: ColorToken =
+          state === 'disabled' && !isGhost
+            ? 'disabled'
+            : isGhost && state === 'pressed'
+              ? GHOST_PRESSED[ghostColor]
+              : v.fill;
+        const textColor: ColorToken = state === 'disabled' ? 'textMuted' : v.text;
 
         return (
           <Box style={{ paddingTop: offset }}>
             <Box
-              backgroundColor={state === 'disabled' ? 'surfaceMuted' : v.edge}
-              borderRadius="m"
+              backgroundColor={v.edge && edgeHeight > 0 ? v.edge : 'transparent'}
+              borderRadius="md"
               style={{ paddingBottom: edgeHeight }}
             >
               <Box
-                backgroundColor={state === 'disabled' ? 'surfaceMuted' : v.fill}
-                borderRadius="m"
-                borderWidth={v.border ? 1 : 0}
+                backgroundColor={faceColor}
+                borderRadius="md"
+                borderWidth={v.border && state !== 'disabled' ? theme.border.width : 0}
                 borderColor={v.border ?? 'transparent'}
-                minHeight={52}
+                minHeight={theme.size.button}
                 paddingHorizontal="s20"
                 flexDirection="row"
                 alignItems="center"
@@ -86,13 +122,11 @@ export function Button({
                 gap="s8"
               >
                 {state === 'loading' ? (
-                  <ActivityIndicator color={colors[v.text]} />
+                  <ActivityIndicator color={theme.colors[v.text]} />
                 ) : (
                   <>
-                    {icon ? (
-                      <Icon name={icon} size={20} color={state === 'disabled' ? 'textMuted' : v.text} />
-                    ) : null}
-                    <Text variant="button" color={state === 'disabled' ? 'textMuted' : v.text}>
+                    {icon ? <Icon name={icon} color={textColor} /> : null}
+                    <Text variant="button" color={textColor}>
                       {title}
                     </Text>
                   </>

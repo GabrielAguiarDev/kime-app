@@ -31,9 +31,7 @@ export function SignInScreen() {
       }
     >
       <Box flex={1} justifyContent="center" gap="s16">
-        <Text variant="displayXL" color="primary">
-          KIMI
-        </Text>
+        <Text variant="displayXl">KIMI</Text>
         <Text variant="heading">Entre para ver seus treinos.</Text>
         <TextField
           label="E-mail"

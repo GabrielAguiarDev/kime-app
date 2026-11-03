@@ -1,38 +1,52 @@
 import type { ReactNode } from 'react';
 
+import { useAppTheme } from '@theme';
+
 import { Box } from '../Box/Box';
 import { Icon, type IconName } from '../Icon/Icon';
+import { Mascot } from '../Mascot/Mascot';
 import { Text } from '../Text/Text';
 
-interface EmptyStateProps {
-  icon: IconName;
-  title: string;
-  description?: string;
-  action?: ReactNode;
-}
+type EmptyStateVisual =
+  /** Default: the mascot at medium size (96). */
+  | { visual?: 'mascot'; icon?: never }
+  /** A 48 icon in text-muted, for small spaces (inside a card or a list section). */
+  | { visual: 'icon'; icon: IconName };
 
-export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
+type EmptyStateProps = EmptyStateVisual & {
+  /** Short sentence (body). */
+  title: string;
+  /** Optional second line, muted. */
+  description?: string;
+  /** Secondary tactile button, when there is an action. */
+  action?: ReactNode;
+};
+
+/** Empty state (DESIGN-SYSTEM.md, 3.11). No illustration other than the mascot. */
+export function EmptyState({ title, description, action, visual = 'mascot', icon }: EmptyStateProps) {
+  const { size } = useAppTheme();
   return (
-    <Box alignItems="center" paddingVertical="s40" paddingHorizontal="s16" gap="s12">
-      <Box
-        width={64}
-        height={64}
-        borderRadius="l"
-        backgroundColor="surfaceMuted"
-        alignItems="center"
-        justifyContent="center"
-      >
-        <Icon name={icon} size={30} color="textMuted" />
-      </Box>
-      <Text variant="heading" textAlign="center">
-        {title}
-      </Text>
-      {description ? (
-        <Text variant="body" color="textMuted" textAlign="center">
-          {description}
+    <Box alignItems="center" paddingVertical="s32" paddingHorizontal="s16" gap="s12">
+      {visual === 'icon' && icon ? (
+        <Icon name={icon} size={size.iconEmpty} color="textMuted" />
+      ) : (
+        <Mascot size="empty" />
+      )}
+      <Box gap="s4">
+        <Text variant="body" textAlign="center">
+          {title}
         </Text>
+        {description ? (
+          <Text variant="body" color="textMuted" textAlign="center">
+            {description}
+          </Text>
+        ) : null}
+      </Box>
+      {action ? (
+        <Box alignSelf="stretch" marginTop="s8">
+          {action}
+        </Box>
       ) : null}
-      {action ? <Box alignSelf="stretch" marginTop="s8">{action}</Box> : null}
     </Box>
   );
 }

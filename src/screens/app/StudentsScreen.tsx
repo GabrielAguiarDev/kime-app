@@ -29,11 +29,12 @@ export function StudentsScreen() {
   return (
     <Screen title="Alunos" bottomInset={false}>
       <Box gap="s12" marginBottom="s32">
-        <Text variant="label">Convites</Text>
+        <Text variant="captionCaps">Convites</Text>
         {invites.isLoading ? <ActivityIndicator /> : null}
         {invites.isError ? (
           <EmptyState
-            icon="cloud-offline-outline"
+            visual="icon"
+            icon="offline"
             title="Não foi possível carregar os convites"
             action={<Button title="Tentar de novo" variant="secondary" onPress={() => invites.refetch()} />}
           />
@@ -44,11 +45,12 @@ export function StudentsScreen() {
       </Box>
 
       <Box gap="s12">
-        <Text variant="label">Membros ({members.data?.length ?? 0})</Text>
+        <Text variant="captionCaps">Membros ({members.data?.length ?? 0})</Text>
         {members.isLoading ? <ActivityIndicator /> : null}
         {members.isError ? (
           <EmptyState
-            icon="cloud-offline-outline"
+            visual="icon"
+            icon="offline"
             title="Não foi possível carregar os membros"
             action={<Button title="Tentar de novo" variant="secondary" onPress={() => members.refetch()} />}
           />
@@ -92,7 +94,7 @@ function InviteCard({ invite, gymId, gymName }: { invite: GymInvite; gymId: stri
         <Text variant="heading">{copy.title}</Text>
         <Text variant="caption">{copy.description}</Text>
       </Box>
-      <Button title="Compartilhar link" icon="share-outline" variant="secondary" onPress={share} />
+      <Button title="Compartilhar link" icon="share" variant="secondary" onPress={share} />
       <TextButton title="Gerar novo link" color="textMuted" onPress={confirmRotate} disabled={rotate.isPending} />
     </Card>
   );
@@ -116,9 +118,9 @@ function MemberRow({ member }: { member: GymMember }) {
 
   return (
     <Card flexDirection="row" alignItems="center" gap="s12">
-      <Icon name={member.role === 'professor' ? 'ribbon-outline' : 'person-outline'} color="textMuted" />
+      <Icon name={member.role === 'professor' ? 'professor' : 'user'} color="textMuted" />
       <Box flex={1}>
-        <Text variant="bodyBold">
+        <Text variant="bodyStrong">
           {member.fullName}
           {isSelf ? ' (você)' : ''}
         </Text>
@@ -127,7 +129,8 @@ function MemberRow({ member }: { member: GymMember }) {
       {!isSelf ? (
         <TextButton
           title="Remover"
-          color="textMuted"
+          color="danger"
+          fullWidth={false}
           onPress={confirmRemove}
           disabled={remove.isPending}
           accessibilityLabel={`Remover ${member.fullName}`}

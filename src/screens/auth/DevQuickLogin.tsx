@@ -1,4 +1,5 @@
 import { Box, Button, Text } from '@components';
+import { useAppTheme } from '@theme';
 import { useSignIn } from '@domain/Auth';
 import { errorMessage } from '@infra';
 import { DEV_PASSWORD, devAccounts } from '@dev/devAccounts';
@@ -9,10 +10,11 @@ import { DEV_PASSWORD, devAccounts } from '@dev/devAccounts';
  */
 export function DevQuickLogin() {
   const { mutate, isPending, variables, error } = useSignIn();
+  const { border } = useAppTheme();
 
   return (
-    <Box gap="s8" borderTopWidth={1} borderColor="border" paddingTop="s16">
-      <Text variant="label">Atalhos de teste</Text>
+    <Box gap="s8" borderTopWidth={border.width} borderColor="border" paddingTop="s16">
+      <Text variant="captionCaps">Atalhos de teste</Text>
       {devAccounts.map((account) => (
         <Button
           key={account.email}
