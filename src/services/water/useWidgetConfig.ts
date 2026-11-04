@@ -6,6 +6,8 @@ import { useRouteAccess } from '@services/access';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 
+import { usePlannedWater } from './usePlannedWater';
+
 /**
  * Keeps `water.config` (read by the widgets) in step with the profile: user,
  * bottle, daily goal and time zone.
@@ -15,7 +17,8 @@ import { useSession } from '@services/session';
  * widget shows "Entre no Kimi para registrar sua água." without the add
  * button; a tap opens kimi:// → the entry flow / waiting screen.
  *
- * Phase 4: pass the professor's plan for today as `plannedMl`.
+ * Competitors: `goalsByDate` carries the professor's plan for the next days,
+ * so the widget's goal follows the plan after midnight without the app.
  */
 export function useWidgetConfig() {
   const { userId } = useSession();
@@ -23,6 +26,8 @@ export function useWidgetConfig() {
   const { isLoading: membershipsLoading, isError: membershipsError } = useActiveGym();
   const allowed = !!userId && level === 'member';
   const { data: profile } = useMyProfile(allowed ? userId : undefined);
+  const planned = usePlannedWater(profile?.timeZone);
+  const goalsKey = JSON.stringify(planned.byDate);
   const published = useRef(false);
 
   useEffect(() => {
@@ -34,13 +39,15 @@ export function useWidgetConfig() {
       published.current = false;
       return;
     }
-    if (!profile) return;
+    if (!profile || planned.isLoading) return;
     published.current = true;
+    const goalsByDate = JSON.parse(goalsKey) as Record<string, number>;
     waterService.publishConfig({
       userId: userId!,
       bottleMl: profile.bottleMl,
       goalMl: dailyGoal({ weightKg: profile.weightKg }).goalMl,
       timeZone: profile.timeZone,
+      ...(Object.keys(goalsByDate).length > 0 ? { goalsByDate } : {}),
     });
-  }, [allowed, userId, profile, membershipsLoading, membershipsError]);
+  }, [allowed, userId, profile, membershipsLoading, membershipsError, planned.isLoading, goalsKey]);
 }

@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { queryClient } from "@infra";
 import { useNativeHeaderOptions } from "@components";
 import { useRouteAccess } from "@services/access";
+import { useCountdownWidget } from "@services/competition";
 import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
 import { ConfirmProvider } from "@services/confirm";
 import { useConsumePendingCode } from "@services/entry";
@@ -80,6 +81,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   useConsumePendingCode();
   useWaterSync();
   useWidgetConfig();
+  useCountdownWidget();
 
   // Gate only the boot. After that the Stack stays mounted; screens show their
   // own loading state (e.g. memberships loading right after sign-in).
@@ -116,6 +118,10 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
       <Stack.Protected guard={access.staff} redirectTo={redirectTo}>
         <Stack.Screen name="academy/schedules" options={header} />
         <Stack.Screen name="member/[membershipId]" options={header} />
+        <Stack.Screen name="academy/championships" options={header} />
+        <Stack.Screen name="academy/championship" options={header} />
+        <Stack.Screen name="athlete/water-plan" options={header} />
+        <Stack.Screen name="athlete/progress" options={header} />
       </Stack.Protected>
       <Stack.Protected guard={access.owner} redirectTo={redirectTo}>
         <Stack.Screen name="academy/settings" options={header} />

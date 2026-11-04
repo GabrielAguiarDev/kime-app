@@ -49,6 +49,7 @@ describe('routeAccess', () => {
 describe('normalizeExternalPath', () => {
   it.each([
     ['kimi://agua', '/agua'],
+    ['kimi://competition', '/competition'],
     ['kimi:///agua', '/agua'],
     ['kimi://agua/configurar', '/agua/configurar'],
     ['/agua', '/agua'],

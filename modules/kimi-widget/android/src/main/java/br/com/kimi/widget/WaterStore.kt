@@ -17,7 +17,9 @@ import java.util.UUID
  *
  * Contract (same on iOS, see KimiWidgetModule.swift and targets/widgets/WaterStore.swift):
  * - SharedPreferences `kimi_widget`, one string value per key.
- * - `water.config`   JSON {userId, bottleMl|null, goalMl|null, timeZone}, written by the app.
+ * - `water.config`   JSON {userId, bottleMl|null, goalMl|null, timeZone, goalsByDate?}, written by the app.
+ *   `goalsByDate` ({"YYYY-MM-DD": ml}) is the professor's plan; it replaces `goalMl` on those dates.
+ * - `competition.championships` JSON {userId, timeZone, items: [{name, date, location}]} (CountdownWidget).
  * - `water.log.<id>` JSON {id, userId, amountMl, loggedAt (ISO 8601 UTC), source, synced, deleted}.
  *   One key per log, so the app and the widget never rewrite the same value.
  */
@@ -26,7 +28,16 @@ object WaterStore {
   const val CONFIG_KEY = "water.config"
   const val LOG_PREFIX = "water.log."
 
-  data class Config(val userId: String, val bottleMl: Int?, val goalMl: Int?, val timeZone: TimeZone)
+  data class Config(
+    val userId: String,
+    val bottleMl: Int?,
+    val goalMl: Int?,
+    val timeZone: TimeZone,
+    val goalsByDate: Map<String, Int> = emptyMap(),
+  ) {
+    /** Goal of the local day of [now]: the professor's plan when there is one, else the automatic goal. */
+    fun goalOn(now: Date = Date()): Int? = goalsByDate[WaterStore.dayKey(now, timeZone)] ?: goalMl
+  }
 
   /**
    * Bumped on every write (app, widget button, midnight alarm). The widget
@@ -51,18 +62,20 @@ object WaterStore {
     val raw = prefs(context).getString(CONFIG_KEY, null) ?: return null
     return try {
       val json = JSONObject(raw)
+      val goals = json.optJSONObject("goalsByDate")
       Config(
         userId = json.getString("userId"),
         bottleMl = if (json.isNull("bottleMl")) null else json.getInt("bottleMl"),
         goalMl = if (json.isNull("goalMl")) null else json.getInt("goalMl"),
         timeZone = TimeZone.getTimeZone(json.optString("timeZone", "America/Sao_Paulo")),
+        goalsByDate = goals?.keys()?.asSequence()?.associateWith { goals.getInt(it) } ?: emptyMap(),
       )
     } catch (e: Exception) {
       null
     }
   }
 
-  private fun dayKey(date: Date, zone: TimeZone): String =
+  fun dayKey(date: Date, zone: TimeZone): String =
     SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = zone }.format(date)
 
   /** ml logged by this user on the local day of [now] (profile time zone), ignoring undone logs. */

@@ -35,6 +35,7 @@ import {
 } from '@domain/Classes';
 import { membershipLabel, useGymMembers, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
+import { CompetitorSection } from '@screens/competition/CompetitorSection';
 import { useActiveGym } from '@services/activeGym';
 import { haptics } from '@utils/haptics';
 
@@ -156,6 +157,8 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
             stats={own.find((s) => s.modalityId === selected.id)}
           />
         ) : null}
+
+        <CompetitorSection member={member} />
 
         <Box gap="s12">
           <Text variant="captionCaps">Histórico de faixas</Text>

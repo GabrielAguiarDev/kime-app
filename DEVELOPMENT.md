@@ -1,7 +1,7 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: correções pré-Fase 3 (guard, perfil, modalidades e faixas) — 2026-11-04
+> Última atualização: Fase 4 (competidores + widget de contagem) — 2026-11-04
 
 ## 1. Visão geral
 
@@ -49,10 +49,10 @@ src/
     (onboarding)/       welcome (espera / recusado / sem academia), create-gym
     (tabs)/             home, classes, competition, students, confirmations, profile (cada uma: pasta com _layout Stack + index)
     entrar.tsx          código → confirmação da academia; sempre acessível; deep link kimi://entrar?codigo=XXXXXXXX
-  screens/{auth,entry,onboarding,app,professor,student,water}/
-  domain/{Auth,Gym,Membership,Profile,Classes,Water}/  xApi, xAdapter, xService, xTypes, xRules, useCases/, index
+  screens/{auth,entry,onboarding,app,professor,student,water,competition}/
+  domain/{Auth,Gym,Membership,Profile,Classes,Water,Competition}/  xApi, xAdapter, xService, xTypes, xRules, useCases/, index
   infra/                env, supabase (client, database.types gerado, supabaseError), query, storage, widget (sharedStore)
-  services/             session/, activeGym/, entry/ (entryPath, pendingCode, useConsumePendingCode), confirm/, water/ (sync, config do widget, folha de meta)
+  services/             session/, activeGym/, entry/ (entryPath, pendingCode, useConsumePendingCode), confirm/, water/ (sync, config do widget, folha de meta, plano do professor), competition/ (widget de contagem)
   components/           Box, Text, Icon, Button (tátil), TextButton (fantasma), TextField, Screen, Card,
                         EmptyState, Mascot, ProgressBar, WaterRing, BigCounter, StatusBadge, BeltChip, FeedbackSheet
   theme/                tokens (GERADO), fonts, theme (light/dark), useAppTheme, useSchemeTheme, useIsDark
@@ -99,7 +99,7 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 - Estados vazios: mascote nos de tela inteira (Início, Confirmações, Alunos); ícone só em espaço pequeno (dentro de cards/listas).
 - Mascote: segue o DESIGN-SYSTEM.md (o "evitar mascote" do PROMPT-kimi.md era da primeira versão e foi corrigido).
 - Bottom sheet (3.13) é a única exceção à regra de "sem animações" (Reanimated + Gesture Handler).
-- **Fase 4 — competidor por convite aceito:** o professor envia o convite; o aluno vê um aviso de que, ao aceitar, o professor passa a ver peso, registros de água e planos de dieta, e aceita ou recusa. `is_competitor` só vira true após o aceite, com a data registrada. O professor pode tirar o aluno da equipe a qualquer momento e o aluno pode sair sozinho. Até a Fase 4, o professor liga `is_competitor` direto (como hoje).
+- **Fase 4 — competidor por convite aceito:** o professor envia o convite; o aluno vê um aviso de que, ao aceitar, o professor passa a ver peso, registros de água e planos de dieta, e aceita ou recusa. `is_competitor` só vira true após o aceite, com a data registrada. O professor pode tirar o aluno da equipe a qualquer momento e o aluno pode sair sozinho. Implementado na Fase 4 (ver mapa).
 
 ## Entrada no app, códigos e papéis (2026-11-04, substitui os convites por link)
 
@@ -211,7 +211,20 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
     - Registros restaurados do servidor perdem a origem "widget" (não há coluna `source` no banco).
     - Registros gravados no fallback (build sem o módulo nativo) não migram para o armazenamento nativo (só afeta dev).
     - Altura do widget Android em launchers com células baixas: conferir no aparelho.
-- [ ] 4. Competidores + widget de contagem: convite, campeonatos, inscrições, plano de água semanal, peso, widget countdown
+- [x] 4. Competidores + widget de contagem. **CONCLUÍDA no código** (2026-11-04), aguardando `db push`, build novo e validação no aparelho.
+  - **Banco** (migrations `20261105000000_competitor_invites`, `20261105000100_competition_plans_and_weight`; 43 testes pgTAP em `competition.test.sql`, 416 no total):
+    - `memberships.competitor_invited_at/by` + `competitor_since`. RPCs `invite_competitor` (staff, aluno ativo), `respond_competitor_invite` (o próprio aluno), `remove_competitor` (staff ou o próprio aluno; cancela convite também). O cliente perdeu o grant de update em `is_competitor`. O trigger `memberships_normalize_competitor` mantém as colunas coerentes (sair de ativo/aluno zera tudo; `request_join` reabre limpo). Sair da equipe apaga as inscrições em campeonatos FUTUROS (as passadas ficam como histórico).
+    - `weight_logs`: um por atleta e dia (`weight_logs_one_per_day`), o atleta corrige e apaga. **Decisão do agente:** a pesagem mais recente vira o `profiles.weight_kg` (trigger), então a meta automática de água acompanha o peso.
+    - `set_water_plan(academia, atleta, int[7])` (INVOKER): grava o plano da semana ATUAL da academia (segunda). **Decisão do agente:** o plano vale a partir da semana dele e continua nas próximas até um mais novo (o professor não precisa refazer toda semana). Índice 0 = domingo, como `class_schedules`. Dia nulo = meta automática.
+    - `set_championship_entries(campeonato, atletas[])` (INVOKER): substitui os inscritos; quem já está inscrito não é reinserido (um ex-competidor não bloqueia o salvamento).
+  - **Domínio `src/domain/Competition`**: api/service/rules/useCases + `competitionWidget` (dados do widget). Regras puras testadas: `planInForce`/`plannedMlOn`/`plannedMlByDate`, `daysBetween`, `upcoming/pastChampionships`, `countdownLabel`, `weightDelta`, `parseBrDate`.
+  - **Meta de água**: `usePlannedWater` (services/water) lê o plano só de quem compete; `useWaterSettings` usa `dailyGoal({ plannedMl })`; a config do widget ganhou `goalsByDate` (próximos 8 dias do plano), lida pelos widgets nativos (`Config.goal(on:)` / `goalOn()`).
+  - **Telas**:
+    - Staff: Perfil → Gestão → **Campeonatos** (também botão no topo de Alunos): `academy/championships` (próximos com contagem, anteriores, "Novo campeonato") e `academy/championship?id=` (contagem, editar/remover no lápis, inscritos com seleção e "Salvar inscritos"). No detalhe do aluno, seção **Equipe de competição**: convidar / convite enviado + cancelar / competidor (Plano de água, Água e peso, Tirar da equipe). `athlete/water-plan?membershipId=` (7 campos, vazio = automática) e `athlete/progress?membershipId=` (água dos últimos 7 dias contra a meta de cada dia + pesagens). Alunos mostra "convidado para a equipe".
+    - Aluno: card do convite na Início → folha com o aviso de privacidade, "Aceitar convite" / "Recusar".
+    - Competidor (aba Competição): contagem do próximo campeonato (BigCounter; "HOJE" no dia), próximos, plano de água da semana (hoje em destaque, automática nos dias sem plano), peso (último, variação, histórico; "Registrar" e toque para corrigir/apagar), anteriores e "Sair da equipe".
+  - **Widget de contagem** (iOS `targets/widgets/CountdownWidget.swift`, Android `CountdownWidget.kt` + receiver no manifest): pequeno e médio; número, "DIAS", nome e data (médio: + local). Timeline iOS com uma entrada por dia (7 dias); Android com alarme à meia-noite. Toque abre `kimi://competition` (liberado no `normalizeExternalPath`). Chave `competition.championships`, publicada por `useCountdownWidget` (raiz) e apagada para quem não compete.
+  - **Em aberto (baixo):** o professor de uma academia vê o plano de outra academia só no cálculo da meta (não edita); a água do atleta para o professor mostra só o que já sincronizou; o seed não tem competidor (teste o convite com `aluno@kimi.dev`).
 - [ ] 5. Dieta: cadastro e visualização do plano diário
 - [ ] 6. Polimento: estados vazios, erros, acessibilidade, revisão dos TODO(motion)
 
@@ -288,6 +301,7 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 - **Migrations `20261104220000` (logo obrigatória), `20261104230000` (faixas por chave de cor + ponta) e `20261104240000` (variações de cor)** aplicadas no remoto em 2026-11-04 (373 testes pgTAP passando lá; tipos regenerados).
 - **Correções pré-Fase 3 (2026-11-04):** migrations `20261104180000`–`180004` aplicadas no LOCAL e no remoto (`db push` em 2026-11-04; 337 testes pgTAP passando no remoto; `types/database.ts` regenerado do remoto). Build novo necessário por causa da permissão de câmera (`app.json` → `expo-image-picker.cameraPermission`).
 
+- **Fase 4 — competidores + contagem:** código pronto e testado no banco LOCAL. Falta: `npx supabase db push` (migrations `20261105000000` e `20261105000100`), `npm run db:types` (o `types/database.ts` foi editado à mão com as colunas e RPCs novas) e build novo (widget de contagem nos dois sistemas).
 - **Fase 3 — água + widget:** código pronto; falta o build do usuário (`npx expo prebuild --clean` + `run:ios` / `run:android`) e testar no aparelho. O `db push` das migrations de 2026-11-04 ainda depende do `npx supabase login`.
 - **Validação do usuário no aparelho:** fluxo de entrada, papéis e ícones novos (precisa de build novo; quem roda é o usuário).
 
