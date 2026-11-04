@@ -7,9 +7,12 @@ import { Text } from '../Text/Text';
 
 interface WaterRingProps {
   consumedMl: number;
-  goalMl: number;
+  /** Null without a goal (no weight yet): only the total shows. */
+  goalMl: number | null;
   /** Diameter. Default tokens.size.waterRing. */
   size?: number;
+  /** Ring only, without the ml in the center (small sizes, e.g. the widget preview). */
+  hideLabel?: boolean;
 }
 
 const formatMl = (ml: number) => ml.toLocaleString('pt-BR');
@@ -18,14 +21,14 @@ const formatMl = (ml: number) => ml.toLocaleString('pt-BR');
  * Water ring (DESIGN-SYSTEM.md, 3.4): stroke 14, track `border`, fill `water`, butt caps.
  * Visual states: in progress (water) and goal reached (success).
  */
-export function WaterRing({ consumedMl, goalMl, size }: WaterRingProps) {
+export function WaterRing({ consumedMl, goalMl, size, hideLabel = false }: WaterRingProps) {
   const theme = useAppTheme();
   const diameter = size ?? theme.size.waterRing;
-  const stroke = theme.size.waterRingStroke;
+  const stroke = hideLabel ? theme.size.widgetRingStroke : theme.size.waterRingStroke;
   const radius = (diameter - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
-  const ratio = goalMl > 0 ? Math.min(Math.max(consumedMl / goalMl, 0), 1) : 0;
-  const goalReached = goalMl > 0 && consumedMl >= goalMl;
+  const ratio = goalMl && goalMl > 0 ? Math.min(Math.max(consumedMl / goalMl, 0), 1) : 0;
+  const goalReached = !!goalMl && goalMl > 0 && consumedMl >= goalMl;
   const fill = goalReached ? theme.colors.success : theme.colors.water;
   const center = diameter / 2;
 
@@ -37,8 +40,12 @@ export function WaterRing({ consumedMl, goalMl, size }: WaterRingProps) {
       justifyContent="center"
       accessible
       accessibilityRole="progressbar"
-      accessibilityValue={{ min: 0, max: goalMl, now: Math.min(consumedMl, goalMl) }}
-      accessibilityLabel={`${formatMl(consumedMl)} de ${formatMl(goalMl)} ml${goalReached ? ', meta batida' : ''}`}
+      accessibilityValue={goalMl ? { min: 0, max: goalMl, now: Math.min(consumedMl, goalMl) } : undefined}
+      accessibilityLabel={
+        goalMl
+          ? `${formatMl(consumedMl)} de ${formatMl(goalMl)} ml${goalReached ? ', meta batida' : ''}`
+          : `${formatMl(consumedMl)} ml hoje`
+      }
     >
       <Svg width={diameter} height={diameter} style={{ position: 'absolute' }}>
         <Circle cx={center} cy={center} r={radius} stroke={theme.colors.border} strokeWidth={stroke} fill="none" />
@@ -58,8 +65,12 @@ export function WaterRing({ consumedMl, goalMl, size }: WaterRingProps) {
           />
         ) : null}
       </Svg>
-      <Text variant="displayLg">{formatMl(consumedMl)}</Text>
-      <Text variant="caption">de {formatMl(goalMl)} ml</Text>
+      {hideLabel ? null : (
+        <>
+          <Text variant="displayLg">{formatMl(consumedMl)}</Text>
+          <Text variant="caption">{goalMl ? `de ${formatMl(goalMl)} ml` : 'ml hoje'}</Text>
+        </>
+      )}
     </Box>
   );
 }

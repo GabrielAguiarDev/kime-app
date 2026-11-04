@@ -99,4 +99,32 @@ E-mail e senha funcionam direto no Supabase local. Os provedores sociais precisa
 
 ## Widgets
 
-Chegam nas fases 3 (água) e 4 (contagem regressiva). Esta seção vai documentar o target iOS (WidgetKit + App Group) e o Android (Glance).
+Widgets nativos, que compartilham dados com o app por um armazenamento local. O widget de água chegou na fase 3; o de contagem regressiva vem na fase 4.
+
+| | iOS | Android |
+| --- | --- | --- |
+| Código | `targets/widgets/` (SwiftUI + WidgetKit), ligado ao Xcode pelo `@bacons/apple-targets` | `modules/kimi-widget/android/` (Kotlin + Jetpack Glance) |
+| Armazenamento compartilhado | App Group `group.br.com.kimi.app` | SharedPreferences `kimi_widget` |
+| Botão "+ ml" | `Button(intent:)` + `AddWaterIntent` (iOS 17+) | `actionRunCallback<AddWaterAction>` |
+| Virada do dia | entrada da timeline à meia-noite (fuso do perfil) | alarme (inexato) à meia-noite |
+| Adicionar pelo app | não existe API: o app mostra os passos (`/agua/widget`) | `requestPinGlanceAppWidget` quando o launcher suporta |
+
+**Contrato dos dados** (o mesmo nas duas plataformas e no app, em `src/domain/Water/waterLocalStore.ts`):
+- `water.config`: JSON `{userId, bottleMl, goalMl, timeZone}`, gravado pelo app a partir do perfil. Ele é apagado no logout.
+- `water.log.<id>`: um registro por chave, com `{id, userId, amountMl, loggedAt, source, synced, deleted}`. O widget grava com `synced: false`, e o app envia ao Supabase (upsert pelo `id`) quando abre ou volta para o primeiro plano.
+
+O módulo nativo local `modules/kimi-widget` faz a ponte do app com esse armazenamento: lê e grava, recarrega os widgets e fixa o widget no Android. Num build sem o módulo, o app cai num armazenamento só dele: a água continua funcionando, mas os widgets não veem os registros.
+
+### Rodando com os widgets
+
+Qualquer mudança em `targets/`, `modules/`, ícones, plugins ou `app.json` nativo exige build novo:
+
+```bash
+npx expo prebuild --clean
+npx expo run:ios        # ou abra ios/Kimi.xcworkspace e rode o esquema Kimi
+npx expo run:android
+```
+
+No Xcode, o código do widget fica na pasta virtual `expo:targets/widgets`. Ele é editado direto em `targets/widgets/` e sobrevive ao prebuild. Os tokens do widget são gerados por `npm run tokens`, nunca à mão.
+
+Para testar: configure a garrafa no app (Perfil → Água) e adicione o widget "Água" na tela inicial. Toque em "+ ml" com o app fechado e abra o app: o registro aparece em Água, marcado "Pelo widget", e é enviado ao Supabase.

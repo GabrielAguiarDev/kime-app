@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable } from 'react-native';
 
 import { BELTS, Box, Icon, Text, type Belt } from '@components';
+import { WaterCounter } from '@screens/water/WaterCounter';
 import { useAppTheme } from '@theme';
 
 interface TopBarProps {
@@ -11,8 +12,8 @@ interface TopBarProps {
 }
 
 /**
- * Top bar of Início (11.1): weekly streak and confirmed classes side by side.
- * Tapping a counter opens the Aulas tab (its detail).
+ * Top bar of Início (11.1): weekly streak, confirmed classes and today's water.
+ * Tapping a counter opens its detail (Aulas tab, water screen).
  */
 export function TopBar({ streakWeeks, confirmedTotal, belt }: TopBarProps) {
   const { size, border, spacing } = useAppTheme();
@@ -50,7 +51,7 @@ export function TopBar({ streakWeeks, confirmedTotal, belt }: TopBarProps) {
           <Text variant="counter">{confirmedTotal}</Text>
         </Box>
       </Pressable>
-      {/* TODO(phase3): water of today counter (drop icon in `water`). */}
+      <WaterCounter />
     </Box>
   );
 }

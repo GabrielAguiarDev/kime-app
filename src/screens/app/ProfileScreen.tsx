@@ -63,6 +63,12 @@ export function ProfileScreen() {
         <Button title="Entrar em outra academia" variant="secondary" icon="plus" onPress={() => router.push('/entrar')} />
       </Box>
 
+      <Box gap="s12" marginBottom="s32">
+        <Text variant="captionCaps">Água</Text>
+        <ManageCard title="Garrafa, peso e altura" onPress={() => router.push('/agua/configurar')} />
+        <ManageCard title="Água de hoje e widget" onPress={() => router.push('/agua')} />
+      </Box>
+
       {isStaff ? (
         <Box gap="s12" marginBottom="s32">
           <Text variant="captionCaps">Gestão da academia</Text>

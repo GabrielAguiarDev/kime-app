@@ -1,7 +1,7 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: entrada no app, códigos e papéis owner/professor — 2026-11-04
+> Última atualização: Fase 3 (água + widget de água) — 2026-11-04
 
 ## 1. Visão geral
 
@@ -26,7 +26,7 @@ App mobile multi-academia de artes marciais (a spec completa do usuário está n
 - **Sessão Supabase:** cliente em `lib/supabase.ts`. Sessão no `expo-secure-store` em chunks (`infra/storage/chunkedStorage.ts`, ≤ 1600 bytes por item, manifesto gravado por último). Auto-refresh ligado ao `AppState` pelo `SessionProvider`. Só URL + publishable key no app.
 - **Preferências locais** (academia ativa, código confirmado antes do login, caminho de entrada): `expo-sqlite/kv-store` (síncrono), em `infra/storage`.
 - **Design:** segue o `DESIGN-SYSTEM.md` (raiz). Ele vale sobre qualquer outra instrução de design.
-  - **Tokens:** `tokens.json` é a fonte única. `npm run tokens` gera `src/theme/tokens.ts`, `widgets/ios/KimiTokens.swift` e `widgets/android/KimiTokens.kt`; `npm run tokens:check` falha se estiverem desatualizados (rode antes de commitar). Nunca escrever cor/tamanho solto no código: usar o tema (`useAppTheme()`, props do restyle).
+  - **Tokens:** `tokens.json` é a fonte única. `npm run tokens` gera `src/theme/tokens.ts`, `targets/widgets/KimiTokens.swift` (widget iOS) e `modules/kimi-widget/android/.../KimiTokens.kt` (widget Android); `npm run tokens:check` falha se estiverem desatualizados (rode antes de commitar). Nunca escrever cor/tamanho solto no código: usar o tema (`useAppTheme()`, props do restyle).
   - **Destaque laranja** `accent` `#D9400A` (escuro `#F05A1E`). O vermelho antigo (`#E10600`) saiu.
   - **App só no tema escuro** (decisão do usuário, 2026-11-04). `useSchemeTheme()` devolve sempre `darkTheme` e `userInterfaceStyle` é `dark` no `app.json`. A opção Perfil → Aparência foi removida; o `lightTheme` continua nos tokens para uma volta futura.
   - **Fontes:** Barlow Condensed (display/título) + Inter (texto). Todas as variantes de texto usam `tabular-nums`.
@@ -49,17 +49,18 @@ src/
     (onboarding)/       welcome (espera / recusado / sem academia), create-gym
     (tabs)/             home, classes, competition, students, confirmations, profile
     entrar.tsx          código → confirmação da academia; sempre acessível; deep link kimi://entrar?codigo=XXXXXXXX
-  screens/{auth,entry,onboarding,app,professor,student}/
-  domain/{Auth,Gym,Membership,Profile}/  xApi, xAdapter, xService, xTypes, xRules, useCases/, index
-  infra/                env, supabase (client, database.types gerado, supabaseError), query, storage
-  services/             session/, activeGym/, entry/ (entryPath, pendingCode, useConsumePendingCode), confirm/
+  screens/{auth,entry,onboarding,app,professor,student,water}/
+  domain/{Auth,Gym,Membership,Profile,Classes,Water}/  xApi, xAdapter, xService, xTypes, xRules, useCases/, index
+  infra/                env, supabase (client, database.types gerado, supabaseError), query, storage, widget (sharedStore)
+  services/             session/, activeGym/, entry/ (entryPath, pendingCode, useConsumePendingCode), confirm/, water/ (sync, config do widget, folha de meta)
   components/           Box, Text, Icon, Button (tátil), TextButton (fantasma), TextField, Screen, Card,
                         EmptyState, Mascot, ProgressBar, WaterRing, BigCounter, StatusBadge, BeltChip, FeedbackSheet
   theme/                tokens (GERADO), fonts, theme (light/dark), useAppTheme, useSchemeTheme, useIsDark
   utils/                deepLinks, haptics
 scripts/tokens/            gerador de tokens (TS/Swift/Kotlin)
 scripts/brand/             renderização dos PNGs de ícone/splash a partir dos SVGs
-widgets/{ios,android}/     tokens gerados para os widgets (os targets nativos chegam nas fases 3/4)
+targets/widgets/           extensão iOS (WidgetKit) via @bacons/apple-targets: Swift, Info.plist, fontes em assets/, tokens GERADOS
+modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iOS/Android) + widget Glance (Android) + tokens Kotlin GERADOS
 ```
 
 - **Aliases:** `@components`, `@domain/*`, `@infra`, `@screens/*`, `@services/*`, `@theme`, `@utils/*`. Estão no tsconfig (o Metro lê) e no `jest.moduleNameMapper`.
@@ -142,7 +143,34 @@ widgets/{ios,android}/     tokens gerados para os widgets (os targets nativos ch
   - **Configurações da academia** (`academy/settings`, Perfil → Gestão da academia): logo, nome, fuso (`BR_TIMEZONES`) e modalidades (adicionar, renomear, remover).
   - **Logo:** bucket PÚBLICO `academy-logos` (decisão do usuário: logo é marca e aparece antes de o aluno entrar). Caminho `<academy_id>/logo-<timestamp>.jpg`, sempre um arquivo novo (sem cache velho de CDN); a antiga é apagada depois. Escrita só pelo professor da academia (RLS em `storage.objects`); limite de 2 MB, só JPEG/PNG/WebP. O app recorta em quadrado (`expo-image-picker`) e reduz para 512 px JPEG (`expo-image-manipulator`).
   - **Prévia antes de entrar:** `get_academy_preview_by_code` (nome + logo) na tela "Entrar com código"; o convite por link também mostra a logo. Testar storage local exige subir a stack COM `storage-api`.
-- [ ] 3. Água + widget de água: perfil, meta automática, eventos, storage compartilhado, widget interativo iOS/Android, sync
+- [x] 3. Água + widget de água: perfil, meta automática, eventos, storage compartilhado, widget interativo iOS/Android, sync. **CONCLUÍDA no código**, aguardando o build do usuário e a validação no aparelho (nada nativo foi compilado pelo agente).
+  - **Widgets nativos** (spec: SwiftUI + WidgetKit, Kotlin + Glance), não o `expo-widgets` oficial do SDK 58. Ele roda o widget em JS isolado, sem trabalho assíncrono, e o estudo de widgets nativos é objetivo do projeto.
+  - **Contrato app ↔ widgets:** `water.config` + uma chave por registro (`water.log.<id>`), para o app e o widget nunca reescreverem o mesmo valor. Ver README → Widgets.
+    - O app é dono da config.
+    - O widget só cria registros (`source: widget`, `synced: false`).
+    - O app sincroniza (upsert pelo id), apaga os desfeitos e restaura do servidor os das últimas 48 h que faltam no aparelho.
+  - **Meta:** `domain/Water/waterGoal.ts` (`dailyGoal`), com 35 ml/kg. O parâmetro `plannedMl` já está pronto para o plano do professor (Fase 4) substituir a meta automática. `useWidgetConfig` publica a meta e a garrafa para os widgets.
+  - **Dia:** a data local vem do fuso do PERFIL (`localDate`, via Intl), no app e nos widgets.
+  - **Desfazer:** remove o último registro do dia (do app ou do widget). Um registro já enviado vira `deleted` até o próximo sync apagar a cópia do servidor.
+  - **Folha "Meta do dia batida.":** uma vez por dia (kv-store com escopo por usuário), na tela de Água ou na Início, se o widget bateu a meta com o app fechado.
+  - **Rotas:** `/agua`, `/agua/configurar` (também o destino do estado vazio do widget) e `/agua/widget` (passos + prévia). Ficam num Stack.Protected `signedIn`. Contador de água na barra do topo (aluno) e no cabeçalho da Início (staff).
+  - **Widget pequeno:** anel e total LADO A LADO no topo, botão na base. Em pé, como na seção 9, não cabe na altura útil de um widget pequeno. Médio: anel à esquerda; total, meta e botão à direita. Tokens novos: `size.widgetRing`, `widgetRingMedium`, `widgetRingStroke`.
+  - **Android:** o Glance não aceita fonte customizada (usa a do sistema, com os mesmos tamanhos e pesos). O anel é desenhado em bitmap. A virada do dia usa `AlarmManager.set` (inexato, sem permissão de alarme exato). Fixar o widget pelo app usa `requestPinGlanceAppWidget`, só se `isRequestPinAppWidgetSupported`.
+  - **iOS:** fontes do design system embutidas na extensão (`UIAppFonts`). Timeline com a entrada atual e outra à meia-noite. `AddWaterIntent` grava no App Group e recarrega a timeline sem abrir o app.
+  - **Banco:** nenhuma migration nova (`water_logs` e `profiles` já tinham tudo). 9 testes pgTAP novos (194 no total).
+  - **Revisão (2026-11-04), já corrigida:**
+    - Desfazer agora SEMPRE grava tombstone (antes, um sync em andamento recriava o registro).
+    - O sync confere cada registro depois do upsert e faz mais uma passada se chegar registro durante a execução.
+    - Telas de água funcionam offline (`useWaterSettings` cai na config publicada para o widget).
+    - Folha de meta compartilhada entre as telas (`useSyncExternalStore`).
+    - A chave da query inclui a data, então o dia vira com o app aberto.
+    - O Glance lê o armazenamento DENTRO da composição, com `WaterStore.version` (StateFlow) incrementado a cada escrita, no alarme e no `onReceive`.
+    - Médio no Android usa `title` para caber em 2 linhas.
+  - **Em aberto (baixo):**
+    - O anel do Android (bitmap) só troca claro/escuro na próxima atualização.
+    - Registros restaurados do servidor perdem a origem "widget" (não há coluna `source` no banco).
+    - Registros gravados no fallback (build sem o módulo nativo) não migram para o armazenamento nativo (só afeta dev).
+    - Altura do widget Android em launchers com células baixas: conferir no aparelho.
 - [ ] 4. Competidores + widget de contagem: convite, campeonatos, inscrições, plano de água semanal, peso, widget countdown
 - [ ] 5. Dieta: cadastro e visualização do plano diário
 - [ ] 6. Polimento: estados vazios, erros, acessibilidade, revisão dos TODO(motion)
@@ -200,7 +228,7 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 
 ### Em andamento
 
-- **Fase 3 — água + widget** (ver seção 4).
+- **Fase 3 — água + widget:** código pronto; falta o build do usuário (`npx expo prebuild --clean` + `run:ios` / `run:android`) e testar no aparelho. O `db push` das migrations de 2026-11-04 ainda depende do `npx supabase login`.
 - **Validação do usuário no aparelho:** fluxo de entrada, papéis e ícones novos (precisa de build novo; quem roda é o usuário).
 
 ## 7. Notas / armadilhas

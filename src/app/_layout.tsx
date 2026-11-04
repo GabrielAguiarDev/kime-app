@@ -15,7 +15,7 @@ import { queryClient } from "@infra";
 import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
 import { ConfirmProvider } from "@services/confirm";
 import { useConsumePendingCode } from "@services/entry";
-import { useWaterSync } from "@services/useWaterSync";
+import { useWaterSync, useWidgetConfig } from "@services/water";
 import { SessionProvider, useSession } from "@services/session";
 import { fontAssets, useSchemeTheme } from "@theme";
 
@@ -72,6 +72,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const { active, isOwner, isStaff, isLoading: membershipsLoading } = useActiveGym();
   useConsumePendingCode();
   useWaterSync();
+  useWidgetConfig();
 
   // Gate only the boot. After that the Stack stays mounted; screens show their
   // own loading state (e.g. memberships loading right after sign-in).
@@ -100,6 +101,12 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
       <Stack.Protected guard={signedIn && !!active}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="achievement" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+      </Stack.Protected>
+      {/* Water (everyone signed in): also opened by the widget (kimi://agua, kimi://agua/configurar). */}
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="agua/index" />
+        <Stack.Screen name="agua/configurar" />
+        <Stack.Screen name="agua/widget" />
       </Stack.Protected>
       {/* Staff screens, pushed from the tabs. */}
       <Stack.Protected guard={signedIn && isStaff}>
