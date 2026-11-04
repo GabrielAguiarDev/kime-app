@@ -10,6 +10,9 @@ export interface Membership {
   gymName: string;
   role: MembershipRole;
   status: MembershipStatus;
+  /** Only students compete. */
+  isCompetitor: boolean;
+  belt: string | null;
 }
 
 /** A member of a gym as seen by its professor. */
@@ -19,6 +22,8 @@ export interface GymMember {
   fullName: string;
   role: MembershipRole;
   status: MembershipStatus;
+  isCompetitor: boolean;
+  belt: string | null;
   createdAt: string;
 }
 

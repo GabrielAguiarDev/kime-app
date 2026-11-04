@@ -17,6 +17,17 @@ async function signUp({ email, password, fullName }: SignUpInput) {
   return data;
 }
 
+/** Confirms the sign-up with the code sent by e-mail and opens the session. */
+async function verifyEmailCode(email: string, token: string) {
+  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+  if (error) throw error;
+}
+
+async function resendSignUpCode(email: string) {
+  const { error } = await supabase.auth.resend({ type: 'signup', email });
+  if (error) throw error;
+}
+
 async function signInWithIdToken(provider: 'apple' | 'google', token: string, nonce?: string) {
   const { data, error } = await supabase.auth.signInWithIdToken({ provider, token, nonce });
   if (error) throw error;
@@ -32,4 +43,4 @@ async function signOut() {
   }
 }
 
-export const authApi = { signIn, signUp, signInWithIdToken, signOut };
+export const authApi = { signIn, signUp, verifyEmailCode, resendSignUpCode, signInWithIdToken, signOut };

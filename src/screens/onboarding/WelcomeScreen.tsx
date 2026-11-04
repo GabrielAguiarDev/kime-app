@@ -7,12 +7,14 @@ import { roleLabel } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
 import { useIsConsumingInvite } from '@services/useConsumePendingInvite';
+import { SIGN_OUT_CONFIRM, useConfirm } from '@services/confirm';
 
 /** Signed in without an active gym: waiting approval, or create a gym. */
 export function WelcomeScreen() {
   const { pending, isError, refetch, isLoading, isFetching } = useActiveGym();
   const consumingInvite = useIsConsumingInvite();
   const signOut = useSignOut();
+  const confirm = useConfirm();
 
   // Right after sign-in: memberships still loading or the saved invite is being sent.
   if (isLoading || consumingInvite) {
@@ -27,12 +29,16 @@ export function WelcomeScreen() {
 
   const footer = (
     <>
-      <Button title="Criar minha academia" onPress={() => router.push('/create-gym')} />
+      <Button title="Entrar com código" onPress={() => router.push('/join-gym')} />
+      <Button title="Criar minha academia" variant="secondary" onPress={() => router.push('/create-gym')} />
       <TextButton
         title="Sair"
-        color="textMuted"
         disabled={signOut.isPending}
-        onPress={() => signOut.mutate(undefined, { onError: (e) => Alert.alert('Sair', errorMessage(e)) })}
+        onPress={async () => {
+          if (await confirm(SIGN_OUT_CONFIRM)) {
+            signOut.mutate(undefined, { onError: (e) => Alert.alert('Sair', errorMessage(e)) });
+          }
+        }}
       />
     </>
   );
@@ -90,7 +96,7 @@ export function WelcomeScreen() {
           Professor? Cadastre sua academia e convide seus alunos.
         </Text>
         <Text variant="body" color="textMuted">
-          Aluno? Abra o link de convite enviado pelo seu professor.
+          Aluno? Entre com o código ou o link de convite do seu professor.
         </Text>
       </Box>
     </Screen>

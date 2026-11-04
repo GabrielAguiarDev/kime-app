@@ -22,7 +22,7 @@ function tabIcon(name: IconName) {
  *  - professor:  Início, Alunos, Confirmações, Perfil
  */
 export default function TabsLayout() {
-  const { role } = useActiveGym();
+  const { role, isCompetitor } = useActiveGym();
   const { colors, size, border } = useAppTheme();
   const { bottom } = useSafeAreaInsets();
   const isProfessor = role === 'professor';
@@ -68,7 +68,7 @@ export default function TabsLayout() {
           options={{ title: 'Aulas', tabBarAccessibilityLabel: 'Aulas', tabBarIcon: tabIcon('calendar') }}
         />
       </Tabs.Protected>
-      <Tabs.Protected guard={role === 'competitor'}>
+      <Tabs.Protected guard={isCompetitor}>
         <Tabs.Screen
           name="competition"
           options={{ title: 'Competição', tabBarAccessibilityLabel: 'Competição', tabBarIcon: tabIcon('trophy') }}

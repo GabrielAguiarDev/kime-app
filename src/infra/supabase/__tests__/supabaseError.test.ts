@@ -24,3 +24,8 @@ describe('toAppError', () => {
     expect(errorMessage({ message: 'invite_invalid' })).toMatch(/convite/i);
   });
 });
+
+test('SMTP failure on sign-up is not reported as a network error', () => {
+  const e = Object.assign(new Error('Error sending confirmation email'), { status: 500, code: 'unexpected_failure' });
+  expect(toAppError(e).code).toBe('email_send_failed');
+});

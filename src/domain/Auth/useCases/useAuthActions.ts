@@ -13,6 +13,16 @@ export function useSignUp() {
   return useMutation({ mutationFn: (input: SignUpInput) => authService.signUp(input) });
 }
 
+export function useVerifyEmailCode() {
+  return useMutation({
+    mutationFn: ({ email, code }: { email: string; code: string }) => authService.verifyEmailCode(email, code),
+  });
+}
+
+export function useResendSignUpCode() {
+  return useMutation({ mutationFn: (email: string) => authService.resendSignUpCode(email) });
+}
+
 export function useSignInWithApple() {
   const queryClient = useQueryClient();
   return useMutation({

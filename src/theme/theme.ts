@@ -23,6 +23,8 @@ function buildColors(scheme: Scheme) {
 
     // Soft fills (section 3): selected card, status badges, feedback sheet, progress shine.
     accentSelected: withAlpha(c.accent, opacity.selected),
+    // Dims the screen behind a confirmation sheet.
+    scrim: withAlpha(c.edge, opacity.scrim),
     badgePending: withAlpha(c.warning, opacity.badgePending),
     badgeConfirmed: withAlpha(c.success, opacity.badgeConfirmed),
     badgeRejected: withAlpha(c.danger, opacity.badgeRejected),
@@ -87,6 +89,8 @@ export const lightTheme = createTheme({
     heading: textVariant('heading'),
     body: textVariant('body'),
     bodyStrong: textVariant('bodyStrong'),
+    /** Top bar counters (11.1): Barlow Condensed 700, 20. */
+    counter: textVariant('counter'),
     caption: { ...textVariant('caption'), color: 'textMuted' as const },
     /** Caption in caps: big-counter labels and section labels. */
     captionCaps: { ...textVariant('caption'), color: 'textMuted' as const, textTransform: 'uppercase' as const },

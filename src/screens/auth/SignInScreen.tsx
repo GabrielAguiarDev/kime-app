@@ -2,11 +2,10 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { Box, Button, Screen, Text, TextButton, TextField } from '@components';
-import { isValidEmail, useSignIn } from '@domain/Auth';
-import { errorMessage } from '@infra';
+import { isValidEmail, normalizeEmail, useSignIn } from '@domain/Auth';
+import { AppError, errorMessage } from '@infra';
 
 import { AppleSignInButton } from './AppleSignInButton';
-import { DevQuickLogin } from './DevQuickLogin';
 
 export function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -23,7 +22,19 @@ export function SignInScreen() {
             title="Entrar"
             disabled={!canSubmit}
             loading={isPending}
-            onPress={() => mutate({ email, password })}
+            onPress={() =>
+              mutate(
+                { email, password },
+                {
+                  onError: (e) => {
+                    // Signed up but never typed the code: finish the confirmation.
+                    if (e instanceof AppError && e.code === 'email_not_confirmed') {
+                      router.push({ pathname: '/verify-email', params: { email: normalizeEmail(email) } });
+                    }
+                  },
+                },
+              )
+            }
           />
           <AppleSignInButton />
           <TextButton title="Criar conta" onPress={() => router.push('/sign-up')} />
@@ -51,7 +62,6 @@ export function SignInScreen() {
           textContentType="password"
           errorMessage={error ? errorMessage(error) : undefined}
         />
-        {__DEV__ ? <DevQuickLogin /> : null}
       </Box>
     </Screen>
   );

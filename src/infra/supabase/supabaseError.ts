@@ -10,9 +10,17 @@ export type AppErrorCode =
   | 'membership_not_found'
   | 'membership_not_pending'
   | 'cannot_remove_member'
+  | 'cannot_change_owner'
+  | 'cannot_change_own_role'
+  | 'invalid_academy_name'
+  | 'invalid_modalities'
   | 'invalid_credentials'
   | 'email_taken'
   | 'weak_password'
+  | 'email_not_confirmed'
+  | 'code_invalid'
+  | 'rate_limited'
+  | 'email_send_failed'
   | 'network'
   | 'unknown';
 
@@ -24,6 +32,10 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'membership_not_found',
   'membership_not_pending',
   'cannot_remove_member',
+  'cannot_change_owner',
+  'cannot_change_own_role',
+  'invalid_academy_name',
+  'invalid_modalities',
 ];
 
 export class AppError extends Error {
@@ -46,6 +58,9 @@ export function toAppError(error: unknown): AppError {
   const known = KNOWN_CODES.find((code) => message === code);
   if (known) return new AppError(known, error);
 
+  // Auth could not deliver the confirmation e-mail (SMTP problem on the server).
+  if (/error sending .*email/i.test(message)) return new AppError('email_send_failed', error);
+
   switch (e.code) {
     case 'invalid_credentials':
       return new AppError('invalid_credentials', error);
@@ -54,12 +69,21 @@ export function toAppError(error: unknown): AppError {
       return new AppError('email_taken', error);
     case 'weak_password':
       return new AppError('weak_password', error);
+    case 'email_not_confirmed':
+      return new AppError('email_not_confirmed', error);
+    // GoTrue answers otp_expired for both wrong and expired codes.
+    case 'otp_expired':
+      return new AppError('code_invalid', error);
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit':
+      return new AppError('rate_limited', error);
     case '42501':
       return new AppError('forbidden', error);
   }
   if (e.name === 'AuthRetryableFetchError' || /network request failed/i.test(message)) {
     return new AppError('network', error);
   }
+  if (__DEV__) console.warn('[toAppError] unmapped error', error);
   return new AppError('unknown', error);
 }
 
@@ -71,9 +95,17 @@ const MESSAGES: Record<AppErrorCode, string> = {
   membership_not_found: 'Solicitação não encontrada.',
   membership_not_pending: 'Esta solicitação já foi respondida.',
   cannot_remove_member: 'Não é possível remover este membro.',
+  cannot_change_owner: 'O dono da academia continua sendo professor.',
+  cannot_change_own_role: 'Você não pode mudar o seu próprio papel.',
+  invalid_academy_name: 'O nome da academia precisa ter entre 2 e 80 caracteres.',
+  invalid_modalities: 'Escolha pelo menos uma modalidade (até 20).',
   invalid_credentials: 'E-mail ou senha incorretos.',
-  email_taken: 'Já existe uma conta com este e-mail.',
+  email_taken: 'Já existe uma conta com este e-mail. Entre com sua senha.',
   weak_password: 'Senha fraca. Use pelo menos 8 caracteres.',
+  email_not_confirmed: 'Confirme seu e-mail com o código que enviamos.',
+  code_invalid: 'Código inválido ou expirado. Confira ou peça um novo.',
+  rate_limited: 'Muitas tentativas. Aguarde um pouco e tente de novo.',
+  email_send_failed: 'Não conseguimos enviar o e-mail de confirmação agora. Tente de novo em instantes.',
   network: 'Sem conexão. Verifique sua internet e tente de novo.',
   unknown: 'Algo deu errado. Tente de novo.',
 };

@@ -1,7 +1,7 @@
 import { Button, type ButtonProps, type GhostColor } from './Button';
 
 interface TextButtonProps extends Omit<ButtonProps, 'variant' | 'ghostColor'> {
-  /** Default `accent`. `textMuted` for low-priority links, `danger` for destructive ones. */
+  /** Default `accent` (3.1). `danger` only for destructive actions. */
   color?: GhostColor;
 }
 

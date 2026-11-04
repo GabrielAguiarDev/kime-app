@@ -2,11 +2,11 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 
 import { profileService } from '@domain/Profile';
-import { toAppError } from '@infra/supabase';
 
 import { authApi } from './authApi';
 import { normalizeEmail } from './authRules';
-import type { SignInInput, SignUpInput } from './authTypes';
+import { AppError, toAppError } from '@infra/supabase';
+import type { SignInInput, SignUpInput, SignUpResult } from './authTypes';
 
 async function signIn(input: SignInInput): Promise<void> {
   try {
@@ -17,17 +17,53 @@ async function signIn(input: SignInInput): Promise<void> {
 }
 
 /**
- * Returns `needsEmailConfirmation` when the project requires confirming the
- * e-mail before the first session (hosted Supabase default).
+ * The e-mail already has an account. Signing in with the typed password tells
+ * the cases apart without revealing anything to someone who lacks it:
+ * right password + unconfirmed → resend the code; right password + confirmed →
+ * just sign in; wrong password → "e-mail taken".
  */
-async function signUp(input: SignUpInput): Promise<{ needsEmailConfirmation: boolean }> {
+async function resumeExistingAccount(email: string, password: string, cause: unknown): Promise<SignUpResult> {
   try {
-    const data = await authApi.signUp({
-      ...input,
-      email: normalizeEmail(input.email),
-      fullName: input.fullName.trim(),
-    });
-    return { needsEmailConfirmation: !data.session };
+    await authApi.signIn({ email, password });
+    return 'signed_in';
+  } catch (e) {
+    const error = toAppError(e);
+    if (error.code !== 'email_not_confirmed') throw new AppError('email_taken', cause);
+    // Best effort: the previous code may still be valid; the screen can resend.
+    await authApi.resendSignUpCode(email).catch(() => undefined);
+    return 'needs_confirmation';
+  }
+}
+
+async function signUp(input: SignUpInput): Promise<SignUpResult> {
+  const email = normalizeEmail(input.email);
+  try {
+    const data = await authApi.signUp({ ...input, email, fullName: input.fullName.trim() });
+    if (data.session) return 'signed_in';
+    // With confirmations on, an existing e-mail comes back as a placeholder
+    // user without identities instead of an error (anti-enumeration).
+    if (data.user && data.user.identities?.length === 0) {
+      return resumeExistingAccount(email, input.password, null);
+    }
+    return 'needs_confirmation';
+  } catch (e) {
+    const error = toAppError(e);
+    if (error.code === 'email_taken') return resumeExistingAccount(email, input.password, e);
+    throw error;
+  }
+}
+
+async function verifyEmailCode(email: string, code: string): Promise<void> {
+  try {
+    await authApi.verifyEmailCode(normalizeEmail(email), code.trim());
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+async function resendSignUpCode(email: string): Promise<void> {
+  try {
+    await authApi.resendSignUpCode(normalizeEmail(email));
   } catch (e) {
     throw toAppError(e);
   }
@@ -74,4 +110,4 @@ async function signOut(): Promise<void> {
   }
 }
 
-export const authService = { signIn, signUp, signInWithApple, signOut };
+export const authService = { signIn, signUp, verifyEmailCode, resendSignUpCode, signInWithApple, signOut };

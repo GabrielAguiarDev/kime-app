@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { keyValueStorage, queryClient, StorageKeys, supabase } from '@infra';
+import { watchAuthAppState } from '@infra/supabase';
 
 interface SessionContextValue {
   session: Session | null;
@@ -18,6 +19,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const wasSignedIn = useRef(false);
 
   useEffect(() => {
+    const stopWatching = watchAuthAppState();
     supabase.auth
       .getSession()
       .then(({ data }) => setSession(data.session))
@@ -26,7 +28,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
     });
-    return () => data.subscription.unsubscribe();
+    return () => {
+      data.subscription.unsubscribe();
+      stopWatching();
+    };
   }, []);
 
   // Everything that belongs to a user dies with their session (sign-out or

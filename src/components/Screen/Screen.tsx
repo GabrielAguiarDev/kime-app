@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@theme';
 
 import { Box } from '../Box/Box';
+import { Icon } from '../Icon/Icon';
 import { Text } from '../Text/Text';
 
 interface ScreenProps {
@@ -18,6 +19,8 @@ interface ScreenProps {
   feedback?: ReactNode;
   /** Set false when the screen sits above the tab bar (bottom inset handled by tabs). */
   bottomInset?: boolean;
+  /** Shows a back arrow at the top-left, away from the primary actions. */
+  onBack?: () => void;
 }
 
 export function Screen({
@@ -27,17 +30,42 @@ export function Screen({
   footer,
   feedback,
   bottomInset = true,
+  onBack,
 }: ScreenProps) {
   const { top, bottom } = useSafeAreaInsets();
-  const { spacing } = useAppTheme();
+  const { spacing, size } = useAppTheme();
   const paddingBottom = (bottomInset ? bottom : 0) + spacing.s16;
   const hasBottom = !!footer || !!feedback;
 
-  const header = title ? (
-    <Text variant="title" marginBottom="s24" accessibilityRole="header">
-      {title}
-    </Text>
+  const backButton = onBack ? (
+    <Pressable
+      onPress={onBack}
+      accessibilityRole="button"
+      accessibilityLabel="Voltar"
+      hitSlop={spacing.s8}
+      style={{
+        width: size.touchTarget,
+        height: size.touchTarget,
+        justifyContent: 'center',
+        marginLeft: -spacing.s8,
+        paddingLeft: spacing.s8,
+        marginBottom: spacing.s8,
+      }}
+    >
+      <Icon name="back" />
+    </Pressable>
   ) : null;
+
+  const header = (
+    <>
+      {backButton}
+      {title ? (
+        <Text variant="title" marginBottom="s24" accessibilityRole="header">
+          {title}
+        </Text>
+      ) : null}
+    </>
+  );
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

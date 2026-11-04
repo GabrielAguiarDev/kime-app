@@ -1,7 +1,5 @@
 import { useTheme } from '@shopify/restyle';
-import { useColorScheme } from 'react-native';
-
-import { darkTheme, lightTheme, type Theme } from './theme';
+import { darkTheme, type Theme } from './theme';
 
 export * from './theme';
 export { fontAssets, fontFamily } from './fonts';
@@ -9,12 +7,15 @@ export { tokens } from './tokens';
 
 export const useAppTheme = () => useTheme<Theme>();
 
-/** Theme for the current system appearance (light/dark follow the OS setting). */
+/**
+ * The app is dark only (user decision). `lightTheme` stays in ./theme so a
+ * light mode can come back later without touching the tokens.
+ */
 export function useSchemeTheme(): Theme {
-  return useColorScheme() === 'dark' ? darkTheme : lightTheme;
+  return darkTheme;
 }
 
-/** True when the dark theme is active. */
+/** True when the dark theme is active (always, while the app is dark only). */
 export function useIsDark(): boolean {
-  return useColorScheme() === 'dark';
+  return true;
 }

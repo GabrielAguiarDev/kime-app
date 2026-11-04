@@ -19,15 +19,16 @@ App mobile multi-academia de artes marciais (a spec completa do usuário está n
 
 - **Expo SDK 58 (prebuild / dev client) + Expo Router + TS strict.** Decisão do usuário: a spec pede Expo, a persona pedia RN bare. O prebuild é obrigatório por causa dos targets nativos de widget. O React Navigation vem embutido no `expo-router` no SDK 58: importar `Tabs`, `Stack`, `ThemeProvider`, `DarkTheme` e `SplashScreen` de `expo-router`.
 - **Arquitetura padrão da persona por dentro:** restyle, domínio `Api/Adapter/Service/Types` + useCases com react-query, aliases `@`. O "Api" de cada domínio usa o cliente Supabase, sem axios.
-- **Supabase local** (CLI 3.0 via Homebrew + Docker).
-  - O pacote npm `supabase` NÃO entra no package.json, por conflito de peer deps.
-  - Migrations em `supabase/migrations`, testes pgTAP em `supabase/tests/database`.
-- **Sessão Supabase:** persistida com `expo-sqlite/localStorage/install`, como recomenda o guia oficial do Expo. Auto-refresh ligado ao `AppState`.
+- **Supabase hospedado** (projeto `Kimi`, ref `pdadeczycrroqngrjhab`, linkado) + stack local para testes (Docker/OrbStack).
+  - CLI `supabase@3.0.0` como devDependency (`npx supabase ...`). Versões fixas, lockfile = `package-lock.json` (npm).
+  - Migrations em `supabase/migrations` (uma por assunto), testes pgTAP em `supabase/tests/database`.
+  - No painel: Data API ligada, tabelas novas NÃO expostas automaticamente e RLS automático. Toda tabela precisa de `grant` + políticas na migration.
+- **Sessão Supabase:** cliente em `lib/supabase.ts`. Sessão no `expo-secure-store` em chunks (`infra/storage/chunkedStorage.ts`, ≤ 1600 bytes por item, manifesto gravado por último). Auto-refresh ligado ao `AppState` pelo `SessionProvider`. Só URL + publishable key no app.
 - **Preferências locais** (academia ativa, token de convite pendente): `expo-sqlite/kv-store` (síncrono), em `infra/storage`.
 - **Design:** segue o `DESIGN-SYSTEM.md` (raiz). Ele vale sobre qualquer outra instrução de design.
   - **Tokens:** `tokens.json` é a fonte única. `npm run tokens` gera `src/theme/tokens.ts`, `widgets/ios/KimiTokens.swift` e `widgets/android/KimiTokens.kt`; `npm run tokens:check` falha se estiverem desatualizados (rode antes de commitar). Nunca escrever cor/tamanho solto no código: usar o tema (`useAppTheme()`, props do restyle).
   - **Destaque laranja** `accent` `#D9400A` (escuro `#F05A1E`). O vermelho antigo (`#E10600`) saiu.
-  - **Tema escuro por padrão; o usuário troca em Perfil → Aparência** (Escuro / Claro / Seguir o sistema). Decisão do usuário que vale sobre o "seguir o sistema" do DESIGN-SYSTEM.md. A escolha fica no kv-store (`StorageKeys.appearance`) e é aplicada com `Appearance.setColorScheme` em `services/appearance.ts`, chamada no topo do `_layout.tsx` antes do primeiro render (sem piscar claro). O `userInterfaceStyle` fica `automatic` para a opção "Seguir o sistema" funcionar; o splash é sempre escuro. Splash e ícone adaptativo leem as cores de `tokens.json` via `app.config.ts`.
+  - **App só no tema escuro** (decisão do usuário, 2026-11-04). `useSchemeTheme()` devolve sempre `darkTheme` e `userInterfaceStyle` é `dark` no `app.json`. A opção Perfil → Aparência foi removida; o `lightTheme` continua nos tokens para uma volta futura.
   - **Fontes:** Barlow Condensed (display/título) + Inter (texto). Todas as variantes de texto usam `tabular-nums`.
   - **Ícones:** Phosphor (`phosphor-react-native`, importado ícone a ícone em `components/Icon`); `bold` normal, `fill` ativo. Para um ícone novo, adicionar ao mapa `ICONS`.
   - **Edges `success`/`warning`/`danger`** não estão no documento: foram derivadas a 25% mais escuras, como ele manda.
@@ -71,13 +72,28 @@ widgets/{ios,android}/     tokens gerados para os widgets (os targets nativos ch
   - professor: Início, Alunos, Confirmações, Perfil.
 - **Academia ativa:** `ActiveGymProvider` resolve com `resolveActiveMembership` (a guardada no kv-store se ainda ativa, senão a primeira ativa). Troca no Perfil.
 - **Erros:** services fazem `throw toAppError(e)`. As RPCs levantam códigos de máquina (`invite_invalid`...) como mensagem da exception. A UI usa `errorMessage(e)` (pt-BR) de `@infra`.
-- **Tipos do banco:** `npm run db:types` após cada migration.
+- **Tipos do banco:** `npm run db:types` (gera `types/database.ts` do remoto) após cada `db push`. `src/infra/supabase/database.types.ts` só reexporta.
 - **Componentes:** `Screen` sempre esconde as barras de rolagem e recebe `footer` para a ação primária fixa, ou `feedback` para a `FeedbackSheet`. Dentro das tabs, usar `bottomInset={false}`. `Button` e `Card` tocável disparam o haptic leve sozinhos. `EmptyState` usa o mascote (96) por padrão e `visual="icon"` (48) dentro de cards/seções.
+
+## Decisões da Fase 2 (usuário, 2026-11-04)
+
+- Spec completa em `docs/PROMPT-kimi.md`; `DESIGN-SYSTEM.md` da raiz continua a referência (seção 11 incorporada de `docs/DESIGN-SYSTEM.md`).
+- Meta da faixa conta aulas confirmadas desde a última graduação (`belt_history.awarded_at`); o total geral aparece separado.
+- Marcos de aulas: 10, 25, 50, 100 e depois a cada 100. Nova faixa também abre a tela de conquista.
+- "Hoje" das aulas = data local da academia (`academies.timezone`). Água usa o fuso do perfil.
+- Botões fantasma em `accent`; `danger` só em "Sair da conta" e ações destrutivas. `textMuted` saiu do `GhostColor`.
+- Estados vazios: mascote nos de tela inteira (Início, Confirmações, Alunos); ícone só em espaço pequeno (dentro de cards/listas).
+- Mascote: segue o DESIGN-SYSTEM.md (o "evitar mascote" do PROMPT-kimi.md era da primeira versão e foi corrigido).
+- Bottom sheet (3.13) é a única exceção à regra de "sem animações" (Reanimated + Gesture Handler).
+- **Fase 4 — competidor por convite aceito:** o professor envia o convite; o aluno vê um aviso de que, ao aceitar, o professor passa a ver peso, registros de água e planos de dieta, e aceita ou recusa. `is_competitor` só vira true após o aceite, com a data registrada. O professor pode tirar o aluno da equipe a qualquer momento e o aluno pode sair sozinho. Até a Fase 4, o professor liga `is_competitor` direto (como hoje).
 
 ## 4. Mapa de progresso (fases)
 
 - [x] 1. Fundação: Expo + Supabase + auth + academias/vínculos/papéis + RLS + navegação por papel + design tokens. **CONCLUÍDA**, aguardando validação do usuário.
-- [ ] 2. Aulas: horários, check-in, confirmação, total de aulas, faixa, sequência semanal
+- [x] 2. Aulas: horários, check-in, confirmação, total de aulas, faixa, sequência semanal. **CONCLUÍDA**, aguardando validação no aparelho.
+  - Professor: `academy/schedules`, `academy/belts` (entrada pelo Perfil → Gestão da academia), `member/[membershipId]` (toque no membro em Alunos), "Check-ins de hoje" em Confirmações, aulas do dia no Início.
+  - Aluno: barra do topo + aulas de hoje com check-in + balão do mascote (Início), trilha de graduação e horários da semana (Aulas), recompensas em `services/classRewards` (snapshot por usuário+academia no kv-store: faixa nova > marco > check-in confirmado; primeira abertura não recompensa o histórico), tela `achievement`.
+  - Componentes novos: `SelectionCard` (11.5), `MascotBalloon` (11.3), `BottomSheet` (3.13), `ConfirmSheet` + `useConfirm()`.
 - [ ] 3. Água + widget de água: perfil, meta automática, eventos, storage compartilhado, widget interativo iOS/Android, sync
 - [ ] 4. Competidores + widget de contagem: convite, campeonatos, inscrições, plano de água semanal, peso, widget countdown
 - [ ] 5. Dieta: cadastro e visualização do plano diário
@@ -85,42 +101,28 @@ widgets/{ios,android}/     tokens gerados para os widgets (os targets nativos ch
 
 ## 5. Domínios & features implementados
 
-### Banco (`supabase/migrations/20261103195713_foundation.sql`)
+### Banco (`supabase/migrations/`)
 
-**Tabelas:**
-- `profiles` (id = `auth.users.id`, `full_name`; criado por trigger no signup a partir de `full_name`/`name` do metadata);
-- `gyms` (`created_by` = dono, `on delete set null`);
-- `memberships` (`role` student|competitor|professor, `status` pending|active|rejected, `decided_by/at`, único por gym+user);
-- `gym_invites` (`role` student|professor, `token` de 144 bits url-safe, `revoked_at`; no máximo 1 ativo por gym+role).
+**Migrations:** `base_setup` (schema `private`, default privileges, enums), `profiles`, `academies_and_memberships`, `classes_and_checkins`, `water`, `diet`, `weight_logs`, `championships`, `lock_down_rls_auto_enable`.
+Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da paleta 2.4 — `white`…`red` — com check no banco; RPC INVOKER `academy_today`; view `membership_class_stats` com `security_invoker`: total confirmado e confirmadas desde a última graduação, contando só aulas DEPOIS do dia da graduação), `academy_timezone_checkin_day` (`academies.timezone`, check-in só na data local da academia via `private.academy_local_date`), `belt_history` (único caminho para mudar `memberships.belt`: o professor insere no histórico e um trigger atualiza o vínculo; update direto de `belt` é bloqueado), `belt_goals_deferrable_position` (unique de posição `deferrable` + RPC INVOKER `reorder_belt_goals`).
 
-**Mudanças em relação à spec:**
-- nomes em inglês;
-- `usuarios` → `profiles`;
-- check-in vai ligar em `memberships` (fase 2);
-- peso/altura/garrafa vão para uma tabela própria com RLS mais restrita (fase 3).
+**Modelo (híbrido, decidido com o usuário):**
+- `academies` (`invite_code` de 8 caracteres, gerado; `created_by` = dono).
+- `memberships`: `role` professor|student, `status` pending|active|rejected, `is_competitor` (só aluno), `belt`. A entrada pelo código (`join_academy`) ou pelo link (`request_membership`, tabela `academy_invites` com token de 144 bits) cai SEMPRE em `pending`. O professor aprova com um UPDATE de `status`; um trigger aceita só pending → decidido e grava `decided_by/at`.
+- `belt_goals`, `class_schedules`, `checkins` (FK composta `(schedule_id, academy_id)`; status/revisor gravados por trigger).
+- `water_logs` (id gerado no app, upsert idempotente), `water_plans`/`water_plan_days`, `diet_plans`/`diet_plan_meals`, `weight_logs`, `championships`/`championship_entries` (com `academy_id` para evitar recursão de RLS).
 
 **Segurança:**
-- Default privileges revogados: anon/authenticated não ganham nada em tabelas e funções novas, e o PUBLIC perde EXECUTE em funções novas. Toda tabela/RPC nova precisa de `grant` explícito.
-- Helpers RLS em `private` (não exposto), SECURITY DEFINER e ancorados em `auth.uid()`:
-  - `has_membership_or_request` (inclui pending, SÓ para dado pouco sensível);
-  - `is_active_member`, `is_professor`;
-  - `can_view_profile` (ativo na mesma academia, ou professor vendo pedido pendente).
-  - **Para dados de saúde, usar só `is_active_member`/`is_professor`.**
-- Escrita só via RPC:
-  - `create_gym`: cria academia + vínculo professor ativo + 2 links;
-  - `get_invite_preview`: única RPC liberada para anon;
-  - `request_membership`: sempre pending; não rebaixa ativo; rejeitado pode pedir de novo;
-  - `decide_membership`: só professor, só pending;
-  - `remove_membership`: não remove a si mesmo nem o dono;
-  - `rotate_invite`;
-  - `list_pending_requests`: devolve o e-mail do solicitante para o professor saber quem aprova.
-- O update direto só é permitido em `profiles.full_name` e `gyms.name` (professor).
+- `anon` não tem nada (nem tabela, nem função). PUBLIC perde EXECUTE em funções novas.
+- Helpers em `private` (SECURITY DEFINER, ancorados em `auth.uid()`): `is_member`, `is_professor`, `is_competitor_of`, `is_competitor`, `is_professor_of_competitor`, `is_professor_of_member`, `has_membership_or_request` (este só para ler o nome da academia).
+- RPCs SECURITY DEFINER (justificadas no SQL): `create_academy`, `join_academy`, `request_membership`, `get_invite_preview`, `list_pending_requests`. `rotate_invite` é INVOKER. Os advisors avisam (WARN) sobre essas cinco: são intencionais.
+- Colunas graváveis limitadas por grant de coluna (ex.: aluno só insere `checkins` sem `status`; professor só altera `role/is_competitor/belt/status` em `memberships`). Dono não pode ser rebaixado nem removido.
 
-**Testes:** 46 testes pgTAP em `supabase/tests/database/foundation.test.sql` (isolamento entre academias, anon, escalada de papel, professor pendente, remoção, privilégios padrão).
+**Testes:** 87 testes pgTAP em `supabase/tests/database/rls.test.sql` (duas academias, professor + 2 alunos em cada, um competidor). Rodam também no remoto (`npx supabase test db --remote --yes`, tudo em rollback): o arquivo faz `set local role postgres` e localiza o schema do pgTAP. O "hoje" dos check-ins usa Pago Pago (UTC−11) × Kiritimati (UTC+14), sempre em datas diferentes.
 
 ### App
 
-- **Auth:** e-mail/senha (mínimo 8, alinhado ao `config.toml`) e Apple (`signInWithIdToken` com nonce). O Google está pendente.
+- **Auth:** e-mail/senha (mínimo 8, alinhado ao `config.toml`). Confirmação de cadastro por CÓDIGO de 6 dígitos (`verifyOtp` type `email`; `auth.email.otp_length = 6` no remoto, `OTP_LENGTH` no app) na tela `(auth)/verify-email`, sem link nem deep link; o template "Confirm signup" do painel precisa usar `{{ .Token }}`. Login de conta não confirmada leva para essa tela. Também há login com Apple (`signInWithIdToken` com nonce). O Google está pendente.
 - **Convite:**
   - **Deslogado:** `convite/[token]` mostra o preview, guarda o token (`pendingInvite`) e manda para cadastro/login. Depois do login, o `useConsumePendingInvite` chama `request_membership`.
   - **Logado:** botão "Pedir para entrar".
@@ -133,7 +135,7 @@ widgets/{ios,android}/     tokens gerados para os widgets (os targets nativos ch
 - **Sessão:** ao cair a sessão (sair ou refresh expirado), `queryClient.clear()` + remoção da academia ativa. O token de convite pendente sobrevive de propósito.
 - **Contas de teste (DEV):**
   - `supabase/seed.sql` (roda no `db reset`): `professor@kimi.dev` e `aluno@kimi.dev`, senha `kimi12345`, ativos em "Kimi Jiu-Jitsu (Teste)"; uuids fixos `1111…`, `2222…` e academia `3333…`.
-  - Botões de login rápido em `screens/auth/DevQuickLogin.tsx`, renderizados só com `__DEV__`. Credenciais em `src/dev/devAccounts.ts` (alias `@dev/*`).
+  - Só existem no banco local. Os botões de login rápido foram removidos: no projeto hospedado o teste é pelo cadastro real.
   - Ao criar dados nas próximas fases (horários, check-ins...), estender o seed para essa academia.
 - **Testes unitários:** `npm test` (jest-expo) cobre `membershipRules`, `authRules` e `supabaseError`.
 
@@ -149,6 +151,10 @@ widgets/{ios,android}/     tokens gerados para os widgets (os targets nativos ch
 5. **Fase 2:** `belt_goals`, `class_schedules`, `checkins` (ligados a `memberships`), faixa atual no vínculo, sequência semanal (regra pura + teste).
 
 ## 7. Notas / armadilhas
+
+- **Gerenciador de pacotes: npm.** O `npx expo install` às vezes escolhe o yarn e cria um `yarn.lock`: use `npx expo install --npm <pacote>` e apague qualquer `yarn.lock`. O cache do npm do usuário tem arquivos do root (`sudo chown -R 501:20 ~/.npm` resolve).
+- **`@react-native/jest-preset`** está declarado em devDependencies (fixo em 0.88.1): sem isso um `npm install` o remove e o Jest quebra.
+- **Fase 2 — domínio `src/domain/Classes`:** regras puras em `classesRules.ts` (sequência semanal Seg–Dom que não quebra na semana corrente sem aula; marcos 10/25/50/100 e a cada 100; progresso de faixa e nós da trilha em blocos de 10). O "hoje" vem SEMPRE do servidor (`useAcademyToday`), nunca do relógio do aparelho.
 
 - O arquivo da persona `~/.claude/agents/mobile-senior-dev.md` não existe. O padrão foi inferido do `DEVELOPMENT.md` de `/Volumes/T7/Projects/storage-mobile-front`.
 - O repositório local chama `kime-app`; a spec chama de `kimi-app`.

@@ -20,3 +20,11 @@ export function useRotateInvite(gymId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.GymInvites, gymId] }),
   });
 }
+
+export function useGymInviteCode(gymId: string | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.GymInviteCode, gymId],
+    queryFn: () => gymService.getInviteCode(gymId!),
+    enabled: !!gymId,
+  });
+}

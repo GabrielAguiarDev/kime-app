@@ -4,7 +4,7 @@
  */
 function required(name: string, value: string | undefined): string {
   if (!value) {
-    throw new Error(`[env] Variável ${name} ausente. Copie .env.example para .env.local.`);
+    throw new Error(`[env] Variável ${name} ausente. Preencha o arquivo .env.`);
   }
   return value;
 }
