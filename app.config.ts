@@ -12,8 +12,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config.android,
     adaptiveIcon: {
       ...config.android?.adaptiveIcon,
-      // Same color as the mascot's body, which fills the icon background.
-      backgroundColor: tokens.color.mascot.body,
+      // Background layer of the adaptive icon (the foreground is kimi-icon-light.png at 72%).
+      backgroundColor: tokens.color.brand.iconBackground,
     },
   },
   plugins: [

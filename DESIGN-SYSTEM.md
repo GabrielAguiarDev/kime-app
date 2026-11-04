@@ -239,7 +239,7 @@ O mascote é um ninja em forma de bloco: cabeça e corpo numa única forma arred
 - O mascote pode ter cantos mais arredondados que a interface; essa exceção vale só para ele.
 - Arquivos em `assets/brand/` como SVG. Nunca recolorir, distorcer ou adicionar contornos e sombras.
 
-Ícone do app: `assets/brand/kimi-icon.png` (quadrado, sangrado, sem transparência) — recorte do rosto do mascote preenchendo o quadro, com a faixa laranja e os olhos bravos. Exportar sem cantos arredondados (o sistema aplica a máscara) e manter os olhos dentro da área segura do ícone adaptativo do Android.
+Ícone do app: `assets/brand/kimi-icon.svg` é a fonte oficial; as aparências do iOS ficam em `kimi-icon-{light,dark,tinted}.png` (1024×1024, sangrado, sem transparência) — recorte do rosto do mascote preenchendo o quadro, com a faixa laranja e os olhos bravos. Exportar sem cantos arredondados (o sistema aplica a máscara) e manter os olhos dentro da área segura do ícone adaptativo do Android.
 
 ## 5. Iconografia
 

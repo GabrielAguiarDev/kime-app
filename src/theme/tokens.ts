@@ -66,6 +66,9 @@ export const tokens = {
       "body": "#2A2C30",
       "cloth": "#3A3D42",
       "eye": "#FFFFFF"
+    },
+    "brand": {
+      "iconBackground": "#24262B"
     }
   },
   "opacity": {
