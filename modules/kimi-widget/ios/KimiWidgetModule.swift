@@ -5,7 +5,9 @@ import WidgetKit
 ///
 /// Contract (same on Android, see KimiWidgetModule.kt and targets/widgets/WaterStore.swift):
 /// - App Group `group.br.com.kimi.app`, one string value per key.
-/// - `water.config`  JSON {userId, bottleMl|null, goalMl|null, timeZone}, written by the app.
+/// - `water.config`  JSON {userId, bottleMl|null, goalMl|null, timeZone, goalsByDate?}, written by the app.
+/// - `competition.championships` JSON {userId, timeZone, items: [{name, date (YYYY-MM-DD), location}]},
+///   written by the app for competitors (countdown widget).
 /// - `water.log.<id>` JSON {id, userId, amountMl, loggedAt (ISO 8601 UTC), source, synced, deleted}.
 ///   One key per log, so the app and the widget never rewrite the same value.
 public class KimiWidgetModule: Module {

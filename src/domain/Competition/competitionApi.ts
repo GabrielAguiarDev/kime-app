@@ -115,6 +115,19 @@ async function deleteWeight(id: string) {
   if (data.length === 0) throw new Error('forbidden');
 }
 
+// ----------------------------------------------------- athlete water ---
+/** Staff: water logs of a competitor since an instant (RLS: competitors of the caller's academy). */
+async function listAthleteWater(athleteId: string, sinceIso: string) {
+  const { data, error } = await supabase
+    .from('water_logs')
+    .select('id, amount_ml, logged_at')
+    .eq('user_id', athleteId)
+    .gte('logged_at', sinceIso)
+    .order('logged_at');
+  if (error) throw error;
+  return data;
+}
+
 // -------------------------------------------------------- water plan ---
 /** Plans of an athlete (every academy the caller can read), newest week first. */
 async function listWaterPlans(athleteId: string) {
@@ -155,6 +168,7 @@ export const competitionApi = {
   deleteWeight,
   listWaterPlans,
   setWaterPlan,
+  listAthleteWater,
 };
 
 export type ChampionshipRowApi = Awaited<ReturnType<typeof listChampionships>>[number];

@@ -42,7 +42,10 @@ class KimiWidgetModule : Module() {
 
     Function("reloadWidgets") {
       val ctx = context
-      CoroutineScope(Dispatchers.Default).launch { WaterWidget().updateAll(ctx) }
+      CoroutineScope(Dispatchers.Default).launch {
+        WaterWidget().updateAll(ctx)
+        CountdownWidget().updateAll(ctx)
+      }
       Unit
     }
   }

@@ -130,10 +130,15 @@ begin
   where championship_id = p_championship_id
     and not (athlete_id = any (coalesce(p_athlete_ids, '{}')));
 
+  -- Athletes already entered stay as they are (one who left the team since
+  -- would fail the insert policy).
   insert into public.championship_entries (championship_id, academy_id, athlete_id)
-  select p_championship_id, v_academy_id, a
+  select distinct p_championship_id, v_academy_id, a
   from unnest(coalesce(p_athlete_ids, '{}')) a
-  on conflict (championship_id, athlete_id) do nothing;
+  where not exists (
+    select 1 from public.championship_entries e
+    where e.championship_id = p_championship_id and e.athlete_id = a
+  );
 end;
 $$;
 

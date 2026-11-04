@@ -65,6 +65,11 @@ export const competitionService = {
     call(() => (existingId ? api.updateWeight(existingId, weightKg) : api.insertWeight(athleteId, loggedOn, weightKg))),
   deleteWeight: (id: string) => call(() => api.deleteWeight(id)),
 
+  /** Staff: a competitor's water logs since an instant (ISO). */
+  listAthleteWater: (athleteId: string, sinceIso: string): Promise<{ amountMl: number; loggedAt: string }[]> =>
+    call(async () =>
+      (await api.listAthleteWater(athleteId, sinceIso)).map((r) => ({ amountMl: r.amount_ml, loggedAt: r.logged_at })),
+    ),
   listWaterPlans: (athleteId: string): Promise<WaterPlan[]> =>
     call(async () => (await api.listWaterPlans(athleteId)).map(toWaterPlan)),
   setWaterPlan: (academyId: string, athleteId: string, targets: WeekTargets) =>

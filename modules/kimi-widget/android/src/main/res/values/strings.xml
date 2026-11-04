@@ -2,4 +2,6 @@
 <resources>
   <string name="kimi_water_widget_name">Água</string>
   <string name="kimi_water_widget_description">Registre sua garrafa de água sem abrir o app.</string>
+  <string name="kimi_countdown_widget_name">Campeonato</string>
+  <string name="kimi_countdown_widget_description">Dias até o seu próximo campeonato.</string>
 </resources>

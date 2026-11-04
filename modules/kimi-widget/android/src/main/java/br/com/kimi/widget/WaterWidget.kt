@@ -67,7 +67,7 @@ private sealed interface WaterState {
 private fun loadState(context: Context): Pair<WaterState, WaterStore.Config?> {
   val config = WaterStore.config(context) ?: return WaterState.SignedOut to null
   val bottle = config.bottleMl ?: return WaterState.NoBottle to config
-  return WaterState.Ready(WaterStore.totalForDay(context, config), config.goalMl, bottle) to config
+  return WaterState.Ready(WaterStore.totalForDay(context, config), config.goalOn(), bottle) to config
 }
 
 /**

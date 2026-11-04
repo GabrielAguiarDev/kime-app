@@ -4,7 +4,8 @@ import Foundation
 ///
 /// Contract (same as modules/kimi-widget, iOS and Android):
 /// - App Group `group.br.com.kimi.app`, one string value per key.
-/// - `water.config`  JSON {userId, bottleMl|null, goalMl|null, timeZone}, written by the app.
+/// - `water.config`  JSON {userId, bottleMl|null, goalMl|null, timeZone, goalsByDate?}, written by the app.
+///   `goalsByDate` ({"YYYY-MM-DD": ml}) is the professor's plan; it replaces `goalMl` on those dates.
 /// - `water.log.<id>` JSON {id, userId, amountMl, loggedAt (ISO 8601 UTC), source, synced, deleted}.
 ///   One key per log, so the app and the widget never rewrite the same value.
 enum WaterStore {
@@ -17,8 +18,24 @@ enum WaterStore {
     let bottleMl: Int?
     let goalMl: Int?
     let timeZone: String
+    let goalsByDate: [String: Int]?
 
     var zone: TimeZone { TimeZone(identifier: timeZone) ?? .current }
+
+    /// Goal of the local day of `date`: the professor's plan when there is one, else the automatic goal.
+    func goal(on date: Date) -> Int? {
+      goalsByDate?[WaterStore.dayKey(date, in: zone)] ?? goalMl
+    }
+  }
+
+  /// `YYYY-MM-DD` of `date` in `zone` (the key the app writes in goalsByDate).
+  static func dayKey(_ date: Date, in zone: TimeZone) -> String {
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar(identifier: .gregorian)
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = zone
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.string(from: date)
   }
 
   private struct Log: Codable {

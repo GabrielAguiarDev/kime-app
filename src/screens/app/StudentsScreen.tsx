@@ -21,17 +21,23 @@ export function StudentsScreen() {
 
   return (
     <Screen nativeHeader title="Alunos" bottomInset={false}>
-      {/* Codes are owner-only and live in the academy settings. */}
-      {isOwner ? (
-        <Box marginBottom="s32">
+      <Box marginBottom="s32" gap="s12">
+        <Button
+          title="Campeonatos"
+          icon="trophy"
+          variant="secondary"
+          onPress={() => router.push('/academy/championships')}
+        />
+        {/* Codes are owner-only and live in the academy settings. */}
+        {isOwner ? (
           <Button
             title="Códigos de convite"
             icon="share"
             variant="secondary"
             onPress={() => router.push('/academy/settings')}
           />
-        </Box>
-      ) : null}
+        ) : null}
+      </Box>
 
       {members.isLoading ? <ActivityIndicator /> : null}
       {members.isError ? (
@@ -120,6 +126,7 @@ function MemberRow({
         </Text>
         <Text variant="caption">
           {membershipLabel(member)}
+          {member.competitorInvitedAt ? ' · convidado para a equipe' : ''}
           {classesTaught !== undefined ? ` · ${classesTaught} ${classesTaught === 1 ? 'aula dada' : 'aulas dadas'}` : ''}
         </Text>
       </Box>

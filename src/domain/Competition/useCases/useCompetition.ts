@@ -128,6 +128,15 @@ export function useWaterPlans(athleteId: string | undefined, enabled = true) {
   });
 }
 
+/** Staff: a competitor's water logs of the last days (newest server copy; logs still on their phone are missing). */
+export function useAthleteWater(athleteId: string | undefined, days: number) {
+  return useQuery({
+    queryKey: [QueryKeys.AthleteWater, athleteId, days],
+    queryFn: () => service.listAthleteWater(athleteId!, new Date(Date.now() - days * 86_400_000).toISOString()),
+    enabled: !!athleteId,
+  });
+}
+
 export function useSetWaterPlan(academyId: string, athleteId: string) {
   const queryClient = useQueryClient();
   return useMutation({

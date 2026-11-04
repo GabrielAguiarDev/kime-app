@@ -11,6 +11,7 @@ import {
   useMyCheckins,
   useSchedules,
 } from '@domain/Classes';
+import { CompetitorInviteCard } from '@screens/competition/CompetitorInviteCard';
 import { useActiveGym } from '@services/activeGym';
 import { useClassRewards } from '@services/classRewards';
 import { useSession } from '@services/session';
@@ -59,6 +60,7 @@ export function StudentHome() {
         confirmedTotal={own?.confirmedTotal ?? 0}
         belt={latestBelt((modalityStats.data ?? []).filter((s) => s.userId === userId), belts.data ?? [])}
       />
+      {active?.competitorInvitedAt ? <CompetitorInviteCard membership={active} /> : null}
       <TodayClasses
         academyId={academyId}
         userId={userId}

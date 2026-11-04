@@ -22,8 +22,14 @@ export interface WaterWidgetConfig {
   userId: string;
   /** Null until the bottle is set up: the widget shows "Configure sua garrafa". */
   bottleMl: number | null;
-  /** Null without a weight (and without a professor's plan, phase 4). */
+  /** Automatic goal (35 ml/kg). Null without a weight. */
   goalMl: number | null;
+  /**
+   * Goal of the professor's weekly plan by local date (YYYY-MM-DD), for the next
+   * days: it replaces `goalMl` on those dates, also after midnight with the app
+   * closed. Missing on older configs and for non-competitors.
+   */
+  goalsByDate?: Record<string, number>;
   /** IANA zone of the profile: defines "today". */
   timeZone: string;
 }

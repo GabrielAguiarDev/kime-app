@@ -38,7 +38,7 @@ struct WaterProvider: TimelineProvider {
     guard let config = WaterStore.config() else { return WaterEntry(date: date, state: .signedOut) }
     guard let bottle = config.bottleMl else { return WaterEntry(date: date, state: .noBottle) }
     let total = WaterStore.total(for: config, on: date)
-    return WaterEntry(date: date, state: .ready(totalMl: total, goalMl: config.goalMl, bottleMl: bottle))
+    return WaterEntry(date: date, state: .ready(totalMl: total, goalMl: config.goal(on: date), bottleMl: bottle))
   }
 }
 

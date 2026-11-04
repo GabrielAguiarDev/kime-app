@@ -99,18 +99,20 @@ E-mail e senha funcionam direto no Supabase local. Os provedores sociais precisa
 
 ## Widgets
 
-Widgets nativos, que compartilham dados com o app por um armazenamento local. O widget de água chegou na fase 3; o de contagem regressiva vem na fase 4.
+Widgets nativos, que compartilham dados com o app por um armazenamento local: água (interativo, fase 3) e contagem regressiva para o próximo campeonato (estático, só competidores, fase 4).
 
 | | iOS | Android |
 | --- | --- | --- |
 | Código | `targets/widgets/` (SwiftUI + WidgetKit), ligado ao Xcode pelo `@bacons/apple-targets` | `modules/kimi-widget/android/` (Kotlin + Jetpack Glance) |
 | Armazenamento compartilhado | App Group `group.br.com.kimi.app` | SharedPreferences `kimi_widget` |
 | Botão "+ ml" | `Button(intent:)` + `AddWaterIntent` (iOS 17+) | `actionRunCallback<AddWaterAction>` |
-| Virada do dia | entrada da timeline à meia-noite (fuso do perfil) | alarme (inexato) à meia-noite |
+| Virada do dia | entrada da timeline à meia-noite (fuso do perfil); contagem: uma entrada por dia | alarme (inexato) à meia-noite, um por widget |
+| Contagem regressiva | `CountdownWidget.swift` | `CountdownWidget.kt` (`CountdownWidgetReceiver`) |
 | Adicionar | pela galeria de widgets do sistema | pela lista de widgets do launcher |
 
 **Contrato dos dados** (o mesmo nas duas plataformas e no app, em `src/domain/Water/waterLocalStore.ts`):
-- `water.config`: JSON `{userId, bottleMl, goalMl, timeZone}`, gravado pelo app a partir do perfil. Ele é apagado no logout.
+- `water.config`: JSON `{userId, bottleMl, goalMl, timeZone, goalsByDate?}`, gravado pelo app a partir do perfil. `goalMl` é a meta automática; `goalsByDate` (`{"AAAA-MM-DD": ml}`, próximos 8 dias) traz o plano de água do professor para competidores e vale no lugar de `goalMl` nesses dias, mesmo com o app fechado. Ele é apagado no logout.
+- `competition.championships`: JSON `{userId, timeZone, items: [{name, date, location}]}` com os campeonatos futuros em que o competidor está inscrito (`src/domain/Competition/competitionWidget.ts`). O widget mostra o primeiro a partir de "hoje". Sem a chave (não competidor, deslogado), mostra o estado vazio.
 - `water.log.<id>`: um registro por chave, com `{id, userId, amountMl, loggedAt, source, synced, deleted}`. O widget grava com `synced: false`, e o app envia ao Supabase (upsert pelo `id`) quando abre ou volta para o primeiro plano.
 
 O módulo nativo local `modules/kimi-widget` faz a ponte do app com esse armazenamento: lê e grava e recarrega os widgets. Num build sem o módulo, o app cai num armazenamento só dele: a água continua funcionando, mas os widgets não veem os registros.
@@ -127,4 +129,6 @@ npx expo run:android
 
 No Xcode, o código do widget fica na pasta virtual `expo:targets/widgets`. Ele é editado direto em `targets/widgets/` e sobrevive ao prebuild. Os tokens do widget são gerados por `npm run tokens`, nunca à mão.
 
-Para testar: configure a garrafa no app (Perfil → Água) e adicione o widget "Água" na tela inicial. Toque em "+ ml" com o app fechado e abra o app: o registro aparece em Água, marcado "Pelo widget", e é enviado ao Supabase.
+Para testar a contagem: como professor, convide um aluno para a equipe (Alunos → aluno → Convidar), aceite como aluno (Início), cadastre um campeonato (Perfil → Campeonatos) e inscreva o atleta. Adicione o widget "Campeonato" na tela inicial do aluno.
+
+Para testar a água: configure a garrafa no app (Perfil → Água) e adicione o widget "Água" na tela inicial. Toque em "+ ml" com o app fechado e abra o app: o registro aparece em Água, marcado "Pelo widget", e é enviado ao Supabase.

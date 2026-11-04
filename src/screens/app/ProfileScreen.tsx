@@ -137,6 +137,7 @@ export function ProfileScreen() {
               />
             ) : null}
             <ManageCard title="Horários das aulas" icon="calendar" onPress={() => router.push('/academy/schedules')} />
+            <ManageCard title="Campeonatos" icon="trophy" onPress={() => router.push('/academy/championships')} />
             {isOwner ? (
               <ManageCard title="Modalidades" icon="belt" onPress={() => router.push('/academy/modalities')} />
             ) : null}
@@ -313,7 +314,7 @@ function ManageCard({
   onPress,
 }: {
   title: string;
-  icon: 'drop' | 'settings' | 'calendar' | 'belt' | 'user';
+  icon: 'drop' | 'settings' | 'calendar' | 'belt' | 'user' | 'trophy';
   onPress: () => void;
 }) {
   return (
