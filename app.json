@@ -4,18 +4,23 @@
     "slug": "kimi",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/brand/kimi-icon-light.png",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "br.com.kimi.app",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "icon": {
+        "light": "./assets/brand/kimi-icon-light.png",
+        "dark": "./assets/brand/kimi-icon-dark.png",
+        "tinted": "./assets/brand/kimi-icon-tinted.png"
+      },
+      "appleTeamId": "B4CXCRNV44"
     },
     "android": {
       "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
