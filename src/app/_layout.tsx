@@ -106,7 +106,6 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="agua/index" />
         <Stack.Screen name="agua/configurar" />
-        <Stack.Screen name="agua/widget" />
       </Stack.Protected>
       {/* Staff screens, pushed from the tabs. */}
       <Stack.Protected guard={signedIn && isStaff}>

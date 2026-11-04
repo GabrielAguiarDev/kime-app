@@ -1,1 +1,1 @@
-export { sharedStore, widgetPinning } from './sharedStore';
+export { sharedStore } from './sharedStore';

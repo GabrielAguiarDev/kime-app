@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@theme";
 
 import { Box } from "../Box/Box";
-import { Icon } from "../Icon/Icon";
+import { Icon, type IconName } from "../Icon/Icon";
 import { Text } from "../Text/Text";
 
 interface ScreenProps {
@@ -21,6 +21,8 @@ interface ScreenProps {
   bottomInset?: boolean;
   /** Shows a back arrow at the top-left, away from the primary actions. */
   onBack?: () => void;
+  /** Icon-only action at the top-right (e.g. settings). */
+  topAction?: { icon: IconName; accessibilityLabel: string; onPress: () => void };
 }
 
 export function Screen({
@@ -31,6 +33,7 @@ export function Screen({
   feedback,
   bottomInset = true,
   onBack,
+  topAction,
 }: ScreenProps) {
   const { top, bottom } = useSafeAreaInsets();
   const { spacing, size } = useAppTheme();
@@ -49,16 +52,48 @@ export function Screen({
         justifyContent: "center",
         marginLeft: -spacing.s8,
         paddingLeft: spacing.s8,
-        marginBottom: spacing.s8,
       }}
     >
       <Icon name="back" />
     </Pressable>
   ) : null;
 
+  const actionButton = topAction ? (
+    <Pressable
+      onPress={topAction.onPress}
+      accessibilityRole="button"
+      accessibilityLabel={topAction.accessibilityLabel}
+      hitSlop={spacing.s8}
+      style={{
+        width: size.touchTarget,
+        height: size.touchTarget,
+        justifyContent: "center",
+        alignItems: "flex-end",
+        marginRight: -spacing.s8,
+        paddingRight: spacing.s8,
+      }}
+    >
+      <Icon name={topAction.icon} />
+    </Pressable>
+  ) : null;
+
+  // Back on the left, action on the right, on the same row above the title.
+  const topRow =
+    backButton || actionButton ? (
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        alignItems="center"
+        style={{ marginBottom: spacing.s8 }}
+      >
+        {backButton ?? <Box />}
+        {actionButton}
+      </Box>
+    ) : null;
+
   const header = (
     <>
-      {backButton}
+      {topRow}
       {title ? (
         <Text variant="title" marginBottom="s24" accessibilityRole="header">
           {title}

@@ -1,27 +1,18 @@
 import { router } from 'expo-router';
-import { ActivityIndicator, Alert, Platform } from 'react-native';
+import { ActivityIndicator, Alert } from 'react-native';
 
 import { Box, Button, Card, EmptyState, FeedbackSheet, Icon, Screen, Text, TextButton, WaterRing } from '@components';
 import { crossedGoal, useLogWater, useUndoWater, useWaterDay } from '@domain/Water';
 import { errorMessage } from '@infra';
-import { widgetPinning } from '@infra/widget';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
 import { haptics } from '@utils/haptics';
 
 import { formatMl, formatTime } from './format';
 
-/** "Adicionar widget": Android asks the launcher to pin it; iOS (or a launcher without support) shows the steps. */
-async function addWidget() {
-  if (Platform.OS === 'android' && widgetPinning.isSupported()) {
-    const asked = await widgetPinning.request().catch(() => false);
-    if (asked) return;
-  }
-  router.push('/agua/widget');
-}
-
 /**
  * Water of today (profile time zone): ring (3.4), "+{garrafa} ML" water button,
  * today's logs (from the app and the widget) and undo of the last one.
+ * Bottle, weight and height: settings icon at the top-right.
  */
 export function WaterScreen() {
   // Profile, or the config published for the widget when offline.
@@ -37,6 +28,11 @@ export function WaterScreen() {
   const goalFeedback = useWaterGoalFeedback(userId, day.data?.date, day.data?.totalMl, goalMl);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const settingsAction = {
+    icon: 'settings' as const,
+    accessibilityLabel: 'Garrafa, peso e altura',
+    onPress: () => router.push('/agua/configurar'),
+  };
 
   if (isLoading || (!!bottleMl && day.isLoading)) {
     return (
@@ -90,6 +86,7 @@ export function WaterScreen() {
     <Screen
       title="Água"
       onBack={back}
+      topAction={settingsAction}
       feedback={
         goalFeedback.visible ? (
           // TODO(motion): feedback sheet entering and leaving.
@@ -152,11 +149,6 @@ export function WaterScreen() {
               onPress={() => undo.mutate(undefined, { onError: (e) => Alert.alert('Água', errorMessage(e)) })}
             />
           ) : null}
-        </Box>
-
-        <Box gap="s12">
-          <Button title="Adicionar widget" variant="secondary" icon="device" onPress={() => void addWidget()} />
-          <TextButton title="Garrafa, peso e altura" onPress={() => router.push('/agua/configurar')} />
         </Box>
       </Box>
     </Screen>

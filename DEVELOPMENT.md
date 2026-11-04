@@ -153,9 +153,9 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - **Dia:** a data local vem do fuso do PERFIL (`localDate`, via Intl), no app e nos widgets.
   - **Desfazer:** remove o último registro do dia (do app ou do widget). Um registro já enviado vira `deleted` até o próximo sync apagar a cópia do servidor.
   - **Folha "Meta do dia batida.":** uma vez por dia (kv-store com escopo por usuário), na tela de Água ou na Início, se o widget bateu a meta com o app fechado.
-  - **Rotas:** `/agua`, `/agua/configurar` (também o destino do estado vazio do widget) e `/agua/widget` (passos + prévia). Ficam num Stack.Protected `signedIn`. Contador de água na barra do topo (aluno) e no cabeçalho da Início (staff).
+  - **Rotas:** `/agua` e `/agua/configurar` (também o destino do estado vazio do widget, e aberta pela engrenagem no canto superior direito da Água: `Screen.topAction`). Ficam num Stack.Protected `signedIn`. O botão "Adicionar widget", a tela de passos e o pedido para fixar o widget no Android saíram (decisão do usuário, 2026-11-04): o widget é adicionado pela galeria do sistema. Contador de água na barra do topo (aluno) e no cabeçalho da Início (staff).
   - **Widget pequeno:** anel e total LADO A LADO no topo, botão na base. Em pé, como na seção 9, não cabe na altura útil de um widget pequeno. Médio: anel à esquerda; total, meta e botão à direita. Tokens novos: `size.widgetRing`, `widgetRingMedium`, `widgetRingStroke`.
-  - **Android:** o Glance não aceita fonte customizada (usa a do sistema, com os mesmos tamanhos e pesos). O anel é desenhado em bitmap. A virada do dia usa `AlarmManager.set` (inexato, sem permissão de alarme exato). Fixar o widget pelo app usa `requestPinGlanceAppWidget`, só se `isRequestPinAppWidgetSupported`.
+  - **Android:** o Glance não aceita fonte customizada (usa a do sistema, com os mesmos tamanhos e pesos). O anel é desenhado em bitmap. A virada do dia usa `AlarmManager.set` (inexato, sem permissão de alarme exato).
   - **iOS:** fontes do design system embutidas na extensão (`UIAppFonts`). Timeline com a entrada atual e outra à meia-noite. `AddWaterIntent` grava no App Group e recarrega a timeline sem abrir o app.
   - **Banco:** nenhuma migration nova (`water_logs` e `profiles` já tinham tudo). 9 testes pgTAP novos (194 no total).
   - **Revisão (2026-11-04), já corrigida:**

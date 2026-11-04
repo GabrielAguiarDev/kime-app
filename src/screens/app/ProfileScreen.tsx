@@ -66,7 +66,7 @@ export function ProfileScreen() {
       <Box gap="s12" marginBottom="s32">
         <Text variant="captionCaps">Água</Text>
         <ManageCard title="Garrafa, peso e altura" onPress={() => router.push('/agua/configurar')} />
-        <ManageCard title="Água de hoje e widget" onPress={() => router.push('/agua')} />
+        <ManageCard title="Água de hoje" onPress={() => router.push('/agua')} />
       </Box>
 
       {isStaff ? (

@@ -41,14 +41,5 @@ public class KimiWidgetModule: Module {
     Function("reloadWidgets") {
       WidgetCenter.shared.reloadAllTimelines()
     }
-
-    /// iOS has no API to add a widget for the user: the app shows the steps instead.
-    Function("isPinSupported") { () -> Bool in
-      false
-    }
-
-    AsyncFunction("requestPin") { () -> Bool in
-      false
-    }
   }
 }
