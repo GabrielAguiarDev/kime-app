@@ -15,7 +15,10 @@
         "dark": "./assets/brand/kimi-icon-dark.png",
         "tinted": "./assets/brand/kimi-icon-tinted.png"
       },
-      "appleTeamId": "B4CXCRNV44"
+      "appleTeamId": "B4CXCRNV44",
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.br.com.kimi.app"]
+      }
     },
     "android": {
       "softwareKeyboardLayoutMode": "pan",
@@ -36,6 +39,7 @@
       "expo-font",
       "expo-apple-authentication",
       "expo-image",
+      "@bacons/apple-targets",
       [
         "expo-image-picker",
         {
