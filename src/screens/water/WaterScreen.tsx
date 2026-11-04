@@ -36,7 +36,7 @@ export function WaterScreen() {
 
   if (isLoading || (!!bottleMl && day.isLoading)) {
     return (
-      <Screen title="Água" onBack={back}>
+      <Screen title="Água" onBack={back} topAction={settingsAction}>
         <ActivityIndicator accessibilityLabel="Carregando" />
       </Screen>
     );
@@ -44,7 +44,7 @@ export function WaterScreen() {
 
   if (isError) {
     return (
-      <Screen title="Água" onBack={back}>
+      <Screen title="Água" onBack={back} topAction={settingsAction}>
         <EmptyState
           visual="icon"
           icon="offline"
@@ -60,6 +60,7 @@ export function WaterScreen() {
       <Screen
         title="Água"
         onBack={back}
+        topAction={settingsAction}
         footer={<Button title="Configurar garrafa" onPress={() => router.push('/agua/configurar')} />}
       >
         <EmptyState
