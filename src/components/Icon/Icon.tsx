@@ -7,17 +7,20 @@ import { ArrowsDownUp } from 'phosphor-react-native/src/icons/ArrowsDownUp';
 import { Barbell } from 'phosphor-react-native/src/icons/Barbell';
 import { Camera } from 'phosphor-react-native/src/icons/Camera';
 import { CalendarBlank } from 'phosphor-react-native/src/icons/CalendarBlank';
+import { CaretLeft } from 'phosphor-react-native/src/icons/CaretLeft';
 import { CaretRight } from 'phosphor-react-native/src/icons/CaretRight';
 import { Check } from 'phosphor-react-native/src/icons/Check';
 import { CheckCircle } from 'phosphor-react-native/src/icons/CheckCircle';
 import { Checks } from 'phosphor-react-native/src/icons/Checks';
 import { Clock } from 'phosphor-react-native/src/icons/Clock';
+import { Copy } from 'phosphor-react-native/src/icons/Copy';
 import { Crown } from 'phosphor-react-native/src/icons/Crown';
 import { CloudSlash } from 'phosphor-react-native/src/icons/CloudSlash';
 import { DeviceMobile } from 'phosphor-react-native/src/icons/DeviceMobile';
 import { DotsSixVertical } from 'phosphor-react-native/src/icons/DotsSixVertical';
 import { Drop } from 'phosphor-react-native/src/icons/Drop';
 import { Fire } from 'phosphor-react-native/src/icons/Fire';
+import { ForkKnife } from 'phosphor-react-native/src/icons/ForkKnife';
 import { GearSix } from 'phosphor-react-native/src/icons/GearSix';
 import { GraduationCap } from 'phosphor-react-native/src/icons/GraduationCap';
 import { House } from 'phosphor-react-native/src/icons/House';
@@ -51,6 +54,9 @@ const ICONS = {
   reorder: ArrowsDownUp,
   dragHandle: DotsSixVertical,
   chevronRight: CaretRight,
+  chevronLeft: CaretLeft,
+  copy: Copy,
+  diet: ForkKnife,
   done: Check,
   edit: PencilSimple,
   flame: Fire,

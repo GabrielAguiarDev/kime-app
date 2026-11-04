@@ -114,6 +114,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="agua/index" options={header} />
         <Stack.Screen name="agua/configurar" options={header} />
         <Stack.Screen name="conta/dados" options={header} />
+        <Stack.Screen name="dieta" options={header} />
       </Stack.Protected>
       <Stack.Protected guard={access.staff} redirectTo={redirectTo}>
         <Stack.Screen name="academy/schedules" options={header} />
@@ -122,6 +123,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="academy/championship" options={header} />
         <Stack.Screen name="athlete/water-plan" options={header} />
         <Stack.Screen name="athlete/progress" options={header} />
+        <Stack.Screen name="athlete/diet" options={header} />
       </Stack.Protected>
       <Stack.Protected guard={access.owner} redirectTo={redirectTo}>
         <Stack.Screen name="academy/settings" options={header} />

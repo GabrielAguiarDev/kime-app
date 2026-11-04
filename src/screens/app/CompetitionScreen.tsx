@@ -18,10 +18,12 @@ import {
   type Championship,
   type WeightLog,
 } from '@domain/Competition';
+import { mealsOn, useDietMeals } from '@domain/Diet';
 import { useMyProfile } from '@domain/Profile';
 import { autoDailyGoalMl, localDate } from '@domain/Water';
 import { errorMessage } from '@infra';
-import { Section, WaterPlanWeek, WeightRow, WeightSummary } from '@screens/competition/shared';
+import { LinkRow, Section, WaterPlanWeek, WeightRow, WeightSummary } from '@screens/competition/shared';
+import { MealCard } from '@screens/diet/MealCard';
 import { WeightSheet } from '@screens/competition/WeightSheet';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
@@ -93,6 +95,8 @@ export function CompetitionScreen() {
           </Section>
         ) : null}
 
+        <TodayDiet userId={userId} today={today} />
+
         <Section title="Plano de água da semana">
           <WaterPlanWeek
             plan={planInForce(plans.data ?? [], today)}
@@ -140,6 +144,25 @@ export function CompetitionScreen() {
         ) : null}
       </BottomSheet>
     </Screen>
+  );
+}
+
+function TodayDiet({ userId, today }: { userId: string; today: string }) {
+  const meals = useDietMeals(userId, today, today);
+  const ofDay = mealsOn(meals.data ?? [], today);
+  return (
+    <Section title="Dieta de hoje">
+      {meals.isLoading ? <ActivityIndicator /> : null}
+      {meals.data && ofDay.length === 0 ? (
+        <Text variant="body" color="textMuted">
+          Nenhuma refeição para hoje.
+        </Text>
+      ) : null}
+      {ofDay.map((meal) => (
+        <MealCard key={meal.id} meal={meal} />
+      ))}
+      <LinkRow title="Dieta da semana" icon="diet" onPress={() => router.push('/dieta')} />
+    </Section>
   );
 }
 
