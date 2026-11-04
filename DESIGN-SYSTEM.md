@@ -28,6 +28,8 @@ Quatro regras que valem para tudo:
 
 Mantenha os tokens em um único `tokens.json` e gere a partir dele os arquivos de TypeScript (app), Swift (widget iOS) e Kotlin (widget Android). Nunca use valores soltos no código.
 
+> **Tema do app: só escuro** (decisão de produto). O app usa sempre as cores da seção 2.2 e ignora a aparência do sistema. As cores do tema claro (2.1) continuam nos tokens porque os **widgets seguem claro/escuro do sistema** (seção 9).
+
 ### 2.1 Cores — tema claro
 
 | Token | Valor | Uso |
@@ -205,6 +207,17 @@ Equivalente à faixa "Correto!" do Duolingo. Aparece na base da tela após uma a
 
 Mascote em tamanho médio (ou ícone de 48 em text-muted em espaços pequenos), uma frase curta em body e, quando houver ação, um botão secundário. Nenhuma outra ilustração além do mascote.
 
+### 3.13 Bottom sheet
+
+Usado para confirmações e escolhas rápidas no lugar dos alertas do sistema.
+
+- Tela escurecida por trás (`edge` a 70%, token `opacity.scrim`).
+- Folha presa à base: fundo `surface`, borda 2px `border` no topo e nas laterais, raio `radius-lg` só nos cantos de cima, margem lateral 20.
+- Alça no topo: 40×5, raio `radius-sm`, cor `border`.
+- Confirmação: título `heading`, explicação `body` em `text-muted`, botão tátil da ação (perigo para ações destrutivas, primário nas demais) e "Cancelar" fantasma abaixo.
+- Fecha ao arrastar para baixo, ao tocar fora ou com o voltar do Android.
+- **Exceção à seção 8:** o bottom sheet tem movimento próprio (sobe da base em ~280 ms, desce em ~200 ms, fundo acompanha). Respeita "Reduzir movimento" do sistema.
+
 ### 3.12 Rolagem
 
 Sem barras de rolagem visíveis em nenhuma lista ou tela (`showsVerticalScrollIndicator={false}` e equivalentes).
@@ -256,7 +269,7 @@ Direto, curto, como um professor no tatame. Frases afirmativas, no máximo uma e
 
 ## 8. Movimento
 
-Não implemente animações nem transições. O movimento será adicionado manualmente depois.
+Não implemente animações nem transições. O movimento será adicionado manualmente depois. Exceção decidida pelo produto: o bottom sheet (3.13).
 
 - Defina cada estado como um estilo separado: repouso, pressionado, concluído, comemoração.
 - Mudanças de estado são instantâneas.
@@ -270,7 +283,7 @@ Não implemente animações nem transições. O movimento será adicionado manua
 
 ## 9. Widgets
 
-Os widgets seguem os mesmos tokens, gerados a partir do `tokens.json`, e respeitam claro/escuro do sistema.
+Os widgets seguem os mesmos tokens, gerados a partir do `tokens.json`, e respeitam claro/escuro do sistema (o app em si é só escuro; ver seção 2).
 
 - Fundo surface, raio do próprio sistema (não force raio no container).
 - Widget de água (pequeno): anel de água no topo, ml bebidos em display-lg, botão tátil de água "+500 ML" na base. Estado sem garrafa: ícone de garrafa em text-muted e "Configure sua garrafa".
@@ -285,3 +298,63 @@ Os widgets seguem os mesmos tokens, gerados a partir do `tokens.json`, e respeit
 - Suporte a tamanho de fonte dinâmico até pelo menos 130% sem quebrar layout.
 - Cor nunca é a única informação: status sempre com ícone e texto.
 - Todo botão só com ícone tem `accessibilityLabel`.
+
+## 11. Padrões de tela inspirados no Duolingo
+
+| No Duolingo | No Kimi |
+| --- | --- |
+| Barra do topo com ofensiva, gemas e vidas | Barra do topo com sequência, aulas e água |
+| Trilha de lições | Trilha de graduação até a próxima faixa |
+| Duo falando em balões | Ninja dando dicas e lembretes em balões |
+| Tela de lição concluída | Tela de conquista (check-in, meta, faixa) |
+| Opções de resposta em cards | Escolhas de formulário em cards de seleção |
+| Sons de acerto e conclusão | Sons curtos nas conquistas (desligáveis) |
+
+### 11.1 Barra do topo
+
+Fixa no topo da tela Início, com três contadores lado a lado: sequência semanal (ícone de chama em `accent`), aulas confirmadas (ícone de faixa na cor da faixa do aluno) e água de hoje (ícone de gota em `water`). Cada contador é ícone de 24 + número em Barlow Condensed 700, tamanho 20. Tocar em um contador abre o detalhe correspondente.
+
+### 11.2 Trilha de graduação
+
+O coração da tela Aulas, no lugar da trilha de lições do Duolingo.
+
+- Trilha vertical de **nós circulares em zigue-zague**, cada nó representando um bloco de aulas (o tamanho do bloco é a meta da faixa dividida em etapas).
+- **Concluído:** círculo de 72 em `accent` com borda inferior 3D `accent-edge` e ícone de check branco.
+- **Atual:** círculo de 88 em `accent`, anel de progresso ao redor e o mascote em tamanho 96 ao lado.
+- **Futuro:** círculo de 72 em `surface`, borda 2px `border`, borda inferior `edge`, ícone em `disabled`.
+- **Último nó:** a próxima faixa, desenhada com a cor dela.
+- Tocar em um nó abre um balão com "Aulas 21–30 · 4 de 10 feitas".
+
+### 11.3 Balão do mascote
+
+Mascote em tamanho 56 à esquerda e um balão à direita: fundo `surface`, borda 2px `border`, raio `radius-lg`, com uma ponta apontando para o mascote. Texto `body`, no máximo duas linhas. Usos: dica do dia, lembrete de água ("Faltam 1.200 ml hoje"), aviso de check-in pendente, mensagem do professor.
+
+### 11.4 Tela de conquista
+
+Tela cheia após marcos: check-in confirmado, meta de água batida, nova faixa, sequência de semanas.
+
+- Mascote comemorando em 160, centralizado.
+- Título em `title` ("Faixa azul conquistada").
+- Linha com 2 ou 3 cards de estatística: cabeçalho colorido com o rótulo em `caption` caixa alta e branco, corpo `surface` com o número em `display-lg` (ex. "AULAS · 120", "SEMANAS · 8").
+- Botão primário "CONTINUAR" fixo na base.
+
+### 11.5 Cards de seleção
+
+Em formulários, escolhas viram cards tocáveis como as respostas do Duolingo, e não listas ou dropdowns:
+
+- Tamanho da garrafa: 300, 500, 750, 1.000 ml e "Outro".
+- Modalidade, dias da semana no plano de água do professor, faixas.
+- Estado normal: card tocável com borda inferior 3D. Selecionado: borda `accent` e fundo `accent` a 8%.
+
+### 11.6 Reações do mascote
+
+| Situação | Expressão | Onde |
+| --- | --- | --- |
+| Padrão, estados vazios, lembretes | Bravo | Estados vazios, balões |
+| Check-in pendente | Bravo | Balão na Início |
+| Check-in confirmado, meta batida | Comemorando | Folha de feedback |
+| Nova faixa, sequência | Comemorando | Tela de conquista |
+
+### 11.7 Sons
+
+Sons curtos (até 1 segundo) no registro de água, check-in confirmado e telas de conquista. Respeitam o modo silencioso do aparelho e podem ser desligados no Perfil. Desligados por padrão nos widgets.

@@ -64,6 +64,7 @@ enum KimiTokens {
     static let badgeConfirmed: Double = 0.15
     static let badgeRejected: Double = 0.12
     static let shine: Double = 0.25
+    static let scrim: Double = 0.7
   }
 
   /// PostScript names of the bundled fonts (register them in the widget target).
@@ -73,6 +74,7 @@ enum KimiTokens {
     static let title = Font.custom("BarlowCondensed-Bold", fixedSize: 28).monospacedDigit() // line height 32
     static let heading = Font.custom("Inter-Bold", fixedSize: 18).monospacedDigit() // line height 24
     static let body = Font.custom("Inter-Regular", fixedSize: 16).monospacedDigit() // line height 22
+    static let counter = Font.custom("BarlowCondensed-Bold", fixedSize: 20).monospacedDigit() // line height 24
     static let bodyStrong = Font.custom("Inter-SemiBold", fixedSize: 16).monospacedDigit() // line height 22
     static let caption = Font.custom("Inter-SemiBold", fixedSize: 13).monospacedDigit() // line height 18
     static let button = Font.custom("Inter-Bold", fixedSize: 15).monospacedDigit() // line height 20, tracking 0.6, uppercase
@@ -108,6 +110,14 @@ enum KimiTokens {
   enum Size {
     static let button: CGFloat = 52
     static let input: CGFloat = 52
+    static let codeCell: CGFloat = 64
+    static let sheetHandleWidth: CGFloat = 40
+    static let sheetHandleHeight: CGFloat = 5
+    static let trailNode: CGFloat = 72
+    static let trailNodeCurrent: CGFloat = 88
+    static let trailRingStroke: CGFloat = 6
+    static let academyLogo: CGFloat = 96
+    static let academyLogoSmall: CGFloat = 48
     static let tabBar: CGFloat = 64
     static let progressBar: CGFloat = 14
     static let progressShine: CGFloat = 3

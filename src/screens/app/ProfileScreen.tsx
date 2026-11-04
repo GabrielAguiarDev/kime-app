@@ -1,27 +1,22 @@
+import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
-import { Box, Card, Icon, Screen, Text, TextButton, type IconName } from '@components';
+import { Box, Card, Icon, Screen, Text, TextButton } from '@components';
 import { useSignOut } from '@domain/Auth';
-import { activeMemberships, roleLabel } from '@domain/Membership';
+import { activeMemberships, membershipLabel } from '@domain/Membership';
 import { useMyProfile } from '@domain/Profile';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
-import { useAppearancePreference, type AppearancePreference } from '@services/appearance';
 import { useSession } from '@services/session';
-
-const APPEARANCE_OPTIONS: { value: AppearancePreference; label: string; icon: IconName }[] = [
-  { value: 'dark', label: 'Escuro', icon: 'dark' },
-  { value: 'light', label: 'Claro', icon: 'light' },
-  { value: 'system', label: 'Seguir o sistema', icon: 'device' },
-];
+import { SIGN_OUT_CONFIRM, useConfirm } from '@services/confirm';
 
 export function ProfileScreen() {
   const { session, userId } = useSession();
   const { data: profile } = useMyProfile(userId);
-  const { memberships, active, selectGym } = useActiveGym();
+  const { memberships, active, role, selectGym } = useActiveGym();
   const signOut = useSignOut();
+  const confirm = useConfirm();
   const gyms = activeMemberships(memberships);
-  const [appearance, setAppearance] = useAppearancePreference();
 
   return (
     <Screen title="Perfil" bottomInset={false}>
@@ -41,14 +36,14 @@ export function ProfileScreen() {
               onPress={() => selectGym(m.gymId)}
               selected={isActive}
               disabled={isActive}
-              accessibilityLabel={`${m.gymName}, ${roleLabel[m.role]}`}
+              accessibilityLabel={`${m.gymName}, ${membershipLabel(m)}`}
               flexDirection="row"
               alignItems="center"
               gap="s12"
             >
               <Box flex={1}>
                 <Text variant="bodyStrong">{m.gymName}</Text>
-                <Text variant="caption">{roleLabel[m.role]}</Text>
+                <Text variant="caption">{membershipLabel(m)}</Text>
               </Box>
               {isActive ? <Icon name="check" color="accent" active /> : null}
             </Card>
@@ -56,37 +51,36 @@ export function ProfileScreen() {
         })}
       </Box>
 
-      <Box gap="s12" marginBottom="s32">
-        <Text variant="captionCaps">Aparência</Text>
-        {APPEARANCE_OPTIONS.map((option) => {
-          const selected = option.value === appearance;
-          return (
-            <Card
-              key={option.value}
-              onPress={() => setAppearance(option.value)}
-              selected={selected}
-              disabled={selected}
-              accessibilityLabel={`Tema ${option.label}`}
-              flexDirection="row"
-              alignItems="center"
-              gap="s12"
-            >
-              <Icon name={option.icon} color={selected ? 'accent' : 'textMuted'} active={selected} />
-              <Text variant="bodyStrong" flex={1}>
-                {option.label}
-              </Text>
-              {selected ? <Icon name="check" color="accent" active /> : null}
-            </Card>
-          );
-        })}
-      </Box>
+      {role === 'professor' ? (
+        <Box gap="s12" marginBottom="s32">
+          <Text variant="captionCaps">Gestão da academia</Text>
+          <ManageCard title="Configurações da academia" onPress={() => router.push('/academy/settings')} />
+          <ManageCard title="Horários das aulas" onPress={() => router.push('/academy/schedules')} />
+          <ManageCard title="Metas de faixa" onPress={() => router.push('/academy/belts')} />
+        </Box>
+      ) : null}
 
       <TextButton
         title="Sair da conta"
         color="danger"
         disabled={signOut.isPending}
-        onPress={() => signOut.mutate(undefined, { onError: (e) => Alert.alert('Sair', errorMessage(e)) })}
+        onPress={async () => {
+          if (await confirm(SIGN_OUT_CONFIRM)) {
+            signOut.mutate(undefined, { onError: (e) => Alert.alert('Sair', errorMessage(e)) });
+          }
+        }}
       />
     </Screen>
+  );
+}
+
+function ManageCard({ title, onPress }: { title: string; onPress: () => void }) {
+  return (
+    <Card onPress={onPress} accessibilityLabel={title} flexDirection="row" alignItems="center" gap="s12">
+      <Text variant="bodyStrong" flex={1}>
+        {title}
+      </Text>
+      <Icon name="chevronRight" color="textMuted" />
+    </Card>
   );
 }

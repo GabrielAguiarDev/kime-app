@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, EmptyState, FeedbackSheet, Screen, Text, TextButton } from '@components';
+import { AcademyLogo, Box, Button, Card, EmptyState, FeedbackSheet, Screen, Text, TextButton } from '@components';
 import { useInvitePreview } from '@domain/Gym';
 import { roleLabel, useRequestMembership } from '@domain/Membership';
 import { errorMessage } from '@infra';
@@ -14,7 +14,8 @@ import { haptics } from '@utils/haptics';
 export function InviteScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const { session } = useSession();
-  const { data: preview, isLoading, isError, refetch } = useInvitePreview(token);
+  // The preview RPC is not exposed to anon: signed out, the academy name shows after sign-in.
+  const { data: preview, isLoading, isError, refetch } = useInvitePreview(session ? token : undefined);
   const request = useRequestMembership();
   const [sent, setSent] = useState(false);
 
@@ -30,7 +31,7 @@ export function InviteScreen() {
     );
   }
 
-  if (isError || !preview || !token) {
+  if (!token || (session && (isError || !preview))) {
     return (
       <Screen scrollable={false} footer={<TextButton title="Fechar" onPress={close} />}>
         <Box flex={1} justifyContent="center">
@@ -87,7 +88,7 @@ export function InviteScreen() {
     <FeedbackSheet
       tone="success"
       title="Pedido enviado"
-      message={`Assim que um professor da ${preview.gymName} aprovar, você entra na academia.`}
+      message={`Assim que um professor da ${preview?.gymName ?? 'academia'} aprovar, você entra na academia.`}
       actionLabel="Continuar"
       onAction={() => router.replace('/')}
     />
@@ -100,17 +101,22 @@ export function InviteScreen() {
       footer={
         <>
           {session ? signedInActions : signedOutActions}
-          <TextButton title="Agora não" color="textMuted" onPress={close} />
+          <TextButton title="Agora não" onPress={close} />
         </>
       }
     >
       <Box flex={1} justifyContent="center" gap="s16">
         <Text variant="captionCaps">Convite</Text>
-        <Card gap="s8">
-          <Text variant="title">{preview.gymName}</Text>
-          <Text variant="bodyStrong" color="textMuted">
-            Entrar como {roleLabel[preview.role].toLowerCase()}
-          </Text>
+        <Card flexDirection="row" alignItems="center" gap="s16">
+          {preview ? <AcademyLogo name={preview.gymName} url={preview.logoUrl} /> : null}
+          <Box flex={1} gap="s8">
+            <Text variant="title">{preview?.gymName ?? 'Convite para uma academia'}</Text>
+            <Text variant="bodyStrong" color="textMuted">
+              {preview
+                ? `Entrar como ${roleLabel[preview.role].toLowerCase()}`
+                : 'Entre ou crie sua conta para ver o convite.'}
+            </Text>
+          </Box>
         </Card>
         <Text variant="body" color="textMuted">
           Depois do pedido, um professor da academia precisa aprovar sua entrada.

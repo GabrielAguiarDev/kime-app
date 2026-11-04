@@ -24,7 +24,7 @@ npm install
 npm run db:start            # = supabase start; anote a PUBLISHABLE_KEY
 
 # 2. Variáveis do app
-cp .env.example .env.local  # preencha EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+cp .env.example .env  # preencha URL e publishable key do projeto
                             # (veja `supabase status`)
 
 # 3. App (o projeto usa módulos nativos, então não roda no Expo Go)
@@ -45,7 +45,7 @@ As pastas `ios/` e `android/` são geradas pelo `expo prebuild` e não são vers
 | `supabase migration new <nome>` | Cria uma migration em `supabase/migrations/` |
 | `npm run db:reset` | Recria o banco do zero aplicando todas as migrations |
 | `npm run db:test` | Roda os testes pgTAP de RLS/RPC (`supabase/tests/database/`) |
-| `npm run db:types` | Regenera `src/infra/supabase/database.types.ts` |
+| `npm run db:types` | Regenera `types/database.ts` a partir do projeto hospedado |
 
 Regras de segurança do schema (detalhes em `DEVELOPMENT.md`):
 
@@ -55,14 +55,12 @@ Regras de segurança do schema (detalhes em `DEVELOPMENT.md`):
 
 ## Contas de teste (só desenvolvimento)
 
-O `supabase/seed.sql` roda a cada `npm run db:reset` e cria duas contas ativas na academia **Kimi Jiu-Jitsu (Teste)**:
+Só no banco **local**: o `supabase/seed.sql` roda a cada `npm run db:reset` e cria duas contas ativas na academia **Kimi Jiu-Jitsu (Teste)**. Elas não existem no projeto hospedado; lá, use o cadastro real.
 
 | Papel | E-mail | Senha |
 | --- | --- | --- |
 | Professor (dono) | `professor@kimi.dev` | `kimi12345` |
 | Aluno | `aluno@kimi.dev` | `kimi12345` |
-
-Em builds de desenvolvimento (`__DEV__`), a tela de login mostra os botões **Entrar como aluno** e **Entrar como professor**. Eles não aparecem em builds de produção.
 
 ## Testes
 
@@ -84,7 +82,7 @@ xcrun simctl openurl booted "kimi://convite/<token>"
 adb shell am start -a android.intent.action.VIEW -d "kimi://convite/<token>"
 ```
 
-Os tokens válidos aparecem na tela **Alunos** (professor) ou na tabela `gym_invites` do Studio.
+Os tokens válidos aparecem na tela **Alunos** (professor) ou na tabela `academy_invites` do Studio.
 
 ## Login social
 

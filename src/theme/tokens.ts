@@ -74,7 +74,8 @@ export const tokens = {
     "badgePending": 0.18,
     "badgeConfirmed": 0.15,
     "badgeRejected": 0.12,
-    "shine": 0.25
+    "shine": 0.25,
+    "scrim": 0.7
   },
   "font": {
     "family": {
@@ -114,6 +115,12 @@ export const tokens = {
         "size": 16,
         "lineHeight": 22,
         "weight": 400
+      },
+      "counter": {
+        "family": "displayBold",
+        "size": 20,
+        "lineHeight": 24,
+        "weight": 700
       },
       "bodyStrong": {
         "family": "textSemiBold",
@@ -164,6 +171,14 @@ export const tokens = {
   "size": {
     "button": 52,
     "input": 52,
+    "codeCell": 64,
+    "sheetHandleWidth": 40,
+    "sheetHandleHeight": 5,
+    "trailNode": 72,
+    "trailNodeCurrent": 88,
+    "trailRingStroke": 6,
+    "academyLogo": 96,
+    "academyLogoSmall": 48,
     "tabBar": 64,
     "progressBar": 14,
     "progressShine": 3,

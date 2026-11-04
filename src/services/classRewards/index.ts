@@ -1,0 +1,1 @@
+export { useClassRewards } from './useClassRewards';

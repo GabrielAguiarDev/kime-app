@@ -56,6 +56,7 @@ object KimiTokens {
     const val badgeConfirmed = 0.15f
     const val badgeRejected = 0.12f
     const val shine = 0.25f
+    const val scrim = 0.7f
   }
 
   /** Font sizes (sp). Glance only supports system fonts; family is informative. */
@@ -65,6 +66,7 @@ object KimiTokens {
     val title = 28.sp // displayBold 700, line height 32
     val heading = 18.sp // textBold 700, line height 24
     val body = 16.sp // textRegular 400, line height 22
+    val counter = 20.sp // displayBold 700, line height 24
     val bodyStrong = 16.sp // textSemiBold 600, line height 22
     val caption = 13.sp // textSemiBold 600, line height 18
     val button = 15.sp // textBold 700, line height 20, uppercase
@@ -100,6 +102,14 @@ object KimiTokens {
   object Size {
     val button = 52.dp
     val input = 52.dp
+    val codeCell = 64.dp
+    val sheetHandleWidth = 40.dp
+    val sheetHandleHeight = 5.dp
+    val trailNode = 72.dp
+    val trailNodeCurrent = 88.dp
+    val trailRingStroke = 6.dp
+    val academyLogo = 96.dp
+    val academyLogoSmall = 48.dp
     val tabBar = 64.dp
     val progressBar = 14.dp
     val progressShine = 3.dp

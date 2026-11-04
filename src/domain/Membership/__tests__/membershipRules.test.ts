@@ -7,6 +7,8 @@ const m = (gymId: string, status: Membership['status'], role: Membership['role']
   gymName: `Gym ${gymId}`,
   role,
   status,
+  isCompetitor: false,
+  belt: null,
 });
 
 describe('resolveActiveMembership', () => {

@@ -1,39 +1,35 @@
-import { ThemeProvider as RestyleProvider } from '@shopify/restyle';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { useFonts } from 'expo-font';
+import { ThemeProvider as RestyleProvider } from "@shopify/restyle";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { useFonts } from "expo-font";
 import {
   DarkTheme,
-  DefaultTheme,
   SplashScreen,
   Stack,
   ThemeProvider as NavigationThemeProvider,
-} from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
-import { useColorScheme } from 'react-native';
+} from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useMemo, useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { queryClient } from '@infra';
-import { ActiveGymProvider, useActiveGym } from '@services/activeGym';
-import { initAppearance } from '@services/appearance';
-import { useConsumePendingInvite } from '@services/useConsumePendingInvite';
-import { SessionProvider, useSession } from '@services/session';
-import { fontAssets, useSchemeTheme } from '@theme';
+import { queryClient } from "@infra";
+import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
+import { ConfirmProvider } from "@services/confirm";
+import { useConsumePendingInvite } from "@services/useConsumePendingInvite";
+import { useWaterSync } from "@services/useWaterSync";
+import { SessionProvider, useSession } from "@services/session";
+import { fontAssets, useSchemeTheme } from "@theme";
 
 SplashScreen.preventAutoHideAsync();
-// Apply the saved theme (default dark) before anything renders.
-initAppearance();
 
 export default function RootLayout() {
   const theme = useSchemeTheme();
-  const scheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
 
   const navigationTheme = useMemo(() => {
-    const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
     return {
-      ...base,
+      ...DarkTheme,
       colors: {
-        ...base.colors,
+        ...DarkTheme.colors,
         background: theme.colors.bg,
         card: theme.colors.surface,
         text: theme.colors.text,
@@ -41,21 +37,25 @@ export default function RootLayout() {
         primary: theme.colors.accent,
       },
     };
-  }, [scheme, theme]);
+  }, [theme]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <RestyleProvider theme={theme}>
-        <NavigationThemeProvider value={navigationTheme}>
-          <SessionProvider>
-            <ActiveGymProvider>
-              <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-              <RootNavigator fontsReady={fontsLoaded || !!fontError} />
-            </ActiveGymProvider>
-          </SessionProvider>
-        </NavigationThemeProvider>
-      </RestyleProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <RestyleProvider theme={theme}>
+          <NavigationThemeProvider value={navigationTheme}>
+            <SessionProvider>
+              <ActiveGymProvider>
+                <ConfirmProvider>
+                  <StatusBar style="light" />
+                  <RootNavigator fontsReady={fontsLoaded || !!fontError} />
+                </ConfirmProvider>
+              </ActiveGymProvider>
+            </SessionProvider>
+          </NavigationThemeProvider>
+        </RestyleProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -70,6 +70,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const { session, isRestoring } = useSession();
   const { active, isLoading: membershipsLoading } = useActiveGym();
   useConsumePendingInvite();
+  useWaterSync();
 
   // Gate only the boot. After that the Stack stays mounted; screens show their
   // own loading state (e.g. memberships loading right after sign-in).
@@ -97,8 +98,17 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !!active}>
         <Stack.Screen name="(tabs)" />
+        {/* Phase 2: pushed from the tabs (professor management, member detail, achievements). */}
+        <Stack.Screen name="academy/settings" />
+        <Stack.Screen name="academy/schedules" />
+        <Stack.Screen name="academy/belts" />
+        <Stack.Screen name="member/[membershipId]" />
+        <Stack.Screen name="achievement" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
       </Stack.Protected>
-      <Stack.Screen name="convite/[token]" options={{ presentation: 'modal' }} />
+      <Stack.Screen
+        name="convite/[token]"
+        options={{ presentation: "modal" }}
+      />
     </Stack>
   );
 }

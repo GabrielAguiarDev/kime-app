@@ -10,7 +10,8 @@ import { Text } from '../Text/Text';
 export type ButtonVariant = 'primary' | 'water' | 'secondary' | 'danger' | 'ghost';
 
 /** Ghost buttons may use a muted or danger text for low-priority / destructive links. */
-export type GhostColor = Extract<ColorToken, 'accent' | 'textMuted' | 'danger'>;
+/** 3.1: ghost text is accent; danger only for destructive actions. */
+export type GhostColor = Extract<ColorToken, 'accent' | 'danger'>;
 
 /**
  * Visual state of the tactile button (DESIGN-SYSTEM.md, 3.1). Each one is a separate static
@@ -35,7 +36,6 @@ const VARIANTS: Record<Exclude<ButtonVariant, 'ghost'>, VariantStyle> = {
 const GHOST_PRESSED: Record<GhostColor, ColorToken> = {
   accent: 'accentSelected',
   danger: 'badgeRejected',
-  textMuted: 'border',
 };
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {

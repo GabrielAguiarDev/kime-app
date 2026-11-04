@@ -38,9 +38,6 @@
       ],
       "@utils/*": [
         "./src/utils/*"
-      ],
-      "@dev/*": [
-        "./src/dev/*"
       ]
     },
     "types": [

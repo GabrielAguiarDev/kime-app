@@ -4,10 +4,12 @@ import type { GymMember, Membership, PendingRequest } from './membershipTypes';
 function toMembership(row: MembershipRowApi): Membership {
   return {
     id: row.id,
-    gymId: row.gym_id,
-    gymName: row.gyms?.name ?? '',
+    gymId: row.academy_id,
+    gymName: row.academies?.name ?? '',
     role: row.role,
     status: row.status,
+    isCompetitor: row.is_competitor,
+    belt: row.belt,
   };
 }
 
@@ -18,6 +20,8 @@ function toGymMember(row: GymMemberRowApi): GymMember {
     fullName: row.profile?.full_name || 'Sem nome',
     role: row.role,
     status: row.status,
+    isCompetitor: row.is_competitor,
+    belt: row.belt,
     createdAt: row.created_at,
   };
 }

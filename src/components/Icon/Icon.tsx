@@ -1,20 +1,31 @@
 import { AppleLogo } from 'phosphor-react-native/src/icons/AppleLogo';
 import { ArrowClockwise } from 'phosphor-react-native/src/icons/ArrowClockwise';
+import { ArrowDown } from 'phosphor-react-native/src/icons/ArrowDown';
+import { ArrowLeft } from 'phosphor-react-native/src/icons/ArrowLeft';
+import { ArrowUp } from 'phosphor-react-native/src/icons/ArrowUp';
 import { Barbell } from 'phosphor-react-native/src/icons/Barbell';
 import { CalendarBlank } from 'phosphor-react-native/src/icons/CalendarBlank';
+import { CaretRight } from 'phosphor-react-native/src/icons/CaretRight';
+import { Check } from 'phosphor-react-native/src/icons/Check';
 import { CheckCircle } from 'phosphor-react-native/src/icons/CheckCircle';
 import { Checks } from 'phosphor-react-native/src/icons/Checks';
 import { Clock } from 'phosphor-react-native/src/icons/Clock';
 import { CloudSlash } from 'phosphor-react-native/src/icons/CloudSlash';
 import { DeviceMobile } from 'phosphor-react-native/src/icons/DeviceMobile';
 import { Drop } from 'phosphor-react-native/src/icons/Drop';
+import { Fire } from 'phosphor-react-native/src/icons/Fire';
 import { House } from 'phosphor-react-native/src/icons/House';
 import { LinkBreak } from 'phosphor-react-native/src/icons/LinkBreak';
 import { ListChecks } from 'phosphor-react-native/src/icons/ListChecks';
+import { Lock } from 'phosphor-react-native/src/icons/Lock';
 import { Medal } from 'phosphor-react-native/src/icons/Medal';
 import { Moon } from 'phosphor-react-native/src/icons/Moon';
+import { PencilSimple } from 'phosphor-react-native/src/icons/PencilSimple';
+import { Plus } from 'phosphor-react-native/src/icons/Plus';
+import { Prohibit } from 'phosphor-react-native/src/icons/Prohibit';
 import { ShareNetwork } from 'phosphor-react-native/src/icons/ShareNetwork';
 import { Sun } from 'phosphor-react-native/src/icons/Sun';
+import { Trash } from 'phosphor-react-native/src/icons/Trash';
 import { Trophy } from 'phosphor-react-native/src/icons/Trophy';
 import { User } from 'phosphor-react-native/src/icons/User';
 import { Users } from 'phosphor-react-native/src/icons/Users';
@@ -28,7 +39,18 @@ import { useAppTheme, type ColorToken } from '@theme';
  * own file so the bundle doesn't carry the whole library. Add new icons here.
  */
 const ICONS = {
+  arrowDown: ArrowDown,
+  arrowUp: ArrowUp,
+  chevronRight: CaretRight,
+  done: Check,
+  edit: PencilSimple,
+  flame: Fire,
+  locked: Lock,
+  plus: Plus,
+  deactivate: Prohibit,
+  trash: Trash,
   apple: AppleLogo,
+  back: ArrowLeft,
   barbell: Barbell,
   calendar: CalendarBlank,
   check: CheckCircle,

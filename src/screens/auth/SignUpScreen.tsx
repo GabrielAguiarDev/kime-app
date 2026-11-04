@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 
 import { Box, Button, Screen, Text, TextButton, TextField } from '@components';
-import { isValidEmail, isValidPassword, PASSWORD_MIN_LENGTH, useSignUp } from '@domain/Auth';
+import { isValidEmail, isValidPassword, normalizeEmail, PASSWORD_MIN_LENGTH, useSignUp } from '@domain/Auth';
 import { errorMessage } from '@infra';
 import { pendingInvite } from '@services/pendingInvite';
 
@@ -13,24 +13,9 @@ export function SignUpScreen() {
   const { mutate, isPending, error } = useSignUp();
   // Without an invite, sign-up leads to creating a gym (professor).
   const [hasInvite] = useState(() => !!pendingInvite.get());
-  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   const nameOk = fullName.trim().length >= 2;
   const canSubmit = nameOk && isValidEmail(email) && isValidPassword(password);
-
-  if (awaitingConfirmation) {
-    return (
-      <Screen
-        title="Confirme seu e-mail"
-        scrollable={false}
-        footer={<Button title="Ir para o login" onPress={() => router.replace('/sign-in')} />}
-      >
-        <Text variant="body" color="textMuted">
-          Enviamos um link para {email.trim()}. Depois de confirmar, entre com seu e-mail e senha.
-        </Text>
-      </Screen>
-    );
-  }
 
   return (
     <Screen
@@ -44,7 +29,17 @@ export function SignUpScreen() {
             onPress={() =>
               mutate(
                 { fullName, email, password },
-                { onSuccess: ({ needsEmailConfirmation }) => setAwaitingConfirmation(needsEmailConfirmation) },
+                {
+                  // signed_in: the root guard moves on by itself.
+                  onSuccess: (result) => {
+                    if (result === 'needs_confirmation') {
+                      router.replace({
+                        pathname: '/verify-email',
+                        params: { email: normalizeEmail(email), sent: '1' },
+                      });
+                    }
+                  },
+                },
               )
             }
           />

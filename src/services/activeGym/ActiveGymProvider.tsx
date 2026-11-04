@@ -15,6 +15,8 @@ interface ActiveGymContextValue {
   /** Active membership the app is showing. Null = onboarding. */
   active: Membership | null;
   role: MembershipRole | null;
+  /** Active membership is a competitor (student flag). */
+  isCompetitor: boolean;
   pending: Membership[];
   /** First load only (no data yet). */
   isLoading: boolean;
@@ -52,6 +54,7 @@ export function ActiveGymProvider({ children }: { children: ReactNode }) {
       memberships,
       active,
       role: active?.role ?? null,
+      isCompetitor: active?.isCompetitor ?? false,
       pending: memberships.filter((m) => m.status === 'pending'),
       isLoading: !!userId && isLoading,
       isFetching,
