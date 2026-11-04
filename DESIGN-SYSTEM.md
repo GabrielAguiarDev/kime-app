@@ -2,7 +2,7 @@
 
 Este documento é a referência visual do app e dos widgets. Siga-o em todas as telas. Em caso de conflito com qualquer outra instrução de design, este documento vale.
 
-> Os valores abaixo vivem em [`tokens.json`](tokens.json) (fonte única). Rode `npm run tokens` para gerar `src/theme/tokens.ts`, `widgets/ios/KimiTokens.swift` e `widgets/android/KimiTokens.kt`.
+> Os valores abaixo vivem em [`tokens.json`](tokens.json) (fonte única). Rode `npm run tokens` para gerar `src/theme/tokens.ts`, `targets/widgets/KimiTokens.swift` (widget iOS) e `modules/kimi-widget/android/src/main/java/br/com/kimi/widget/KimiTokens.kt` (widget Android).
 
 ## 1. Princípios
 

@@ -123,6 +123,9 @@ enum KimiTokens {
     static let progressShine: CGFloat = 3
     static let waterRingStroke: CGFloat = 14
     static let waterRing: CGFloat = 180
+    static let widgetRing: CGFloat = 56
+    static let widgetRingMedium: CGFloat = 104
+    static let widgetRingStroke: CGFloat = 8
     static let beltChipWidth: CGFloat = 28
     static let beltChipHeight: CGFloat = 10
     static let badgeIcon: CGFloat = 14
