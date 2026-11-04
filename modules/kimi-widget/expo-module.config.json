@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["KimiWidgetModule"]
+  },
+  "android": {
+    "modules": ["br.com.kimi.widget.KimiWidgetModule"]
+  }
+}

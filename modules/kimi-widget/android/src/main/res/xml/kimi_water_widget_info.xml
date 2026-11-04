@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Small (2x2) by default, resizable to medium (4x2). No periodic update: the widget
+     refreshes after each tap, when the app writes, and at local midnight (alarm). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+  android:description="@string/kimi_water_widget_description"
+  android:initialLayout="@layout/glance_default_loading_layout"
+  android:minWidth="110dp"
+  android:minHeight="110dp"
+  android:targetCellWidth="2"
+  android:targetCellHeight="2"
+  android:maxResizeWidth="320dp"
+  android:maxResizeHeight="160dp"
+  android:resizeMode="horizontal|vertical"
+  android:updatePeriodMillis="0"
+  android:widgetCategory="home_screen" />

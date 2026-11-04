@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!-- Water widget (Jetpack Glance). Merged into the app manifest. -->
+    <receiver
+      android:name="br.com.kimi.widget.WaterWidgetReceiver"
+      android:exported="true"
+      android:label="@string/kimi_water_widget_name">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/kimi_water_widget_info" />
+    </receiver>
+  </application>
+</manifest>
