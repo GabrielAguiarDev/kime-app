@@ -9,7 +9,7 @@ create extension if not exists pgtap with schema extensions;
 select set_config('search_path', concat_ws(',',
   (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
   'public', 'extensions'), true);
-select plan(185);
+select plan(194);
 
 -- ---------------------------------------------------------------- helpers ---
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$
@@ -362,6 +362,48 @@ select pg_temp.login(pg_temp.id('p1'));
 select is((select count(*)::int from public.weight_logs), 1, 'professor reads competitor weight');
 select pg_temp.login(pg_temp.id('p2'));
 select is((select count(*)::int from public.weight_logs), 0, 'other professor reads no weight');
+
+-- ------------------------------------------------- water (phase 3) ---
+-- Profile water setup: own row only; the bottle follows the database limits.
+select pg_temp.login(pg_temp.id('t1'));
+select lives_ok(
+  $$ update public.profiles set weight_kg = 70.5, height_cm = 175, bottle_ml = 750 where id = pg_temp.id('t1') $$,
+  'user sets own weight, height and bottle');
+select is((select weight_kg::text || '/' || height_cm::text || '/' || bottle_ml from public.profiles where id = pg_temp.id('t1')),
+  '70.50/175.0/750', 'water setup saved');
+select throws_ok(
+  $$ update public.profiles set bottle_ml = 20 where id = pg_temp.id('t1') $$,
+  '23514', null, 'bottle below 50 ml is rejected');
+update public.profiles set bottle_ml = 300 where id = pg_temp.id('s1');
+select pg_temp.logout();
+select isnt((select bottle_ml from public.profiles where id = pg_temp.id('s1')), 300,
+  'nobody changes another user''s bottle');
+
+-- Logs: undo deletes the own server copy; another user's log is untouchable.
+select pg_temp.login(pg_temp.id('t1'));
+select lives_ok(
+  $$ delete from public.water_logs where id = '00000000-0000-0000-00aa-000000000002' $$,
+  'user deletes (undoes) own water log');
+select is((select count(*)::int from public.water_logs), 0, 'own log is gone');
+delete from public.water_logs where id = '00000000-0000-0000-00aa-000000000001';
+update public.water_logs set amount_ml = 1 where id = '00000000-0000-0000-00aa-000000000001';
+select pg_temp.logout();
+select is((select amount_ml || '/' || user_id::text from public.water_logs where id = '00000000-0000-0000-00aa-000000000001'),
+  '500/' || pg_temp.id('s1')::text, 'another user''s water log cannot be deleted or changed');
+
+-- A log the widget wrote offline arrives later with its own id: upsert by id is idempotent.
+select pg_temp.login(pg_temp.id('t1'));
+insert into public.water_logs (id, user_id, amount_ml, logged_at)
+  values ('00000000-0000-0000-00aa-000000000003', pg_temp.id('t1'), 750, now() - interval '3 hours')
+  on conflict (id) do update set amount_ml = excluded.amount_ml, logged_at = excluded.logged_at;
+insert into public.water_logs (id, user_id, amount_ml, logged_at)
+  values ('00000000-0000-0000-00aa-000000000003', pg_temp.id('t1'), 750, now() - interval '3 hours')
+  on conflict (id) do update set amount_ml = excluded.amount_ml, logged_at = excluded.logged_at;
+select is((select count(*)::int from public.water_logs where id = '00000000-0000-0000-00aa-000000000003'),
+  1, 'a widget log sent twice is stored once');
+
+select pg_temp.as_anon();
+select throws_ok($$ select * from public.water_logs $$, '42501', null, 'anon cannot read water logs');
 
 -- ---------------------------------------------------------- championships ---
 select pg_temp.login(pg_temp.id('p1'));

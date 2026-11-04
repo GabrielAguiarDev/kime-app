@@ -1,1 +1,1 @@
-export { sharedWidgetStorage, type WaterTodaySnapshot } from './sharedWidgetStorage';
+export { sharedStore, widgetPinning } from './sharedStore';

@@ -18,6 +18,8 @@ type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];
 const ScopedKeys = {
   /** Last class progress the student has already been rewarded for. */
   classRewards: 'kimi.classRewards.v1',
+  /** Last day (YYYY-MM-DD) the user already saw "Meta do dia batida", per user. */
+  waterGoalCelebrated: 'kimi.waterGoalCelebrated.v1',
 } as const;
 
 type ScopedKey = keyof typeof ScopedKeys;

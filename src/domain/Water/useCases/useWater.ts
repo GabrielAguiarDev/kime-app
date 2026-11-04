@@ -2,27 +2,44 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { QueryKeys } from '@infra/query';
 
+import { localDate } from '../waterRules';
 import { waterService } from '../waterService';
 
-/** Today's total from the device (works offline). */
-export function useWaterToday(userId: string | undefined) {
+/** Today's logs and total, from the device (offline, includes what the widget logged). */
+export function useWaterDay(userId: string | undefined, timeZone: string | undefined) {
+  // The date is part of the key: the first render after midnight reads the new day.
+  const today = timeZone ? localDate(new Date(), timeZone) : undefined;
   return useQuery({
-    queryKey: [QueryKeys.WaterToday, userId],
-    queryFn: () => waterService.todayTotal(userId!),
-    enabled: !!userId,
+    queryKey: [QueryKeys.WaterToday, userId, timeZone, today],
+    queryFn: () => waterService.day(userId!, timeZone!),
+    enabled: !!userId && !!timeZone,
     networkMode: 'always',
   });
 }
 
-export function useLogWater(userId: string | undefined) {
+function useAfterLocalChange(userId: string | undefined) {
   const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterToday, userId] });
+    // Best effort: stays pending on the device and retries on the next trigger.
+    if (userId) waterService.sync(userId).catch(() => undefined);
+  };
+}
+
+export function useLogWater(userId: string | undefined) {
+  const onSuccess = useAfterLocalChange(userId);
   return useMutation({
     networkMode: 'always',
     mutationFn: async (amountMl: number) => waterService.log(userId!, amountMl),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterToday, userId] });
-      // Best effort: stays pending on the device and retries on the next trigger.
-      waterService.sync(userId!).catch(() => undefined);
-    },
+    onSuccess,
+  });
+}
+
+export function useUndoWater(userId: string | undefined, timeZone: string | undefined) {
+  const onSuccess = useAfterLocalChange(userId);
+  return useMutation({
+    networkMode: 'always',
+    mutationFn: async () => waterService.undoLast(userId!, timeZone!),
+    onSuccess,
   });
 }
