@@ -14,7 +14,8 @@ export interface Membership {
   status: MembershipStatus;
   /** Only students compete. */
   isCompetitor: boolean;
-  belt: string | null;
+  /** When the request was approved/rejected (null while pending). */
+  decidedAt: string | null;
 }
 
 /** A member of a gym as seen by its professor. */
@@ -25,7 +26,8 @@ export interface GymMember {
   role: MembershipRole;
   status: MembershipStatus;
   isCompetitor: boolean;
-  belt: string | null;
+  /** Profile photo in the private `avatars` bucket (read with a signed URL). */
+  avatarPath: string | null;
   createdAt: string;
 }
 

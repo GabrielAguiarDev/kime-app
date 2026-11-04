@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Pressable } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { BELTS, Box, Icon, Mascot, Text, type Belt } from '@components';
-import { trailNodes, type TrailNode } from '@domain/Classes';
+import { BELT_COLOR_TOKEN, Box, Icon, Mascot, Text } from '@components';
+import { beltColorNeedsOutline, beltName, trailNodes, type BeltLook, type TrailNode } from '@domain/Classes';
 import { useAppTheme } from '@theme';
 
 interface GraduationTrailProps {
   required: number;
   done: number;
-  nextBelt: Belt;
+  nextBelt: BeltLook;
 }
 
 // Zigzag (Duolingo path): center, right, center, left…
@@ -116,32 +116,42 @@ function TrailNodeButton({ node, onPress }: { node: TrailNode; onPress: () => vo
   );
 }
 
-function BeltNode({ belt, required, done }: { belt: Belt; required: number; done: number }) {
+function BeltNode({ belt, required, done }: { belt: BeltLook; required: number; done: number }) {
   const theme = useAppTheme();
   const [open, setOpen] = useState(false);
   const size = theme.size.trailNode;
-  const info = BELTS[belt];
-  const outlined = belt === 'white' || belt === 'black';
+  const name = beltName(belt).toLowerCase();
+  const outlined = beltColorNeedsOutline(belt.primary) || (!!belt.tip && beltColorNeedsOutline(belt.tip));
 
   return (
     <Box alignItems="center" gap="s8">
       <Pressable
         onPress={() => setOpen((v) => !v)}
         accessibilityRole="button"
-        accessibilityLabel={`Próxima faixa: ${info.label}, ${required} aulas`}
+        accessibilityLabel={`Próxima faixa: ${beltName(belt)}, ${required} aulas`}
       >
         <Box
           width={size}
           height={size}
-          backgroundColor={info.color}
           borderWidth={outlined ? theme.border.width : 0}
           borderColor="border"
           borderBottomWidth={theme.border.edgeWidth}
+          backgroundColor={BELT_COLOR_TOKEN[belt.primary]}
+          flexDirection="row"
+          overflow="hidden"
           style={{ borderRadius: size / 2, borderBottomColor: theme.colors.edge }}
-        />
+        >
+          {/* Tip: the last 25% on the right, as on the belt chip. */}
+          {belt.tip ? (
+            <>
+              <Box flex={3} />
+              <Box flex={1} backgroundColor={BELT_COLOR_TOKEN[belt.tip]} />
+            </>
+          ) : null}
+        </Box>
       </Pressable>
-      <Text variant="caption">{`Faixa ${info.label.toLowerCase()}`}</Text>
-      {open ? <NodeCaption text={`Faixa ${info.label.toLowerCase()} · ${Math.min(done, required)} de ${required} aulas`} /> : null}
+      <Text variant="caption">{`Faixa ${name}`}</Text>
+      {open ? <NodeCaption text={`Faixa ${name} · ${Math.min(done, required)} de ${required} aulas`} /> : null}
     </Box>
   );
 }

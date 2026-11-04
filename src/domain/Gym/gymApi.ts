@@ -82,7 +82,7 @@ async function getSettings(gymId: string) {
   return data;
 }
 
-async function updateSettings(gymId: string, patch: { name?: string; timezone?: string; logo_path?: string | null }) {
+async function updateSettings(gymId: string, patch: { name?: string; logo_path?: string | null }) {
   const { data, error } = await supabase.from('academies').update(patch).eq('id', gymId).select('id');
   if (error) throw error;
   if (data.length === 0) throw new Error('forbidden');

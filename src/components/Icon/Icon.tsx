@@ -3,7 +3,9 @@ import { ArrowClockwise } from 'phosphor-react-native/src/icons/ArrowClockwise';
 import { ArrowDown } from 'phosphor-react-native/src/icons/ArrowDown';
 import { ArrowLeft } from 'phosphor-react-native/src/icons/ArrowLeft';
 import { ArrowUp } from 'phosphor-react-native/src/icons/ArrowUp';
+import { ArrowsDownUp } from 'phosphor-react-native/src/icons/ArrowsDownUp';
 import { Barbell } from 'phosphor-react-native/src/icons/Barbell';
+import { Camera } from 'phosphor-react-native/src/icons/Camera';
 import { CalendarBlank } from 'phosphor-react-native/src/icons/CalendarBlank';
 import { CaretRight } from 'phosphor-react-native/src/icons/CaretRight';
 import { Check } from 'phosphor-react-native/src/icons/Check';
@@ -13,10 +15,13 @@ import { Clock } from 'phosphor-react-native/src/icons/Clock';
 import { Crown } from 'phosphor-react-native/src/icons/Crown';
 import { CloudSlash } from 'phosphor-react-native/src/icons/CloudSlash';
 import { DeviceMobile } from 'phosphor-react-native/src/icons/DeviceMobile';
+import { DotsSixVertical } from 'phosphor-react-native/src/icons/DotsSixVertical';
 import { Drop } from 'phosphor-react-native/src/icons/Drop';
 import { Fire } from 'phosphor-react-native/src/icons/Fire';
 import { GearSix } from 'phosphor-react-native/src/icons/GearSix';
+import { GraduationCap } from 'phosphor-react-native/src/icons/GraduationCap';
 import { House } from 'phosphor-react-native/src/icons/House';
+import { Image } from 'phosphor-react-native/src/icons/Image';
 import { LinkBreak } from 'phosphor-react-native/src/icons/LinkBreak';
 import { ListChecks } from 'phosphor-react-native/src/icons/ListChecks';
 import { Lock } from 'phosphor-react-native/src/icons/Lock';
@@ -43,6 +48,8 @@ import { useAppTheme, type ColorToken } from '@theme';
 const ICONS = {
   arrowDown: ArrowDown,
   arrowUp: ArrowUp,
+  reorder: ArrowsDownUp,
+  dragHandle: DotsSixVertical,
   chevronRight: CaretRight,
   done: Check,
   edit: PencilSimple,
@@ -54,6 +61,9 @@ const ICONS = {
   apple: AppleLogo,
   back: ArrowLeft,
   barbell: Barbell,
+  belt: GraduationCap,
+  camera: Camera,
+  image: Image,
   calendar: CalendarBlank,
   check: CheckCircle,
   checks: Checks,

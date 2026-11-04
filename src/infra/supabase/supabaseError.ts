@@ -16,9 +16,17 @@ export type AppErrorCode =
   | 'too_many_codes'
   | 'invalid_academy_name'
   | 'invalid_modalities'
+  | 'instructor_invalid'
+  | 'logo_required'
+  | 'modality_in_use'
+  | 'belt_in_use'
+  | 'modality_has_history'
+  | 'duplicate_name'
   | 'invalid_credentials'
   | 'email_taken'
   | 'weak_password'
+  | 'same_password'
+  | 'wrong_current_password'
   | 'email_not_confirmed'
   | 'code_invalid'
   | 'rate_limited'
@@ -40,6 +48,8 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'too_many_codes',
   'invalid_academy_name',
   'invalid_modalities',
+  'instructor_invalid',
+  'logo_required',
 ];
 
 export class AppError extends Error {
@@ -73,6 +83,8 @@ export function toAppError(error: unknown): AppError {
       return new AppError('email_taken', error);
     case 'weak_password':
       return new AppError('weak_password', error);
+    case 'same_password':
+      return new AppError('same_password', error);
     case 'email_not_confirmed':
       return new AppError('email_not_confirmed', error);
     // GoTrue answers otp_expired for both wrong and expired codes.
@@ -83,6 +95,22 @@ export function toAppError(error: unknown): AppError {
       return new AppError('rate_limited', error);
     case '42501':
       return new AppError('forbidden', error);
+    // Foreign keys that protect history: schedules point at the modality, or a
+    // belt (of the modality) was already awarded.
+    case '23503':
+      if (/class_schedules_modality_fkey/.test(message)) return new AppError('modality_in_use', error);
+      // Deleting a modality cascades to its belts: an awarded one blocks it.
+      if (/belt_history_belt_fkey/.test(message) && /academy_modalities/.test(message)) {
+        return new AppError('modality_has_history', error);
+      }
+      if (/belt_history_belt_fkey/.test(message)) return new AppError('belt_in_use', error);
+      break;
+    // Only the name uniques get the "already exists" message; others stay generic.
+    case '23505':
+      if (/academy_modalities_academy_name_idx|modality_belts_name_idx/.test(message)) {
+        return new AppError('duplicate_name', error);
+      }
+      break;
   }
   if (e.name === 'AuthRetryableFetchError' || /network request failed/i.test(message)) {
     return new AppError('network', error);
@@ -105,9 +133,17 @@ const MESSAGES: Record<AppErrorCode, string> = {
   academy_needs_owner: 'A academia precisa de um proprietário. Transfira a academia antes de sair.',
   invalid_academy_name: 'O nome da academia precisa ter entre 2 e 80 caracteres.',
   invalid_modalities: 'Escolha pelo menos uma modalidade (até 20).',
+  instructor_invalid: 'Escolha um professor ativo desta academia.',
+  logo_required: 'A academia precisa ter uma logo. Troque por outra em vez de remover.',
+  modality_in_use: 'Esta modalidade tem horários cadastrados. Remova os horários dela antes.',
+  belt_in_use: 'Esta faixa já foi entregue a alunos e fica no histórico deles. Ela não pode ser removida.',
+  modality_has_history: 'Alunos já foram graduados nesta modalidade. Ela fica no histórico deles e não pode ser removida.',
+  duplicate_name: 'Já existe um item com esse nome.',
   invalid_credentials: 'E-mail ou senha incorretos.',
   email_taken: 'Já existe uma conta com este e-mail. Entre com sua senha.',
   weak_password: 'Senha fraca. Use pelo menos 8 caracteres.',
+  same_password: 'A nova senha precisa ser diferente da atual.',
+  wrong_current_password: 'Senha atual incorreta.',
   email_not_confirmed: 'Confirme seu e-mail com o código que enviamos.',
   code_invalid: 'Código inválido ou expirado. Confira ou peça um novo.',
   rate_limited: 'Muitas tentativas. Aguarde um pouco e tente de novo.',

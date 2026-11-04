@@ -8,13 +8,14 @@ import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 
 import { pendingCode } from './entryStore';
+import { joinOutcome, joinOutcomeText } from './joinOutcome';
 
 const CONSUME_CODE_KEY = ['ConsumePendingCode'];
 
 /**
  * After sign-in/sign-up, turns the code confirmed while signed out into a
- * join request. Already a member of that academy → straight into it. The code
- * is kept on network errors so the next launch retries.
+ * join request. Already a member / already waiting → says so (nothing new is
+ * created). The code is kept on network errors so the next launch retries.
  */
 export function useConsumePendingCode() {
   const { userId } = useSession();
@@ -22,12 +23,21 @@ export function useConsumePendingCode() {
   const queryClient = useQueryClient();
   const { mutate, isPending } = useMutation({
     mutationKey: CONSUME_CODE_KEY,
-    mutationFn: (code: string) => gymService.joinWithCode(code),
-    onSuccess: async (result) => {
+    mutationFn: async (code: string) => {
+      const result = await gymService.joinWithCode(code);
+      // Name for the message (best effort: the code was valid a moment ago).
+      const lookup = await gymService.lookupCode(code).catch(() => null);
+      return { result, gymName: lookup?.gymName ?? null };
+    },
+    onSuccess: async ({ result, gymName }) => {
       pendingCode.clear();
-      if (result.status === 'active') selectGym(result.gymId);
-      // Already in another academy: the app opens on it, so say where the request went.
-      else if (active) Alert.alert('Pedido enviado', 'Quando a academia aprovar, ela aparece no seu Perfil.');
+      const outcome = joinOutcome(result);
+      if (outcome === 'alreadyMember') selectGym(result.gymId);
+      // Without an approved academy the waiting screen shows a new request by itself.
+      if (outcome !== 'sent' || active) {
+        const text = joinOutcomeText(outcome, gymName);
+        Alert.alert(text.title, text.message);
+      }
       await queryClient.invalidateQueries({ queryKey: [QueryKeys.MyMemberships] });
     },
     onError: (e) => {

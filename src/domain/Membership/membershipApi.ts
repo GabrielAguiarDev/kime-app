@@ -3,7 +3,7 @@ import { supabase } from '@infra/supabase';
 async function listMine(userId: string) {
   const { data, error } = await supabase
     .from('memberships')
-    .select('id, academy_id, role, status, is_competitor, belt, academies(name, logo_path)')
+    .select('id, academy_id, role, status, is_competitor, decided_at, academies(name, logo_path)')
     .eq('user_id', userId)
     .order('created_at');
   if (error) throw error;
@@ -13,7 +13,7 @@ async function listMine(userId: string) {
 async function listByGym(gymId: string) {
   const { data, error } = await supabase
     .from('memberships')
-    .select('id, user_id, role, status, is_competitor, belt, created_at, profile:profiles!memberships_user_id_fkey(full_name)')
+    .select('id, user_id, role, status, is_competitor, created_at, profile:profiles!memberships_user_id_fkey(full_name, avatar_path)')
     .eq('academy_id', gymId)
     .eq('status', 'active')
     .order('created_at', { ascending: false });

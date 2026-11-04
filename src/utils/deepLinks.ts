@@ -9,8 +9,8 @@ export function joinCodeUrl(code: string): string {
 }
 
 /** Message the owner shares: readable without the app (the code is spelled out). */
-export function joinCodeMessage(gymName: string, code: string, kind: 'student' | 'professor'): string {
-  const who = kind === 'professor' ? 'como professor' : '';
+export function joinCodeMessage(gymName: string, code: string, kind: 'student' | 'instructor'): string {
+  const who = kind === 'instructor' ? 'como professor' : '';
   return [
     `Entre na ${gymName} ${who} pelo app Kimi.`.replace(/\s+/g, ' ').replace(' .', '.'),
     `Código: ${code}`,

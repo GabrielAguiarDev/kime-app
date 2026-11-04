@@ -2,13 +2,13 @@ import type { GymMember, Membership, MembershipRole } from './membershipTypes';
 
 export const roleLabel: Record<MembershipRole, string> = {
   owner: 'Proprietário',
-  professor: 'Professor',
+  instructor: 'Professor',
   student: 'Aluno',
 };
 
 /** Owner or professor: runs classes, check-ins, student requests, belts, competitors. */
 export function isStaffRole(role: MembershipRole | null | undefined): boolean {
-  return role === 'owner' || role === 'professor';
+  return role === 'owner' || role === 'instructor';
 }
 
 /** Only the owner manages professors, removes members and changes academy settings. */

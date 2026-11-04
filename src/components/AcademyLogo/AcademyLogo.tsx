@@ -9,7 +9,8 @@ interface AcademyLogoProps {
   name: string;
   /** Public URL; null shows the academy initials instead. */
   url: string | null | undefined;
-  size?: 'large' | 'small';
+  /** hero: academy settings; large: entry cards; small: lists; header: circular header button (Início). */
+  size?: 'hero' | 'large' | 'small' | 'header';
 }
 
 function initials(name: string): string {
@@ -24,13 +25,22 @@ function initials(name: string): string {
  */
 export function AcademyLogo({ name, url, size = 'large' }: AcademyLogoProps) {
   const theme = useAppTheme();
-  const px = size === 'large' ? theme.size.academyLogo : theme.size.academyLogoSmall;
+  const px =
+    size === 'hero'
+      ? theme.size.academyLogoHero
+      : size === 'large'
+        ? theme.size.academyLogo
+        : size === 'header'
+          ? theme.size.headerLogo
+          : theme.size.academyLogoSmall;
+  const circle = size === 'header';
   return (
     <Box
       width={px}
       height={px}
-      borderRadius={url ? 'lg' : 'md'}
-      borderWidth={url ? theme.border.width : 0}
+      borderRadius={circle ? undefined : url ? 'lg' : 'md'}
+      borderWidth={url && !circle ? theme.border.width : 0}
+      style={circle ? { borderRadius: px / 2 } : undefined}
       borderColor="border"
       backgroundColor={url ? 'surface' : 'surfaceRaised'}
       alignItems="center"
@@ -42,7 +52,7 @@ export function AcademyLogo({ name, url, size = 'large' }: AcademyLogoProps) {
       {url ? (
         <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={0} />
       ) : (
-        <Text variant={size === 'large' ? 'title' : 'heading'} color="accent">
+        <Text variant={size === 'header' ? 'caption' : size === 'small' ? 'heading' : 'title'} color="accent">
           {initials(name)}
         </Text>
       )}

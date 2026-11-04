@@ -1,25 +1,28 @@
-import type { Belt } from '@components';
-
 import type {
   AcademyCheckinRowApi,
   BeltAwardRowApi,
-  BeltGoalRowApi,
+  BeltRowApi,
   CheckinRowApi,
   MemberStatsRowApi,
+  ModalityRowApi,
+  ModalityStatsRowApi,
   ScheduleRowApi,
 } from './classesApi';
 import type {
   AcademyCheckin,
   BeltAward,
-  BeltGoal,
+  BeltColorKey,
   Checkin,
   ClassSchedule,
   MemberStats,
+  Modality,
+  ModalityBelt,
+  ModalityStats,
   Weekday,
 } from './classesTypes';
 
-// Belt columns only accept palette keys (DB check constraint).
-const asBelt = (value: string) => value as Belt;
+// Columns only accept palette keys (DB check).
+const asColor = (value: string) => value as BeltColorKey;
 
 function toSchedule(row: ScheduleRowApi): ClassSchedule {
   return {
@@ -27,7 +30,8 @@ function toSchedule(row: ScheduleRowApi): ClassSchedule {
     academyId: row.academy_id,
     weekday: row.weekday as Weekday,
     startTime: row.start_time.slice(0, 5),
-    modality: row.modality,
+    modalityId: row.modality_id,
+    modality: row.modality?.name ?? 'Aula',
     active: row.active,
   };
 }
@@ -37,6 +41,7 @@ function toCheckin(row: CheckinRowApi): Checkin {
     id: row.id,
     userId: row.user_id,
     scheduleId: row.schedule_id,
+    modalityId: row.modality_id,
     classDate: row.class_date,
     status: row.status,
     reviewedAt: row.reviewed_at,
@@ -47,15 +52,35 @@ function toAcademyCheckin(row: AcademyCheckinRowApi): AcademyCheckin {
   return { ...toCheckin(row), fullName: row.profile?.full_name || 'Sem nome' };
 }
 
-function toBeltGoal(row: BeltGoalRowApi): BeltGoal {
-  return { id: row.id, belt: asBelt(row.belt), position: row.position, classesRequired: row.classes_required };
+function toModality(row: ModalityRowApi): Modality {
+  return { id: row.id, name: row.name, position: row.position, usesBelts: row.uses_belts };
+}
+
+function toBelt(row: BeltRowApi): ModalityBelt {
+  return {
+    id: row.id,
+    modalityId: row.modality_id,
+    primary: asColor(row.primary_color),
+    tip: row.tip_color ? asColor(row.tip_color) : null,
+    position: row.position,
+    classesRequired: row.classes_required,
+  };
 }
 
 function toMemberStats(row: MemberStatsRowApi): MemberStats {
   return {
     membershipId: row.membership_id ?? '',
     userId: row.user_id ?? '',
-    belt: row.belt ? asBelt(row.belt) : null,
+    confirmedTotal: row.confirmed_total ?? 0,
+  };
+}
+
+function toModalityStats(row: ModalityStatsRowApi): ModalityStats {
+  return {
+    membershipId: row.membership_id ?? '',
+    userId: row.user_id ?? '',
+    modalityId: row.modality_id ?? '',
+    beltId: row.belt_id,
     beltAwardedAt: row.belt_awarded_at,
     confirmedTotal: row.confirmed_total ?? 0,
     confirmedSinceBelt: row.confirmed_since_belt ?? 0,
@@ -63,14 +88,23 @@ function toMemberStats(row: MemberStatsRowApi): MemberStats {
 }
 
 function toBeltAward(row: BeltAwardRowApi): BeltAward {
-  return { id: row.id, belt: asBelt(row.belt), awardedAt: row.awarded_at };
+  return {
+    id: row.id,
+    modalityId: row.modality_id,
+    beltId: row.belt_id,
+    // belt_id is NOT NULL with a FK: the embedded belt always exists.
+    belt: { primary: asColor(row.belt.primary_color), tip: row.belt.tip_color ? asColor(row.belt.tip_color) : null },
+    awardedAt: row.awarded_at,
+  };
 }
 
 export const classesAdapter = {
   toSchedule,
   toCheckin,
   toAcademyCheckin,
-  toBeltGoal,
+  toModality,
+  toBelt,
   toMemberStats,
+  toModalityStats,
   toBeltAward,
 };

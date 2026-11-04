@@ -12,6 +12,8 @@ import { useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { queryClient } from "@infra";
+import { useNativeHeaderOptions } from "@components";
+import { useRouteAccess } from "@services/access";
 import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
 import { ConfirmProvider } from "@services/confirm";
 import { useConsumePendingCode } from "@services/entry";
@@ -60,16 +62,21 @@ export default function RootLayout() {
 }
 
 /**
- * "/" (src/app/index.tsx) redirects to the right group. Route access by state:
- *  - signed out                       → (auth)
- *  - signed in, no active gym         → (onboarding)  (create gym / waiting approval)
- *  - signed in, active membership     → (tabs)        (tabs vary by role)
- *  - entrar is always reachable: code → academy confirmation, signed in or
- *    out (deep link kimi://entrar?codigo=XXXXXXXX)
+ * Route access lives in ONE place: services/access (routeAccess). Every guard
+ * below reads it and, when a screen is not allowed (in-app navigation, deep
+ * link, widget, notification), redirects to the user's home for their state:
+ *  - signed out                         → /start   (entry flow)
+ *  - signed in, no approved membership  → /welcome (waiting screen)
+ *  - approved membership                → /home    (staff/owner screens also check the role)
+ * "/" (src/app/index.tsx) redirects to that same home. `entrar` is part of the
+ * entry flow (code → academy confirmation) and stays reachable in every state.
  */
 function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
-  const { session, isRestoring } = useSession();
-  const { active, isOwner, isStaff, isLoading: membershipsLoading } = useActiveGym();
+  const { isRestoring } = useSession();
+  const { isLoading: membershipsLoading } = useActiveGym();
+  const access = useRouteAccess();
+  // Inner screens (pushed over the tabs) use the native header; flows (entry, onboarding) do not.
+  const header = useNativeHeaderOptions();
   useConsumePendingCode();
   useWaterSync();
   useWidgetConfig();
@@ -87,35 +94,34 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
 
   if (!ready) return null;
 
-  const signedIn = !!session;
+  const redirectTo = access.home;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
-      <Stack.Protected guard={!signedIn}>
+      <Stack.Protected guard={access.auth} redirectTo={redirectTo}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !active}>
+      <Stack.Protected guard={access.onboarding} redirectTo={redirectTo}>
         <Stack.Screen name="(onboarding)" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !!active}>
+      <Stack.Protected guard={access.app} redirectTo={redirectTo}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="achievement" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        {/* Also opened by the widget (kimi://agua, kimi://agua/configurar). */}
+        <Stack.Screen name="agua/index" options={header} />
+        <Stack.Screen name="agua/configurar" options={header} />
+        <Stack.Screen name="conta/dados" options={header} />
       </Stack.Protected>
-      {/* Water (everyone signed in): also opened by the widget (kimi://agua, kimi://agua/configurar). */}
-      <Stack.Protected guard={signedIn}>
-        <Stack.Screen name="agua/index" />
-        <Stack.Screen name="agua/configurar" />
+      <Stack.Protected guard={access.staff} redirectTo={redirectTo}>
+        <Stack.Screen name="academy/schedules" options={header} />
+        <Stack.Screen name="member/[membershipId]" options={header} />
       </Stack.Protected>
-      {/* Staff screens, pushed from the tabs. */}
-      <Stack.Protected guard={signedIn && isStaff}>
-        <Stack.Screen name="academy/schedules" />
-        <Stack.Screen name="member/[membershipId]" />
-      </Stack.Protected>
-      {/* Owner only: academy settings (name, logo, codes) and belt goals. */}
-      <Stack.Protected guard={signedIn && isOwner}>
-        <Stack.Screen name="academy/settings" />
-        <Stack.Screen name="academy/belts" />
+      <Stack.Protected guard={access.owner} redirectTo={redirectTo}>
+        <Stack.Screen name="academy/settings" options={header} />
+        <Stack.Screen name="academy/modalities" options={header} />
+        <Stack.Screen name="academy/belts" options={header} />
+        <Stack.Screen name="academy/belts-order" options={header} />
       </Stack.Protected>
       <Stack.Screen name="entrar" />
     </Stack>

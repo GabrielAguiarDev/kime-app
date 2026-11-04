@@ -1,21 +1,27 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 
-import { BELTS, Box, Button, Mascot, Screen, Text, type Belt } from '@components';
-import { useAcademyToday, useMemberStats, useMyCheckins, checkinStreak } from '@domain/Classes';
+import { BELT_COLOR_TOKEN, Box, Button, Mascot, Screen, Text } from '@components';
+import {
+  beltName,
+  beltNeedsDarkText,
+  checkinStreak,
+  isBeltColorKey,
+  useAcademyToday,
+  useMemberStats,
+  useMyCheckins,
+  type BeltLook,
+} from '@domain/Classes';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 import { useAppTheme, type ColorToken } from '@theme';
 import { haptics } from '@utils/haptics';
 
-type Params = { kind?: 'belt' | 'milestone'; belt?: Belt; value?: string };
-
-// Light belts need dark text on their header.
-const DARK_TEXT_BELTS: Belt[] = ['white', 'yellow'];
+type Params = { kind?: 'belt' | 'milestone'; beltPrimary?: string; beltTip?: string; value?: string };
 
 /** Full-screen achievement (11.4): new belt or class milestone. */
 export function AchievementScreen() {
-  const { kind, belt, value } = useLocalSearchParams<Params>();
+  const { kind, beltPrimary, beltTip, value } = useLocalSearchParams<Params>();
   const { userId } = useSession();
   const { active } = useActiveGym();
   const stats = useMemberStats(active?.gymId);
@@ -29,10 +35,13 @@ export function AchievementScreen() {
   const own = stats.data?.find((s) => s.userId === userId);
   const total = own?.confirmedTotal ?? Number(value ?? 0);
   const streak = today.data ? checkinStreak(checkins.data ?? [], today.data) : 0;
-  const beltInfo = kind === 'belt' && belt && BELTS[belt] ? BELTS[belt] : null;
+  const belt: BeltLook | null =
+    kind === 'belt' && isBeltColorKey(beltPrimary)
+      ? { primary: beltPrimary, tip: isBeltColorKey(beltTip) ? beltTip : null }
+      : null;
 
-  const title = beltInfo
-    ? `Faixa ${beltInfo.label.toLowerCase()} conquistada`
+  const title = belt
+    ? `Faixa ${beltName(belt).toLowerCase()} conquistada`
     : `${value ?? total} aulas confirmadas`;
 
   return (
@@ -46,12 +55,12 @@ export function AchievementScreen() {
         <Box flexDirection="row" gap="s12" alignSelf="stretch">
           <StatCard label="Aulas" value={String(total)} header="accent" text="onAccent" />
           <StatCard label="Semanas" value={String(streak)} header="success" text="onSuccess" />
-          {beltInfo && belt ? (
+          {belt ? (
             <StatCard
               label="Faixa"
-              value={beltInfo.label}
-              header={beltInfo.color}
-              text={DARK_TEXT_BELTS.includes(belt) ? 'onWarning' : 'onAccent'}
+              value={beltName(belt)}
+              header={BELT_COLOR_TOKEN[belt.primary]}
+              text={beltNeedsDarkText(belt) ? 'onWarning' : 'onAccent'}
               compact
             />
           ) : null}
@@ -66,12 +75,15 @@ function StatCard({
   label,
   value,
   header,
+  headerColor,
   text,
   compact,
 }: {
   label: string;
   value: string;
   header: ColorToken;
+  /** Belt color (#RRGGBB, owner-defined data): replaces `header`. */
+  headerColor?: string;
   text: ColorToken;
   /** Words instead of numbers (belt name) use a smaller variant. */
   compact?: boolean;
@@ -83,11 +95,17 @@ function StatCard({
       borderRadius="lg"
       borderWidth={border.width}
       borderColor={header}
+      style={headerColor ? { borderColor: headerColor } : undefined}
       overflow="hidden"
       accessible
       accessibilityLabel={`${label}: ${value}`}
     >
-      <Box backgroundColor={header} paddingVertical="s8" alignItems="center">
+      <Box
+        backgroundColor={header}
+        style={headerColor ? { backgroundColor: headerColor } : undefined}
+        paddingVertical="s8"
+        alignItems="center"
+      >
         <Text variant="captionCaps" color={text}>
           {label}
         </Text>

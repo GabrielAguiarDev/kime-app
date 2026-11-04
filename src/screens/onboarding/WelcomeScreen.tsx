@@ -10,6 +10,8 @@ import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
 import { SIGN_OUT_CONFIRM, useConfirm } from '@services/confirm';
 import { entryPath, useIsConsumingCode } from '@services/entry';
+import { useJoinRequestNotices } from '@services/joinRequests';
+import { useSession } from '@services/session';
 
 /** While waiting, check the request every so often (and on every return to the app). */
 const WAITING_REFRESH_MS = 15_000;
@@ -94,13 +96,23 @@ function Waiting({ pending }: { pending: Membership[] }) {
 }
 
 function Rejected() {
+  const { userId } = useSession();
+  const { memberships } = useActiveGym();
+  const { dismissAll } = useJoinRequestNotices(userId, memberships);
+  // Shown here: Início/Perfil must not announce it again after an approval elsewhere.
+  useEffect(() => {
+    dismissAll();
+    // Once per visit to this state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <Screen
       scrollable={false}
       footer={
         <>
           <Button title="Digitar outro código" onPress={() => router.push('/entrar')} />
-          {entryPath.get() === 'professor' && canCreateAcademy() ? (
+          {entryPath.get() === 'instructor' && canCreateAcademy() ? (
             <TextButton title="Criar academia" onPress={() => router.push('/create-gym')} />
           ) : null}
           <SignOutButton />
@@ -119,7 +131,7 @@ function Rejected() {
 
 function NoAcademy() {
   // The first-screen choice only orders the options; it is not a role.
-  const asProfessor = entryPath.get() === 'professor';
+  const asProfessor = entryPath.get() === 'instructor';
   const create = canCreateAcademy();
 
   const footer = asProfessor ? (
@@ -128,7 +140,7 @@ function NoAcademy() {
       <Button
         title="Tenho um código de professor"
         variant={create ? 'secondary' : 'primary'}
-        onPress={() => router.push({ pathname: '/entrar', params: { path: 'professor' } })}
+        onPress={() => router.push({ pathname: '/entrar', params: { path: 'instructor' } })}
       />
       <SignOutButton />
     </>

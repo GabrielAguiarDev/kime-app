@@ -34,3 +34,20 @@ export function useSignInWithApple() {
 export function useSignOut() {
   return useMutation({ mutationFn: () => authService.signOut() });
 }
+
+export function useRequestEmailChange() {
+  return useMutation({ mutationFn: (newEmail: string) => authService.requestEmailChange(newEmail) });
+}
+
+export function useVerifyEmailChange() {
+  return useMutation({
+    mutationFn: ({ email, code }: { email: string; code: string }) => authService.verifyEmailChange(email, code),
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (input: { email: string; currentPassword: string | null; newPassword: string }) =>
+      authService.changePassword(input),
+  });
+}

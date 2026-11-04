@@ -36,7 +36,7 @@ export function WaterScreen() {
 
   if (isLoading || (!!bottleMl && day.isLoading)) {
     return (
-      <Screen title="Água" onBack={back} topAction={settingsAction}>
+      <Screen nativeHeader title="Água" onBack={back} topAction={settingsAction}>
         <ActivityIndicator accessibilityLabel="Carregando" />
       </Screen>
     );
@@ -44,7 +44,7 @@ export function WaterScreen() {
 
   if (isError) {
     return (
-      <Screen title="Água" onBack={back} topAction={settingsAction}>
+      <Screen nativeHeader title="Água" onBack={back} topAction={settingsAction}>
         <EmptyState
           visual="icon"
           icon="offline"
@@ -57,7 +57,7 @@ export function WaterScreen() {
 
   if (!bottleMl) {
     return (
-      <Screen
+      <Screen nativeHeader
         title="Água"
         onBack={back}
         topAction={settingsAction}
@@ -84,7 +84,7 @@ export function WaterScreen() {
   const logs = day.data?.logs ?? [];
 
   return (
-    <Screen
+    <Screen nativeHeader
       title="Água"
       onBack={back}
       topAction={settingsAction}

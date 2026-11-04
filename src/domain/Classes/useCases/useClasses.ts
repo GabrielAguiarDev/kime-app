@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { Belt } from '@components';
 import { QueryKeys } from '@infra/query';
 
 import { classesService as service } from '../classesService';
-import type { LocalDate, ScheduleInput } from '../classesTypes';
+import type { BeltInput, LocalDate, ScheduleInput } from '../classesTypes';
 import type { ScheduleGroupPlan } from '../scheduleGroups';
 
 // ---------------------------------------------------------------- today ---
@@ -42,8 +41,8 @@ export function useScheduleMutations(academyId: string) {
     }),
     /** One time + modality on several weekdays (see planScheduleGroup). */
     saveGroup: useMutation({
-      mutationFn: ({ plan, startTime, modality }: { plan: ScheduleGroupPlan; startTime: string; modality: string }) =>
-        service.saveScheduleGroup(academyId, plan, startTime, modality),
+      mutationFn: ({ plan, startTime, modalityId }: { plan: ScheduleGroupPlan; startTime: string; modalityId: string }) =>
+        service.saveScheduleGroup(academyId, plan, startTime, modalityId),
       onSuccess,
     }),
     setGroupActive: useMutation({
@@ -63,54 +62,60 @@ export function useModalities(academyId: string | undefined) {
   });
 }
 
-/** Settings screen: rename / remove (existing schedules keep their text). */
+/** Owner (settings): add, edit (name, uses belts) and remove modalities. */
 export function useModalityMutations(academyId: string) {
   const queryClient = useQueryClient();
-  const onSuccess = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.Modalities, academyId] });
+  const onSuccess = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.Modalities, academyId] }),
+      // Schedules show the modality name; removing one cascades to its belts
+      // and detaches its check-ins.
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassSchedules, academyId] }),
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.ModalityBelts, academyId] }),
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.ModalityStats, academyId] }),
+    ]);
   return {
-    rename: useMutation({
-      mutationFn: ({ id, name }: { id: string; name: string }) => service.renameModality(id, name),
+    create: useMutation({
+      mutationFn: ({ name, position, usesBelts }: { name: string; position: number; usesBelts: boolean }) =>
+        service.createModality(academyId, name, position, usesBelts),
+      onSuccess,
+    }),
+    update: useMutation({
+      mutationFn: ({ id, name, usesBelts }: { id: string; name: string; usesBelts: boolean }) =>
+        service.updateModality(id, name, usesBelts),
       onSuccess,
     }),
     remove: useMutation({ mutationFn: (id: string) => service.deleteModality(id), onSuccess }),
   };
 }
 
-export function useCreateModality(academyId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ name, position }: { name: string; position: number }) =>
-      service.createModality(academyId, name, position),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.Modalities, academyId] }),
-  });
-}
-
-// ----------------------------------------------------------- belt goals ---
-export function useBeltGoals(academyId: string | undefined) {
+// -------------------------------------------------------- modality belts ---
+/** Every belt of the academy (all modalities). Use beltsOf() to pick one modality. */
+export function useBelts(academyId: string | undefined) {
   return useQuery({
-    queryKey: [QueryKeys.BeltGoals, academyId],
-    queryFn: () => service.listBeltGoals(academyId!),
+    queryKey: [QueryKeys.ModalityBelts, academyId],
+    queryFn: () => service.listBelts(academyId!),
     enabled: !!academyId,
   });
 }
 
-export function useBeltGoalMutations(academyId: string) {
+/** Owner: one modality's belt sequence. */
+export function useBeltMutations(academyId: string, modalityId: string) {
   const queryClient = useQueryClient();
-  const onSuccess = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.BeltGoals, academyId] });
+  const onSuccess = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.ModalityBelts, academyId] });
   return {
     create: useMutation({
-      mutationFn: ({ belt, position, classesRequired }: { belt: Belt; position: number; classesRequired: number }) =>
-        service.createBeltGoal(academyId, belt, position, classesRequired),
+      mutationFn: ({ input, position }: { input: BeltInput; position: number }) =>
+        service.createBelt(academyId, modalityId, input, position),
       onSuccess,
     }),
     update: useMutation({
-      mutationFn: ({ id, classesRequired }: { id: string; classesRequired: number }) =>
-        service.updateBeltGoal(id, classesRequired),
+      mutationFn: ({ id, input }: { id: string; input: BeltInput }) => service.updateBelt(id, input),
       onSuccess,
     }),
-    remove: useMutation({ mutationFn: (id: string) => service.deleteBeltGoal(id), onSuccess }),
+    remove: useMutation({ mutationFn: (id: string) => service.deleteBelt(id), onSuccess }),
     reorder: useMutation({
-      mutationFn: (orderedIds: string[]) => service.reorderBeltGoals(academyId, orderedIds),
+      mutationFn: (orderedIds: string[]) => service.reorderBelts(modalityId, orderedIds),
       onSuccess,
     }),
   };
@@ -157,6 +162,10 @@ function useInvalidateDecisions(academyId: string) {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: [QueryKeys.AcademyCheckins, academyId] }),
       queryClient.invalidateQueries({ queryKey: [QueryKeys.MemberStats, academyId] }),
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.ModalityStats, academyId] }),
+      // Confirming the first check-in of a class creates its session.
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassSessions, academyId] }),
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.InstructorStats, academyId] }),
     ]);
 }
 
@@ -177,11 +186,20 @@ export function useConfirmAll(academyId: string) {
 }
 
 // ----------------------------------------------------- stats and belts ---
-/** Professor: every member of the academy. Student: only their own row (RLS). */
+/** Staff: every student of the academy. Student: only their own row (RLS). */
 export function useMemberStats(academyId: string | undefined) {
   return useQuery({
     queryKey: [QueryKeys.MemberStats, academyId],
     queryFn: () => service.listMemberStats(academyId!),
+    enabled: !!academyId,
+  });
+}
+
+/** Per student × modality: belt, classes in it and classes since the last graduation in it. */
+export function useModalityStats(academyId: string | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.ModalityStats, academyId],
+    queryFn: () => service.listModalityStats(academyId!),
     enabled: !!academyId,
   });
 }
@@ -197,12 +215,44 @@ export function useBeltHistory(membershipId: string | undefined) {
 export function useAwardBelt(academyId: string, membershipId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (belt: Belt) => service.awardBelt(membershipId, belt),
+    mutationFn: (beltId: string) => service.awardBelt(membershipId, beltId),
     onSuccess: () =>
       Promise.all([
-        queryClient.invalidateQueries({ queryKey: [QueryKeys.MemberStats, academyId] }),
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.ModalityStats, academyId] }),
         queryClient.invalidateQueries({ queryKey: [QueryKeys.BeltHistory, membershipId] }),
         queryClient.invalidateQueries({ queryKey: [QueryKeys.GymMembers, academyId] }),
       ]),
+  });
+}
+
+// ------------------------------------------------------ class sessions ---
+/** Staff: classes given on a date, with who taught each one. */
+export function useClassSessions(academyId: string | undefined, date: LocalDate | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.ClassSessions, academyId, date],
+    queryFn: () => service.listSessionsOn(academyId!, date!),
+    enabled: !!academyId && !!date,
+  });
+}
+
+export function useSetSessionInstructor(academyId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, instructorId }: { sessionId: string; instructorId: string }) =>
+      service.setSessionInstructor(sessionId, instructorId),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassSessions, academyId] }),
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.InstructorStats, academyId] }),
+      ]),
+  });
+}
+
+/** Staff: classes taught per owner/instructor. */
+export function useInstructorStats(academyId: string | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.InstructorStats, academyId],
+    queryFn: () => service.listInstructorStats(academyId!),
+    enabled: !!academyId,
   });
 }

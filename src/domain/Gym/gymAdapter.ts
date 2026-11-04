@@ -6,12 +6,12 @@ function toCodeLookup(row: CodeLookupApi): CodeLookup {
     gymName: row.academy_name,
     logoUrl: logoUrl(row.logo_path),
     // lookup_invite_code only returns student or professor.
-    codeType: row.code_type === 'professor' ? 'professor' : 'student',
+    codeType: row.code_type === 'instructor' ? 'instructor' : 'student',
   };
 }
 
 function toJoinResult(row: JoinResultApi): JoinResult {
-  return { membershipId: row.membership_id, gymId: row.academy_id, status: row.status };
+  return { membershipId: row.membership_id, gymId: row.academy_id, status: row.status, isNew: row.is_new };
 }
 
 function toProfessorCode(row: ProfessorCodeRowApi): ProfessorCode {

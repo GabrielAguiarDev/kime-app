@@ -3,12 +3,14 @@ import type { ClassSchedule, Weekday } from './classesTypes';
 
 /**
  * The database keeps one class_schedules row per weekday (check-ins point at
- * it). The professor manages them as a "class group": one time + modality on
- * several weekdays.
+ * it). Staff manage them as a "class group": one time + modality on several
+ * weekdays. Modalities are registered rows, so groups key on the modality id.
  */
 export interface ScheduleGroup {
   key: string;
   startTime: string;
+  modalityId: string;
+  /** Modality name (display). */
   modality: string;
   /** Weekdays with an active row, Monday first. */
   days: Weekday[];
@@ -18,8 +20,8 @@ export interface ScheduleGroup {
   active: boolean;
 }
 
-export function groupKey(startTime: string, modality: string): string {
-  return `${startTime}|${modality.trim().toLocaleLowerCase('pt-BR')}`;
+export function groupKey(startTime: string, modalityId: string): string {
+  return `${startTime}|${modalityId}`;
 }
 
 const byWeekOrder = (a: Weekday, b: Weekday) => WEEK_ORDER.indexOf(a) - WEEK_ORDER.indexOf(b);
@@ -27,10 +29,11 @@ const byWeekOrder = (a: Weekday, b: Weekday) => WEEK_ORDER.indexOf(a) - WEEK_ORD
 export function groupSchedules(schedules: ClassSchedule[]): ScheduleGroup[] {
   const groups = new Map<string, ScheduleGroup>();
   for (const s of schedules) {
-    const key = groupKey(s.startTime, s.modality);
+    const key = groupKey(s.startTime, s.modalityId);
     const group = groups.get(key) ?? {
       key,
       startTime: s.startTime,
+      modalityId: s.modalityId,
       modality: s.modality,
       days: [],
       schedules: [],
@@ -66,7 +69,7 @@ export interface ScheduleGroupPlan {
 }
 
 /**
- * What to write so that `startTime` + `modality` runs exactly on `days`.
+ * What to write so that `startTime` + `modalityId` runs exactly on `days`.
  * `editing` is the group being edited (empty for a new one). Rows already
  * saved with the target time/modality are reused (a new group that matches an
  * existing one merges into it); an unchecked day is deactivated, not deleted.
@@ -75,12 +78,12 @@ export function planScheduleGroup(
   all: ClassSchedule[],
   editing: ClassSchedule[],
   startTime: string,
-  modality: string,
+  modalityId: string,
   days: Weekday[],
 ): ScheduleGroupPlan {
-  const target = groupKey(startTime, modality);
+  const target = groupKey(startTime, modalityId);
   const pool = new Map<string, ClassSchedule>();
-  for (const s of [...editing, ...all.filter((s) => groupKey(s.startTime, s.modality) === target)]) {
+  for (const s of [...editing, ...all.filter((s) => groupKey(s.startTime, s.modalityId) === target)]) {
     pool.set(s.id, s);
   }
   const plan: ScheduleGroupPlan = { create: [], retime: [], activate: [], deactivate: [] };
@@ -93,11 +96,11 @@ export function planScheduleGroup(
     }
     // Prefer a row already at the target, then an active one.
     const score = (s: ClassSchedule) =>
-      (groupKey(s.startTime, s.modality) === target ? 2 : 0) + (s.active ? 1 : 0);
+      (groupKey(s.startTime, s.modalityId) === target ? 2 : 0) + (s.active ? 1 : 0);
     const chosen = [...rows].sort((a, b) => score(b) - score(a))[0];
     if (!chosen) {
       plan.create.push(day);
-    } else if (groupKey(chosen.startTime, chosen.modality) !== target || chosen.modality !== modality.trim()) {
+    } else if (groupKey(chosen.startTime, chosen.modalityId) !== target) {
       plan.retime.push(chosen.id);
     } else if (!chosen.active) {
       plan.activate.push(chosen.id);

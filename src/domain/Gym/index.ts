@@ -12,4 +12,3 @@ export {
   useStudentCode,
 } from './useCases/useCodes';
 export { useGymSettings, useGymSettingsMutations } from './useCases/useGymSettings';
-export { BR_TIMEZONES, timezoneLabel } from './timezones';

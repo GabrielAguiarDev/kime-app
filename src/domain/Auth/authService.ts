@@ -110,4 +110,53 @@ async function signOut(): Promise<void> {
   }
 }
 
-export const authService = { signIn, signUp, verifyEmailCode, resendSignUpCode, signInWithApple, signOut };
+async function requestEmailChange(newEmail: string): Promise<void> {
+  try {
+    await authApi.requestEmailChange(normalizeEmail(newEmail));
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+/** Verifies one code; returns the e-mail change still pending (null when done). */
+async function verifyEmailChange(email: string, code: string): Promise<{ email: string; pendingEmail: string | null }> {
+  try {
+    await authApi.verifyEmailChange(normalizeEmail(email), code.trim());
+    const user = await authApi.getUser();
+    return { email: user.email ?? '', pendingEmail: user.new_email ?? null };
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+/**
+ * Changes the password. Accounts with an e-mail password confirm the current
+ * one first (sign-in with it); Apple-only accounts just set one.
+ */
+async function changePassword(input: { email: string; currentPassword: string | null; newPassword: string }): Promise<void> {
+  try {
+    if (input.currentPassword !== null) {
+      try {
+        await authApi.signIn({ email: input.email, password: input.currentPassword });
+      } catch (e) {
+        const appError = toAppError(e);
+        throw appError.code === 'invalid_credentials' ? new AppError('wrong_current_password', e) : appError;
+      }
+    }
+    await authApi.updatePassword(input.newPassword);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+export const authService = {
+  signIn,
+  signUp,
+  verifyEmailCode,
+  resendSignUpCode,
+  signInWithApple,
+  signOut,
+  requestEmailChange,
+  verifyEmailChange,
+  changePassword,
+};

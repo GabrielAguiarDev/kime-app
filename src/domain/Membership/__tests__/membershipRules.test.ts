@@ -9,7 +9,7 @@ const m = (gymId: string, status: Membership['status'], role: Membership['role']
   role,
   status,
   isCompetitor: false,
-  belt: null,
+  decidedAt: null,
 });
 
 describe('resolveActiveMembership', () => {
@@ -18,7 +18,7 @@ describe('resolveActiveMembership', () => {
   });
 
   it('prefers the stored gym when it is still active', () => {
-    const list = [m('a', 'active'), m('b', 'active', 'professor')];
+    const list = [m('a', 'active'), m('b', 'active', 'instructor')];
     expect(resolveActiveMembership(list, 'b')?.gymId).toBe('b');
   });
 
@@ -34,19 +34,19 @@ describe('resolveActiveMembership', () => {
 
 describe('roles', () => {
   it('owner and professor are staff; only the owner is owner', () => {
-    expect([isStaffRole('owner'), isStaffRole('professor'), isStaffRole('student'), isStaffRole(null)]).toEqual([
+    expect([isStaffRole('owner'), isStaffRole('instructor'), isStaffRole('student'), isStaffRole(null)]).toEqual([
       true,
       true,
       false,
       false,
     ]);
-    expect([isOwnerRole('owner'), isOwnerRole('professor'), isOwnerRole('student')]).toEqual([true, false, false]);
+    expect([isOwnerRole('owner'), isOwnerRole('instructor'), isOwnerRole('student')]).toEqual([true, false, false]);
   });
 
   it('splits members into staff (owner first) and students', () => {
     const list = [
       { id: '1', role: 'student' as const },
-      { id: '2', role: 'professor' as const },
+      { id: '2', role: 'instructor' as const },
       { id: '3', role: 'owner' as const },
       { id: '4', role: 'student' as const },
     ];

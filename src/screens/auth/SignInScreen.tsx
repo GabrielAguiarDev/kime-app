@@ -16,7 +16,7 @@ export function SignInScreen() {
   const [password, setPassword] = useState('');
   const { mutate, isPending, error } = useSignIn();
   const academy = usePendingAcademy();
-  const [asProfessor] = useState(() => entryPath.get() === 'professor');
+  const [asProfessor] = useState(() => entryPath.get() === 'instructor');
 
   const canSubmit = isValidEmail(email) && password.length > 0;
 

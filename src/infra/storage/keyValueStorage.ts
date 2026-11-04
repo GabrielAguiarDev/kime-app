@@ -20,6 +20,8 @@ const ScopedKeys = {
   classRewards: 'kimi.classRewards.v1',
   /** Last day (YYYY-MM-DD) the user already saw "Meta do dia batida", per user. */
   waterGoalCelebrated: 'kimi.waterGoalCelebrated.v1',
+  /** Join requests seen (membership id → academy name + decision already shown), per user. */
+  joinRequests: 'kimi.joinRequests.v1',
 } as const;
 
 type ScopedKey = keyof typeof ScopedKeys;

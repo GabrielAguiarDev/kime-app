@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { QueryKeys } from '@infra/query';
 
-import { profileService } from '../profileService';
-import type { BodyAndBottle } from '../profileTypes';
+import { AVATAR_URL_TTL_SECONDS, profileService } from '../profileService';
+import type { BodyAndBottle, PersonalData } from '../profileTypes';
 
 export function useMyProfile(userId: string | undefined) {
   return useQuery({
@@ -18,6 +18,52 @@ export function useUpdateBodyAndBottle(userId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: BodyAndBottle) => profileService.updateBodyAndBottle(userId!, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] }),
+  });
+}
+
+/** Perfil: edit the name. */
+export function useUpdateName(userId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (fullName: string) => profileService.updateName(userId!, fullName),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] }),
+  });
+}
+
+/** Perfil: take/choose a photo or remove it. */
+export function useAvatarMutations(userId: string | undefined) {
+  const queryClient = useQueryClient();
+  const onSuccess = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] });
+  return {
+    change: useMutation({
+      mutationFn: ({ uri, previousPath }: { uri: string; previousPath: string | null }) =>
+        profileService.changeAvatar(userId!, uri, previousPath),
+      onSuccess,
+    }),
+    remove: useMutation({ mutationFn: (path: string) => profileService.removeAvatar(userId!, path), onSuccess }),
+  };
+}
+
+/**
+ * Signed URL of a photo in the private bucket. Keyed by path (a new photo is
+ * a new path); refreshed well before the URL expires.
+ */
+export function useAvatarUrl(path: string | null | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.AvatarUrl, path],
+    queryFn: () => profileService.avatarUrl(path!),
+    enabled: !!path,
+    staleTime: (AVATAR_URL_TTL_SECONDS - 10 * 60) * 1000,
+    gcTime: (AVATAR_URL_TTL_SECONDS - 5 * 60) * 1000,
+  });
+}
+
+/** Meus dados: name, sex, birth date, weight and height. */
+export function useUpdatePersonalData(userId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PersonalData) => profileService.updatePersonalData(userId!, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] }),
   });
 }

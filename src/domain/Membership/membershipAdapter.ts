@@ -12,7 +12,7 @@ function toMembership(row: MembershipRowApi): Membership {
     role: row.role,
     status: row.status,
     isCompetitor: row.is_competitor,
-    belt: row.belt,
+    decidedAt: row.decided_at,
   };
 }
 
@@ -24,7 +24,7 @@ function toGymMember(row: GymMemberRowApi): GymMember {
     role: row.role,
     status: row.status,
     isCompetitor: row.is_competitor,
-    belt: row.belt,
+    avatarPath: row.profile?.avatar_path ?? null,
     createdAt: row.created_at,
   };
 }

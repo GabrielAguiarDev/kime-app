@@ -3,189 +3,309 @@ import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
 import {
-  BELTS,
+  Avatar,
   BeltChip,
   BigCounter,
   BottomSheet,
   Box,
   Button,
   Card,
+  ChoiceRow,
   EmptyState,
   ProgressBar,
   Screen,
   SelectionCard,
   Text,
-  TextButton,
-  type Belt,
 } from '@components';
-import { beltProgress, useAwardBelt, useBeltGoals, useBeltHistory, useMemberStats } from '@domain/Classes';
-import { membershipLabel, useGymMembers, useTransferOwnership } from '@domain/Membership';
+import {
+  beltName,
+  beltProgress,
+  beltsOf,
+  trainedModalities,
+  useAwardBelt,
+  useBeltHistory,
+  useBelts,
+  useInstructorStats,
+  useMemberStats,
+  useModalities,
+  useModalityStats,
+  type Modality,
+  type ModalityBelt,
+  type ModalityStats,
+} from '@domain/Classes';
+import { membershipLabel, useGymMembers, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
-import { useConfirm } from '@services/confirm';
 import { haptics } from '@utils/haptics';
 
-import { formatDate, SheetForm, toBelt } from './shared';
+import { formatDate, SheetForm } from './shared';
 
 /**
- * Staff: one member's classes, belt progress and belt history; awards belts
- * (staff: students; owner: anyone). Owner on a professor: transfer the academy.
+ * Staff: one member of the academy.
+ *  - owner / instructor: photo, name, role and classes taught (they do not train in the app);
+ *  - student: classes and belt progress per modality, belt history, "Definir faixa".
  */
 export function MemberDetailScreen() {
   const { membershipId } = useLocalSearchParams<{ membershipId: string }>();
-  const { active, isOwner } = useActiveGym();
+  const { active } = useActiveGym();
   const members = useGymMembers(active?.gymId);
-  const stats = useMemberStats(active?.gymId);
-  const goals = useBeltGoals(active?.gymId);
-  const history = useBeltHistory(membershipId);
-  const [sheetOpen, setSheetOpen] = useState(false);
 
   if (!active || !membershipId) return null;
 
   const member = members.data?.find((m) => m.id === membershipId);
-  const memberStats = stats.data?.find((s) => s.membershipId === membershipId);
-  const belt = toBelt(memberStats?.belt ?? member?.belt);
-  const loading = members.isLoading || stats.isLoading || goals.isLoading;
 
-  if (!loading && !member) {
+  if (!members.isLoading && !member) {
     return (
-      <Screen onBack={() => router.back()}>
+      <Screen nativeHeader title="Membro" onBack={() => router.back()}>
         <EmptyState title="Membro não encontrado." description="Ele pode ter saído da academia." />
       </Screen>
     );
   }
 
-  const progress = beltProgress(goals.data ?? [], belt, memberStats?.confirmedSinceBelt ?? 0);
-  // Professors set students' belts; the owner sets anyone's (same rule as the database).
-  const canAward = !!member && (isOwner || member.role === 'student');
+  if (!member) {
+    return (
+      <Screen nativeHeader title=" " onBack={() => router.back()}>
+        <ActivityIndicator />
+      </Screen>
+    );
+  }
+
+  if (member.role !== 'student') return <StaffMemberDetail academyId={active.gymId} member={member} />;
+  return <StudentDetail academyId={active.gymId} member={member} />;
+}
+
+function MemberHeader({ member }: { member: GymMember }) {
+  return (
+    <Box alignItems="center" gap="s12">
+      <Avatar name={member.fullName} path={member.avatarPath} size="large" />
+      {/* The name is the header title. */}
+      <Text variant="captionCaps">{membershipLabel(member)}</Text>
+    </Box>
+  );
+}
+
+/** Owner / instructor: photo, role and the classes they taught (no check-ins, no belts). */
+function StaffMemberDetail({ academyId, member }: { academyId: string; member: GymMember }) {
+  const stats = useInstructorStats(academyId);
+  const taught = stats.data?.find((s) => s.membershipId === member.id)?.classesTaught ?? 0;
+  return (
+    <Screen nativeHeader title={member.fullName} onBack={() => router.back()}>
+      <Box gap="s24">
+        <MemberHeader member={member} />
+        {stats.isLoading ? <ActivityIndicator /> : null}
+        {stats.data ? (
+          <Card>
+            <BigCounter value={taught} label="Aulas dadas" />
+          </Card>
+        ) : null}
+        {stats.isError ? (
+          <Text variant="caption" color="danger">
+            {errorMessage(stats.error)}
+          </Text>
+        ) : null}
+      </Box>
+    </Screen>
+  );
+}
+
+function StudentDetail({ academyId, member }: { academyId: string; member: GymMember }) {
+  const stats = useMemberStats(academyId);
+  const modalityStats = useModalityStats(academyId);
+  const modalities = useModalities(academyId);
+  const belts = useBelts(academyId);
+  const history = useBeltHistory(member.id);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const loading = stats.isLoading || modalityStats.isLoading || modalities.isLoading || belts.isLoading;
+  const total = stats.data?.find((s) => s.membershipId === member.id)?.confirmedTotal ?? 0;
+  const own = (modalityStats.data ?? []).filter((s) => s.membershipId === member.id);
+  const allModalities = modalities.data ?? [];
+  const trained = trainedModalities(allModalities, own);
+  const selected = trained.find((m) => m.id === selectedId) ?? trained[0] ?? null;
+  const withBelts = allModalities.filter((m) => m.usesBelts);
+  const modalityName = (id: string) => allModalities.find((m) => m.id === id)?.name ?? 'Modalidade removida';
 
   return (
-    <Screen
-      title={member?.fullName ?? ' '}
+    <Screen nativeHeader
+      title={member.fullName}
       onBack={() => router.back()}
-      footer={canAward ? <Button title="Definir faixa" onPress={() => setSheetOpen(true)} /> : undefined}
+      footer={withBelts.length > 0 ? <Button title="Definir faixa" onPress={() => setSheetOpen(true)} /> : undefined}
     >
-      {loading ? <ActivityIndicator /> : null}
-      {member ? (
-        <Box gap="s24">
-          <Box gap="s8">
-            <Text variant="captionCaps">{membershipLabel(member)}</Text>
-            {belt ? <BeltChip belt={belt} /> : <Text variant="caption">Sem faixa</Text>}
-          </Box>
+      <Box gap="s24">
+        <MemberHeader member={member} />
+        {loading ? <ActivityIndicator /> : null}
 
-          <Card>
-            <BigCounter value={memberStats?.confirmedTotal ?? 0} label="Aulas confirmadas" />
-          </Card>
+        <Card>
+          <BigCounter value={total} label="Aulas confirmadas · todas as modalidades" />
+        </Card>
 
-          <Card gap="s12">
-            {progress.next ? (
-              <ProgressBar
-                value={progress.done}
-                max={progress.required}
-                unit="aulas"
-                color={BELTS[progress.next.belt].color}
-                label={`Até a faixa ${BELTS[progress.next.belt].label.toLowerCase()}`}
-              />
-            ) : (
-              <Text variant="body" color="textMuted">
-                {goals.data?.length
-                  ? 'Já está na última faixa da academia.'
-                  : isOwner
-                    ? 'Cadastre as metas de faixa para acompanhar a graduação.'
-                    : 'A academia ainda não tem metas de faixa.'}
-              </Text>
-            )}
-            {goals.data?.length === 0 && isOwner ? (
-              <Button title="Metas de faixa" variant="secondary" onPress={() => router.push('/academy/belts')} />
-            ) : null}
-          </Card>
-
-          <Box gap="s12">
-            <Text variant="captionCaps">Histórico de faixas</Text>
-            {history.isLoading ? <ActivityIndicator /> : null}
-            {history.data?.length === 0 ? (
-              <Text variant="body" color="textMuted">
-                Nenhuma graduação registrada.
-              </Text>
-            ) : null}
-            {history.data?.map((award) => (
-              <Card key={award.id} flexDirection="row" alignItems="center" justifyContent="space-between" gap="s12">
-                <BeltChip belt={award.belt} />
-                <Text variant="caption">{formatDate(award.awardedAt)}</Text>
-              </Card>
-            ))}
-          </Box>
-
-          {isOwner && member.role === 'professor' ? (
-            <TransferOwnership gymId={active.gymId} gymName={active.gymName} member={member} />
-          ) : null}
-        </Box>
-      ) : null}
-
-      <BottomSheet visible={sheetOpen} onRequestClose={() => setSheetOpen(false)}>
-        {member ? (
-          <AwardForm
-            academyId={active.gymId}
-            membershipId={membershipId}
-            current={belt}
-            options={goals.data?.length ? goals.data.map((g) => g.belt) : (Object.keys(BELTS) as Belt[])}
-            onDone={() => setSheetOpen(false)}
+        {trained.length > 1 && selected ? (
+          <ChoiceRow
+            accessibilityLabel="Modalidade"
+            options={trained.map((m) => ({ value: m.id, label: m.name }))}
+            value={selected.id}
+            onChange={setSelectedId}
           />
         ) : null}
+
+        {selected ? (
+          <ModalityCard
+            modality={selected}
+            belts={beltsOf(belts.data ?? [], selected.id)}
+            stats={own.find((s) => s.modalityId === selected.id)}
+          />
+        ) : null}
+
+        <Box gap="s12">
+          <Text variant="captionCaps">Histórico de faixas</Text>
+          {history.isLoading ? <ActivityIndicator /> : null}
+          {history.data?.length === 0 ? (
+            <Text variant="body" color="textMuted">
+              Nenhuma graduação registrada.
+            </Text>
+          ) : null}
+          {history.data?.map((award) => (
+            <Card key={award.id} flexDirection="row" alignItems="center" justifyContent="space-between" gap="s12">
+              <Box gap="s4" flex={1}>
+                <BeltChip belt={award.belt} />
+                <Text variant="caption">{modalityName(award.modalityId)}</Text>
+              </Box>
+              <Text variant="caption">{formatDate(award.awardedAt)}</Text>
+            </Card>
+          ))}
+        </Box>
+      </Box>
+
+      <BottomSheet visible={sheetOpen} onRequestClose={() => setSheetOpen(false)}>
+        <AwardForm
+          academyId={academyId}
+          membershipId={member.id}
+          modalities={withBelts}
+          initialModalityId={selected?.usesBelts ? selected.id : (withBelts[0]?.id ?? null)}
+          belts={belts.data ?? []}
+          stats={own}
+          onDone={() => setSheetOpen(false)}
+        />
       </BottomSheet>
     </Screen>
+  );
+}
+
+function ModalityCard({
+  modality,
+  belts,
+  stats,
+}: {
+  modality: Modality;
+  belts: ModalityBelt[];
+  stats: ModalityStats | undefined;
+}) {
+  const modalityTotal = stats?.confirmedTotal ?? 0;
+  if (!modality.usesBelts) {
+    return (
+      <Card>
+        <BigCounter value={modalityTotal} label={`Aulas de ${modality.name}`} />
+      </Card>
+    );
+  }
+  const current = belts.find((b) => b.id === stats?.beltId) ?? null;
+  const progress = beltProgress(belts, current?.id ?? null, stats?.confirmedSinceBelt ?? 0);
+  return (
+    <Card gap="s16">
+      {current ? <BeltChip belt={current} /> : <Text variant="caption">{`Sem faixa em ${modality.name}`}</Text>}
+      {progress.next && progress.required > 0 ? (
+        <ProgressBar
+          value={progress.done}
+          max={progress.required}
+          unit="aulas"
+          beltColor={progress.next.primary}
+          label={`Até a faixa ${beltName(progress.next).toLowerCase()}`}
+        />
+      ) : (
+        <Text variant="body" color="textMuted">
+          {progress.next
+            ? 'A próxima faixa ainda não tem o número de aulas definido.'
+            : belts.length
+              ? 'Já está na última faixa desta modalidade.'
+              : 'Esta modalidade ainda não tem faixas cadastradas.'}
+        </Text>
+      )}
+      <BigCounter value={modalityTotal} label={`Aulas de ${modality.name}`} />
+    </Card>
   );
 }
 
 function AwardForm({
   academyId,
   membershipId,
-  current,
-  options,
+  modalities,
+  initialModalityId,
+  belts,
+  stats,
   onDone,
 }: {
   academyId: string;
   membershipId: string;
-  current: Belt | null;
-  options: Belt[];
+  modalities: Modality[];
+  initialModalityId: string | null;
+  belts: ModalityBelt[];
+  stats: ModalityStats[];
   onDone: () => void;
 }) {
   const award = useAwardBelt(academyId, membershipId);
-  const [belt, setBelt] = useState<Belt | null>(null);
+  const [modalityId, setModalityId] = useState<string | null>(initialModalityId);
+  const [beltId, setBeltId] = useState<string | null>(null);
+  const options = modalityId ? beltsOf(belts, modalityId) : [];
+  const current = stats.find((s) => s.modalityId === modalityId)?.beltId ?? null;
 
   return (
     <SheetForm
       title="Definir faixa"
       actions={
-        <>
-          <Button
-            title="Salvar faixa"
-            disabled={!belt || belt === current}
-            loading={award.isPending}
-            onPress={() =>
-              belt &&
-              award.mutate(belt, {
-                onSuccess: () => {
-                  haptics.success();
-                  onDone();
-                },
-              })
-            }
-          />
-        </>
+        <Button
+          title="Salvar faixa"
+          disabled={!beltId || beltId === current}
+          loading={award.isPending}
+          onPress={() =>
+            beltId &&
+            award.mutate(beltId, {
+              onSuccess: () => {
+                haptics.success();
+                onDone();
+              },
+            })
+          }
+        />
       }
     >
+      {modalities.length > 1 && modalityId ? (
+        <ChoiceRow
+          accessibilityLabel="Modalidade"
+          options={modalities.map((m) => ({ value: m.id, label: m.name }))}
+          value={modalityId}
+          onChange={(id) => {
+            setModalityId(id);
+            setBeltId(null);
+          }}
+        />
+      ) : null}
       <Text variant="body" color="textMuted">
-        A contagem para a próxima faixa recomeça a partir de hoje.
+        A contagem para a próxima faixa desta modalidade recomeça: contam as aulas a partir de amanhã.
       </Text>
+      {options.length === 0 ? (
+        <Text variant="body" color="textMuted">
+          O proprietário ainda não cadastrou as faixas desta modalidade.
+        </Text>
+      ) : null}
       {options.map((b) => (
         <SelectionCard
-          key={b}
-          label={BELTS[b].label}
-          description={b === current ? 'Faixa atual' : undefined}
+          key={b.id}
+          label={beltName(b)}
+          description={b.id === current ? 'Faixa atual' : undefined}
           leading={<BeltChip belt={b} label="" />}
-          selected={belt === b}
-          onPress={() => setBelt(b)}
+          selected={beltId === b.id}
+          onPress={() => setBeltId(b.id)}
         />
       ))}
       {award.error ? (
@@ -194,49 +314,5 @@ function AwardForm({
         </Text>
       ) : null}
     </SheetForm>
-  );
-}
-
-function TransferOwnership({
-  gymId,
-  gymName,
-  member,
-}: {
-  gymId: string;
-  gymName: string;
-  member: { id: string; fullName: string };
-}) {
-  const transfer = useTransferOwnership(gymId);
-  const confirm = useConfirm();
-
-  const run = async () => {
-    const ok = await confirm({
-      title: `Transferir ${gymName}?`,
-      message: `${member.fullName} passa a ser o proprietário: configurações, códigos, professores e remoção de membros. Você continua na academia como professor e não pode desfazer isso sozinho.`,
-      confirmLabel: 'Transferir academia',
-      tone: 'danger',
-    });
-    if (!ok) return;
-    transfer.mutate(member.id, {
-      onSuccess: () => {
-        haptics.success();
-        router.back();
-      },
-    });
-  };
-
-  return (
-    <Box gap="s8">
-      <Text variant="captionCaps">Propriedade</Text>
-      <Text variant="body" color="textMuted">
-        Para sair da academia, transfira a propriedade para um professor antes.
-      </Text>
-      <TextButton title="Transferir academia" color="danger" onPress={run} disabled={transfer.isPending} />
-      {transfer.error ? (
-        <Text variant="caption" color="danger">
-          {errorMessage(transfer.error)}
-        </Text>
-      ) : null}
-    </Box>
   );
 }

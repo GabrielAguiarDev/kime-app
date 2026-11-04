@@ -1,24 +1,25 @@
 import { router } from 'expo-router';
 import { Pressable } from 'react-native';
 
-import { BELTS, Box, Icon, Text, type Belt } from '@components';
-import { WaterCounter } from '@screens/water/WaterCounter';
+import { BeltSwatch, Box, Icon, Text } from '@components';
+import type { BeltLook } from '@domain/Classes';
 import { useAppTheme } from '@theme';
 
 interface TopBarProps {
   streakWeeks: number;
   confirmedTotal: number;
-  belt: Belt | null;
+  /** Latest belt across modalities (strip color); null = no belt yet. */
+  belt: BeltLook | null;
 }
 
 /**
- * Top bar of Início (11.1): weekly streak, confirmed classes and today's water.
- * Tapping a counter opens its detail (Aulas tab, water screen).
+ * Top bar of Início (11.1): weekly streak and confirmed classes. Today's water
+ * lives in the header (top right), the same for students and staff.
+ * Tapping a counter opens its detail (Aulas tab).
  */
 export function TopBar({ streakWeeks, confirmedTotal, belt }: TopBarProps) {
-  const { size, border, spacing } = useAppTheme();
+  const { size, spacing } = useAppTheme();
   const open = () => router.navigate('/(tabs)/classes');
-  const outlined = belt === 'white' || belt === 'black' || !belt;
 
   return (
     <Box flexDirection="row" gap="s24">
@@ -41,17 +42,10 @@ export function TopBar({ streakWeeks, confirmedTotal, belt }: TopBarProps) {
       >
         <Box flexDirection="row" alignItems="center" gap="s8">
           {/* Belt icon: a 24-wide strip in the student's belt color. */}
-          <Box
-            width={size.icon}
-            height={size.beltChipHeight}
-            backgroundColor={belt ? BELTS[belt].color : 'disabled'}
-            borderWidth={outlined ? border.width : 0}
-            borderColor="border"
-          />
+          <BeltSwatch belt={belt} width={size.icon} height={size.beltChipHeight} />
           <Text variant="counter">{confirmedTotal}</Text>
         </Box>
       </Pressable>
-      <WaterCounter />
     </Box>
   );
 }

@@ -18,7 +18,7 @@ export function AcademyCard({
       flexDirection="row"
       alignItems="center"
       gap="s16"
-      accessibilityLabel={`Academia ${gymName}${codeType === 'professor' ? ', convite para professor' : ''}`}
+      accessibilityLabel={`Academia ${gymName}${codeType === 'instructor' ? ', convite para professor' : ''}`}
     >
       <AcademyLogo name={gymName} url={logoUrl} />
       <Box flex={1} gap="s4">
@@ -26,7 +26,7 @@ export function AcademyCard({
         <Text variant="title" numberOfLines={3}>
           {gymName}
         </Text>
-        {codeType === 'professor' ? (
+        {codeType === 'instructor' ? (
           <Text variant="caption" color="accent">
             Convite para professor
           </Text>

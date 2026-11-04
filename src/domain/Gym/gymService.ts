@@ -83,7 +83,8 @@ async function getSettings(gymId: string): Promise<GymSettings> {
   }
 }
 
-async function updateSettings(gymId: string, patch: { name?: string; timezone?: string }): Promise<void> {
+/** The time zone is fixed (America/Sao_Paulo): only the name is editable here. */
+async function updateSettings(gymId: string, patch: { name?: string }): Promise<void> {
   try {
     await gymApi.updateSettings(gymId, { ...patch, name: patch.name?.trim() });
   } catch (e) {
@@ -108,14 +109,6 @@ async function changeLogo(gymId: string, uri: string, previousPath: string | nul
   }
 }
 
-async function removeLogo(gymId: string, path: string): Promise<void> {
-  try {
-    await gymApi.updateSettings(gymId, { logo_path: null });
-    await gymApi.removeLogoFile(path).catch(() => undefined);
-  } catch (e) {
-    throw toAppError(e);
-  }
-}
 
 export const gymService = {
   create,
@@ -129,5 +122,4 @@ export const gymService = {
   getSettings,
   updateSettings,
   changeLogo,
-  removeLogo,
 };

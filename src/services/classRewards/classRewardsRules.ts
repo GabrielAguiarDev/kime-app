@@ -1,23 +1,23 @@
-import type { Belt } from '@components';
 import { milestoneCrossed } from '@domain/Classes/classesRules';
-import type { Checkin } from '@domain/Classes/classesTypes';
+import type { BeltLook, Checkin } from '@domain/Classes/classesTypes';
 
 /** What the student has already been rewarded for, per user + academy. */
 export interface RewardsSnapshot {
   confirmedTotal: number;
-  /** ISO timestamp of the last graduation seen. */
+  /** ISO timestamp of the last graduation seen (any modality). */
   beltAwardedAt: string | null;
   /** ISO timestamp of the newest confirmed check-in decision seen. */
   lastReviewedAt: string | null;
 }
 
 export interface RewardsCurrent extends RewardsSnapshot {
-  belt: Belt | null;
+  /** The belt of that latest graduation. */
+  belt: BeltLook | null;
 }
 
 /** One reward at a time, most important first. */
 export type ClassReward =
-  | { kind: 'belt'; belt: Belt }
+  | { kind: 'belt'; belt: BeltLook }
   | { kind: 'milestone'; value: number }
   | { kind: 'checkinConfirmed'; count: number };
 

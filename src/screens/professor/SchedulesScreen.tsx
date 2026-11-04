@@ -11,7 +11,6 @@ import {
   Icon,
   Screen,
   SelectionCard,
-  SelectionGrid,
   Text,
   TextButton,
   TextField,
@@ -21,14 +20,13 @@ import {
   groupSchedules,
   isValidTime,
   planScheduleGroup,
-  sameModality,
-  useCreateModality,
   useModalities,
   useScheduleMutations,
   useSchedules,
   WEEK_ORDER,
   WEEKDAY_LABELS,
   type ClassSchedule,
+  type Modality,
   type ScheduleGroup,
   type Weekday,
 } from '@domain/Classes';
@@ -39,8 +37,6 @@ import { haptics } from '@utils/haptics';
 
 import { SheetForm } from './shared';
 import { WeekdayChips } from './WeekdayChips';
-
-const OTHER = 'Outra';
 
 type Editing = { mode: 'new' } | { mode: 'edit'; group: ScheduleGroup };
 
@@ -66,8 +62,8 @@ export function SchedulesScreen() {
   const groups = groupSchedules(list);
   const activeGroups = groups.filter((g) => g.active);
   const inactiveGroups = groups.filter((g) => !g.active);
-  // The academy's modalities (chosen at creation), in its order.
-  const modalities = (academyModalities.data ?? []).map((m) => m.name);
+  // The academy's registered modalities, in its order (only the owner adds them, in settings).
+  const modalities = academyModalities.data ?? [];
 
   const open = (next: Editing) => {
     setEditing(next);
@@ -112,7 +108,7 @@ export function SchedulesScreen() {
   };
 
   return (
-    <Screen
+    <Screen nativeHeader
       title="Horários das aulas"
       onBack={() => router.back()}
       footer={<Button title="Adicionar horário" icon="plus" onPress={() => open({ mode: 'new' })} />}
@@ -215,7 +211,7 @@ function GroupForm({
   academyId: string;
   all: ClassSchedule[];
   editing: Editing;
-  modalities: string[];
+  modalities: Modality[];
   onDone: () => void;
   onDeactivate: (group: ScheduleGroup) => void;
   onReactivate: (group: ScheduleGroup) => void;
@@ -223,20 +219,15 @@ function GroupForm({
 }) {
   const group = editing.mode === 'edit' ? editing.group : null;
   const { saveGroup } = useScheduleMutations(academyId);
-  const createModality = useCreateModality(academyId);
+  const { isOwner } = useActiveGym();
   const [days, setDays] = useState<Weekday[]>(group ? groupDisplayDays(group) : []);
   const [time, setTime] = useState(group?.startTime ?? '');
-  // A group's modality missing from the academy list (older data) still shows as an option.
-  const options =
-    group && !modalities.some((m) => sameModality(m, group.modality)) ? [...modalities, group.modality] : modalities;
-  const [modality, setModality] = useState<string | null>(
-    group ? (options.find((m) => sameModality(m, group.modality)) ?? null) : options.length === 1 ? options[0]! : null,
+  const [modalityId, setModalityId] = useState<string | null>(
+    group?.modalityId ?? (modalities.length === 1 ? modalities[0]!.id : null),
   );
-  const [otherModality, setOtherModality] = useState('');
 
-  const chosenModality = modality === OTHER ? otherModality.trim() : modality;
   const timeError = time.length >= 5 && !isValidTime(time) ? 'Use o formato 24h, ex. 19:30.' : undefined;
-  const valid = days.length > 0 && isValidTime(time) && !!chosenModality && chosenModality.length <= 60;
+  const valid = days.length > 0 && isValidTime(time) && !!modalityId && modalities.some((m) => m.id === modalityId);
 
   const toggleDay = (day: Weekday) =>
     setDays((current) => (current.includes(day) ? current.filter((d) => d !== day) : [...current, day]));
@@ -247,21 +238,11 @@ function GroupForm({
     setTime(digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits);
   };
 
-  const submit = async () => {
-    if (!valid || !chosenModality) return;
-    // A new modality typed here joins the academy list first.
-    const known = modalities.find((m) => sameModality(m, chosenModality));
-    const name = known ?? chosenModality;
-    if (!known) {
-      try {
-        await createModality.mutateAsync({ name, position: modalities.length });
-      } catch {
-        return; // error shown below
-      }
-    }
-    const plan = planScheduleGroup(all, group?.schedules ?? [], time, name, days);
+  const submit = () => {
+    if (!valid || !modalityId) return;
+    const plan = planScheduleGroup(all, group?.schedules ?? [], time, modalityId, days);
     saveGroup.mutate(
-      { plan, startTime: time, modality: name },
+      { plan, startTime: time, modalityId },
       {
         onSuccess: () => {
           haptics.success();
@@ -270,7 +251,7 @@ function GroupForm({
       },
     );
   };
-  const error = createModality.error ?? saveGroup.error;
+  const error = saveGroup.error;
 
   const rows: Weekday[][] = [WEEK_ORDER.slice(0, 4), WEEK_ORDER.slice(4)];
 
@@ -287,7 +268,7 @@ function GroupForm({
           <Button
             title="Salvar"
             disabled={!valid}
-            loading={saveGroup.isPending || createModality.isPending}
+            loading={saveGroup.isPending}
             onPress={submit}
           />
           {group?.active ? (
@@ -331,20 +312,22 @@ function GroupForm({
 
       <Box gap="s8">
         <Text variant="caption">Modalidade</Text>
-        <SelectionGrid
-          options={[...options, OTHER]}
-          selected={modality ? [modality] : []}
-          onToggle={(m) => setModality(m)}
-        />
-        {modality === OTHER ? (
-          <TextField
-            label="Nome da modalidade"
-            value={otherModality}
-            onChangeText={setOtherModality}
-            maxLength={60}
-            autoCapitalize="words"
-          />
+        {modalities.length === 0 ? (
+          <Text variant="body" color="textMuted">
+            {isOwner
+              ? 'Cadastre as modalidades em Configurações da academia.'
+              : 'O proprietário ainda não cadastrou as modalidades da academia.'}
+          </Text>
         ) : null}
+        {modalities.map((m) => (
+          <SelectionCard
+            key={m.id}
+            label={m.name}
+            description={m.usesBelts ? 'Com faixas' : 'Sem faixas'}
+            selected={modalityId === m.id}
+            onPress={() => setModalityId(m.id)}
+          />
+        ))}
       </Box>
 
       {error ? (

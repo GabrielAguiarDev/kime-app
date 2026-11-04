@@ -46,7 +46,7 @@ export function StartScreen() {
             label="Sou professor"
             description="Dou aulas ou quero cadastrar minha academia"
             selected={false}
-            onPress={() => choose('professor')}
+            onPress={() => choose('instructor')}
           />
         </Box>
       </Box>

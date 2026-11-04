@@ -3,7 +3,7 @@ import type { Checkin } from '@domain/Classes/classesTypes';
 import { detectReward, lastConfirmedReviewAt, parseSnapshot, type RewardsCurrent } from '../classRewardsRules';
 
 const checkin = (id: string, status: Checkin['status'], reviewedAt: string | null): Checkin => ({
-  id, userId: 'u', scheduleId: 's', classDate: '2026-11-04', status, reviewedAt,
+  id, userId: 'u', scheduleId: 's', modalityId: 'm', classDate: '2026-11-04', status, reviewedAt,
 });
 
 const checkins = [
@@ -40,8 +40,8 @@ describe('detectReward', () => {
 
   it('prefers a new belt over everything', () => {
     const prev = { confirmedTotal: 9, beltAwardedAt: '2026-10-01T00:00:00Z', lastReviewedAt: null };
-    const now = current({ confirmedTotal: 10, belt: 'blue', beltAwardedAt: '2026-11-04T23:00:00Z' });
-    expect(detectReward(prev, now, checkins).reward).toEqual({ kind: 'belt', belt: 'blue' });
+    const now = current({ confirmedTotal: 10, belt: { primary: 'blue', tip: null }, beltAwardedAt: '2026-11-04T23:00:00Z' });
+    expect(detectReward(prev, now, checkins).reward).toEqual({ kind: 'belt', belt: { primary: 'blue', tip: null } });
   });
 
   it('gives nothing when nothing changed', () => {
