@@ -1,6 +1,6 @@
 import type { Belt } from '@components';
 
-import type { BeltGoal, ClassSchedule, LocalDate, Weekday } from './classesTypes';
+import type { BeltGoal, Checkin, ClassSchedule, LocalDate, Weekday } from './classesTypes';
 
 // ----------------------------------------------------------------- dates ---
 // Local dates are plain `YYYY-MM-DD` strings in the academy timezone (the
@@ -68,6 +68,14 @@ export function weeklyStreak(confirmedDates: LocalDate[], today: LocalDate): num
     cursor = addDays(cursor, -7);
   }
   return streak;
+}
+
+/** Weekly streak from the student's check-ins: only CONFIRMED ones count. */
+export function checkinStreak(checkins: Pick<Checkin, 'classDate' | 'status'>[], today: LocalDate): number {
+  return weeklyStreak(
+    checkins.filter((c) => c.status === 'confirmed').map((c) => c.classDate),
+    today,
+  );
 }
 
 // ----------------------------------------------------------- milestones ---

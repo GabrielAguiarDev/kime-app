@@ -1,10 +1,11 @@
-import { activeMemberships, resolveActiveMembership } from '../membershipRules';
+import { activeMemberships, isOwnerRole, isStaffRole, resolveActiveMembership, splitMembers } from '../membershipRules';
 import type { Membership } from '../membershipTypes';
 
 const m = (gymId: string, status: Membership['status'], role: Membership['role'] = 'student'): Membership => ({
   id: `m-${gymId}`,
   gymId,
   gymName: `Gym ${gymId}`,
+  gymLogoUrl: null,
   role,
   status,
   isCompetitor: false,
@@ -28,5 +29,29 @@ describe('resolveActiveMembership', () => {
 
   it('ignores pending memberships', () => {
     expect(activeMemberships([m('a', 'pending'), m('b', 'active')]).map((x) => x.gymId)).toEqual(['b']);
+  });
+});
+
+describe('roles', () => {
+  it('owner and professor are staff; only the owner is owner', () => {
+    expect([isStaffRole('owner'), isStaffRole('professor'), isStaffRole('student'), isStaffRole(null)]).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+    expect([isOwnerRole('owner'), isOwnerRole('professor'), isOwnerRole('student')]).toEqual([true, false, false]);
+  });
+
+  it('splits members into staff (owner first) and students', () => {
+    const list = [
+      { id: '1', role: 'student' as const },
+      { id: '2', role: 'professor' as const },
+      { id: '3', role: 'owner' as const },
+      { id: '4', role: 'student' as const },
+    ];
+    const { staff, students } = splitMembers(list);
+    expect(staff.map((m) => m.id)).toEqual(['3', '2']);
+    expect(students.map((m) => m.id)).toEqual(['1', '4']);
   });
 });

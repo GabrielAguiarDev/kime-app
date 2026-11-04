@@ -1,13 +1,13 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: Fase 1 + adaptação ao DESIGN-SYSTEM.md — 2026-11-03
+> Última atualização: entrada no app, códigos e papéis owner/professor — 2026-11-04
 
 ## 1. Visão geral
 
 App mobile multi-academia de artes marciais (a spec completa do usuário está na conversa inicial; aqui vai o resumo).
 
-- **Papéis por vínculo usuário↔academia:** aluno, competidor (só por promoção do professor, fase 4) e professor.
+- **Papéis por vínculo usuário↔academia:** owner (exatamente um por academia), professor e aluno. Competidor é uma flag do aluno (fase 4). A escolha "Sou aluno / Sou professor" na abertura é só o caminho de entrada, não um tipo de conta.
 - **Funcionalidades:**
   - horários + check-in (pendente → confirmado/recusado pelo professor);
   - progressão (total de aulas, faixa, sequência SEMANAL);
@@ -24,7 +24,7 @@ App mobile multi-academia de artes marciais (a spec completa do usuário está n
   - Migrations em `supabase/migrations` (uma por assunto), testes pgTAP em `supabase/tests/database`.
   - No painel: Data API ligada, tabelas novas NÃO expostas automaticamente e RLS automático. Toda tabela precisa de `grant` + políticas na migration.
 - **Sessão Supabase:** cliente em `lib/supabase.ts`. Sessão no `expo-secure-store` em chunks (`infra/storage/chunkedStorage.ts`, ≤ 1600 bytes por item, manifesto gravado por último). Auto-refresh ligado ao `AppState` pelo `SessionProvider`. Só URL + publishable key no app.
-- **Preferências locais** (academia ativa, token de convite pendente): `expo-sqlite/kv-store` (síncrono), em `infra/storage`.
+- **Preferências locais** (academia ativa, código confirmado antes do login, caminho de entrada): `expo-sqlite/kv-store` (síncrono), em `infra/storage`.
 - **Design:** segue o `DESIGN-SYSTEM.md` (raiz). Ele vale sobre qualquer outra instrução de design.
   - **Tokens:** `tokens.json` é a fonte única. `npm run tokens` gera `src/theme/tokens.ts`, `widgets/ios/KimiTokens.swift` e `widgets/android/KimiTokens.kt`; `npm run tokens:check` falha se estiverem desatualizados (rode antes de commitar). Nunca escrever cor/tamanho solto no código: usar o tema (`useAppTheme()`, props do restyle).
   - **Destaque laranja** `accent` `#D9400A` (escuro `#F05A1E`). O vermelho antigo (`#E10600`) saiu.
@@ -33,6 +33,7 @@ App mobile multi-academia de artes marciais (a spec completa do usuário está n
   - **Ícones:** Phosphor (`phosphor-react-native`, importado ícone a ícone em `components/Icon`); `bold` normal, `fill` ativo. Para um ícone novo, adicionar ao mapa `ICONS`.
   - **Edges `success`/`warning`/`danger`** não estão no documento: foram derivadas a 25% mais escuras, como ele manda.
 - **Ícone e mascote:** fontes em `assets/brand/`: `kimi-icon.png` (ícone redesenhado, 1254px, sem alpha; o monocromático do Android é extraído da faixa laranja dele), `kimi-mascot.svg` = bravo, `kimi-mascot-celebrating.svg` = olhos redondos. No ícone adaptativo do Android a arte vai a 70% para os olhos caberem na área segura. O app renderiza os SVGs do mascote com `expo-image` (`<Mascot size="hero|empty|feedback" />`). Os PNGs de ícone/splash são gerados por `scripts/brand/render-icons.sh` (macOS); depois, `npx expo prebuild`. Mascote só em estados vazios, folha de feedback, onboarding e telas de marco.
+- **Teclado:** o rodapé do `Screen` NÃO sobe com o teclado (decisão do usuário). Sem `KeyboardAvoidingView`: só a área rolável abre espaço (`automaticallyAdjustKeyboardInsets`), e no Android `softwareKeyboardLayoutMode: pan`.
 - **Sem animações** (o usuário faz o movimento). Cada estado visual fica separado, com `// TODO(motion): ...`.
 - **Ambiente:** Node 22, npm 10, Xcode 26.6, Docker OK, simulador "iPhone 17 Pro". **Android SDK ausente** na máquina.
 
@@ -43,14 +44,14 @@ src/
   app/                  rotas Expo Router (arquivos finos, reexportam telas)
     _layout.tsx         providers + Stack.Protected por estado (ver abaixo)
     index.tsx           "/" sem guard: <Redirect> para /sign-in, /welcome ou /home
-    (auth)/             sign-in, sign-up
-    (onboarding)/       welcome (aguardando aprovação / boas-vindas), create-gym
+    (auth)/             start (Sou aluno / Sou professor), codigo (fluxo do código deslogado), sign-in, sign-up (telas separadas; card da academia no topo quando há código), verify-email
+    (onboarding)/       welcome (espera / recusado / sem academia), create-gym
     (tabs)/             home, classes, competition, students, confirmations, profile
-    convite/[token].tsx deep link, modal, sempre acessível
-  screens/{auth,onboarding,invite,app}/
+    entrar.tsx          código → confirmação da academia; sempre acessível; deep link kimi://entrar?codigo=XXXXXXXX
+  screens/{auth,entry,onboarding,app,professor,student}/
   domain/{Auth,Gym,Membership,Profile}/  xApi, xAdapter, xService, xTypes, xRules, useCases/, index
   infra/                env, supabase (client, database.types gerado, supabaseError), query, storage
-  services/             session/, activeGym/, pendingInvite, useConsumePendingInvite
+  services/             session/, activeGym/, entry/ (entryPath, pendingCode, useConsumePendingCode), confirm/
   components/           Box, Text, Icon, Button (tátil), TextButton (fantasma), TextField, Screen, Card,
                         EmptyState, Mascot, ProgressBar, WaterRing, BigCounter, StatusBadge, BeltChip, FeedbackSheet
   theme/                tokens (GERADO), fonts, theme (light/dark), useAppTheme, useSchemeTheme, useIsDark
@@ -69,7 +70,8 @@ widgets/{ios,android}/     tokens gerados para os widgets (os targets nativos ch
 - **Tabs por papel** (`(tabs)/_layout.tsx`, `Tabs.Protected`), só com ícones:
   - aluno: Início, Aulas, Perfil;
   - competidor: + Competição;
-  - professor: Início, Alunos, Confirmações, Perfil.
+  - staff (owner ou professor): Início, Alunos, Confirmações, Perfil.
+- **Owner × professor na UI:** `useActiveGym()` expõe `isStaff`/`isOwner`. O que é só do owner NÃO aparece para o professor (nada de botão desativado). `academy/settings` e `academy/belts` ficam num `Stack.Protected` com `isOwner`, e `academy/schedules` e `member/[id]` com `isStaff`.
 - **Academia ativa:** `ActiveGymProvider` resolve com `resolveActiveMembership` (a guardada no kv-store se ainda ativa, senão a primeira ativa). Troca no Perfil.
 - **Erros:** services fazem `throw toAppError(e)`. As RPCs levantam códigos de máquina (`invite_invalid`...) como mensagem da exception. A UI usa `errorMessage(e)` (pt-BR) de `@infra`.
 - **Tipos do banco:** `npm run db:types` (gera `types/database.ts` do remoto) após cada `db push`. `src/infra/supabase/database.types.ts` só reexporta.
@@ -86,6 +88,47 @@ widgets/{ios,android}/     tokens gerados para os widgets (os targets nativos ch
 - Mascote: segue o DESIGN-SYSTEM.md (o "evitar mascote" do PROMPT-kimi.md era da primeira versão e foi corrigido).
 - Bottom sheet (3.13) é a única exceção à regra de "sem animações" (Reanimated + Gesture Handler).
 - **Fase 4 — competidor por convite aceito:** o professor envia o convite; o aluno vê um aviso de que, ao aceitar, o professor passa a ver peso, registros de água e planos de dieta, e aceita ou recusa. `is_competitor` só vira true após o aceite, com a data registrada. O professor pode tirar o aluno da equipe a qualquer momento e o aluno pode sair sozinho. Até a Fase 4, o professor liga `is_competitor` direto (como hoje).
+
+## Entrada no app, códigos e papéis (2026-11-04, substitui os convites por link)
+
+- **Papéis:** `membership_role` = `owner | professor | student`.
+  - staff (owner ou professor): check-ins, pedidos de ALUNO, horários, faixa de alunos, competidores, campeonatos, água e dieta;
+  - só owner: academia (nome, logo, fuso, código de aluno, modalidades, metas de faixa), códigos de professor, aprovar/remover professores, remover alunos, transferir a academia. Mensalidades e assinatura também serão só do owner quando existirem.
+  - Helpers: `private.is_owner`/`private.is_staff` (o `is_professor` foi removido). `is_staff_of_member`, `is_staff_of_competitor` e `is_competitor_of` olham staff.
+- **Invariantes no banco:**
+  - um owner por academia (índice único parcial `memberships_one_owner_idx`);
+  - nunca sem owner (constraint triggers adiados `academies_need_owner`/`memberships_keep_owner`, checados no commit);
+  - owner sempre ativo.
+  - `role` não tem grant de coluna: só muda por `transfer_ownership` (owner → professor ativo; o antigo vira professor) e pelo fluxo de entrada.
+  - Qualquer um sai da academia (delete do próprio vínculo), menos o owner.
+  - Faixa: staff define a de alunos, o owner a de qualquer um.
+  - Staff não confirma o PRÓPRIO check-in.
+  - O professor não lê pedidos de professor pendentes/recusados (nem o perfil de quem pede); só o owner lê.
+  - Código revogado ou usado não volta (trigger `guard_professor_code_update`).
+  - `join_with_code` serializa por usuário + academia (advisory lock), para dois códigos enviados juntos não serem gastos num pedido só.
+- **Códigos** (8 caracteres sem 0/O/1/I/L, namespace único entre aluno e professor):
+  - aluno = `academies.invite_code`, fixo; o owner pode gerar outro (`regenerate_student_code`) e os pedidos já enviados continuam valendo;
+  - professor = tabela `professor_codes`: uso único, 7 dias, owner gera (`create_professor_code`, máximo de 20 ativos), lista e revoga (update `revoked_at`). Expirado, usado ou revogado se comporta como código inexistente.
+  - `lookup_invite_code(code)` → nome, logo e tipo. É a ÚNICA função com EXECUTE para `anon`, e o retorno é vazio para qualquer código inválido.
+  - `join_with_code(code)` → `(membership_id, academy_id, status)`. Quem já é membro ativo/pendente recebe o vínculo existente, sem duplicar e sem gastar o código de professor.
+  - `academy_invites`, `request_membership`, `get_invite_preview`, `rotate_invite`, `join_academy` e `get_academy_preview_by_code` foram removidos.
+- **Fluxo de entrada (app):**
+  - `/start` → "Sou aluno" (`/codigo`, dentro do `(auth)`) ou "Sou professor" (`/sign-in`), escolha salva em `entryPath` (só ordena opções/textos). Deslogado, o app SEMPRE abre na `/start` (decisão do usuário, 2026-11-04).
+  - `EnterCodeScreen` em duas rotas: `/codigo` (deslogado, mesmo stack do `(auth)`: usa `push`) e `/entrar` (logado + deep links, fora dos guards). Fluxo: código → "É essa a sua academia?".
+    - Deslogado: "Sim" grava `pendingCode` (expira em 24 h e é apagado no logout) e vai para cadastro/login: `push` em `/codigo`, `replace` em `/entrar`.
+    - Logado: chama `join_with_code` na hora e FECHA a tela (`router.back()`), nunca `replace('/')`, que duplicaria o grupo de baixo no stack. Se já for membro ativo, faz `selectGym`.
+    - Código do outro tipo → aviso + "Continuar como …" (mantém o código).
+  - Login e cadastro voltaram a ser telas separadas (decisão do usuário: nada de alternância no topo nem link "Sou aluno"; para trocar de caminho, o usuário volta). Com `pendingCode`, o card da academia aparece no topo (`usePendingAcademy`). O `useConsumePendingCode` (RootNavigator) envia o pedido depois do login.
+  - `welcome`:
+    - pedido pendente → espera (logo, nome, mascote; refetch a cada 15 s e ao voltar para o app);
+    - só recusado → aviso + "Digitar outro código";
+    - sem vínculo → opções de professor ou de aluno conforme o `entryPath`.
+  - "Criar academia" passa por `canCreateAcademy()` (`domain/Gym/gymRules.ts`), o ponto isolado para a futura assinatura.
+  - Perfil → "Entrar em outra academia" (`/entrar` logado), pedidos pendentes e "Sair de {academia}" (não aparece para o owner).
+- **Logo:** só o owner envia (RLS do storage). O app gera 512×512 JPEG. Sem logo: iniciais em `accent` sobre `surfaceRaised`, `radius-md`. A logo aparece no topo da Início, com o nome ao lado.
+- **Seed:**
+  - `dono@kimi.dev` (owner), `professor@kimi.dev` (professor) e `aluno@kimi.dev`;
+  - código de aluno `KMJJ2526`, de professor `PRF2526K`.
 
 ## 4. Mapa de progresso (fases)
 
@@ -122,7 +165,7 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 - RPCs SECURITY DEFINER (justificadas no SQL): `create_academy`, `join_academy`, `request_membership`, `get_invite_preview`, `list_pending_requests`. `rotate_invite` é INVOKER. Os advisors avisam (WARN) sobre essas cinco: são intencionais.
 - Colunas graváveis limitadas por grant de coluna (ex.: aluno só insere `checkins` sem `status`; professor só altera `role/is_competitor/belt/status` em `memberships`). Dono não pode ser rebaixado nem removido.
 
-**Testes:** 87 testes pgTAP em `supabase/tests/database/rls.test.sql` (duas academias, professor + 2 alunos em cada, um competidor). Rodam também no remoto (`npx supabase test db --remote --yes`, tudo em rollback): o arquivo faz `set local role postgres` e localiza o schema do pgTAP. O "hoje" dos check-ins usa Pago Pago (UTC−11) × Kiritimati (UTC+14), sempre em datas diferentes.
+**Testes:** 185 testes pgTAP em `supabase/tests/database/rls.test.sql` (duas academias, owner + 2 alunos em cada, um competidor; professor não-owner, pedidos de aluno/professor, códigos e transferência na academia 1). Rodam também no remoto (`npx supabase test db --remote --yes`, tudo em rollback): o arquivo faz `set local role postgres` e localiza o schema do pgTAP. O "hoje" dos check-ins usa Pago Pago (UTC−11) × Kiritimati (UTC+14), sempre em datas diferentes.
 
 ### App
 
@@ -145,11 +188,14 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 
 ## 6. Pendências & próximos passos
 
+0. **Antes de produção (revisão de segurança, 2026-11-04):**
+   - `lookup_invite_code` é anônimo e sem limite de tentativas. Precisa de rate limit no gateway (ou CAPTCHA) antes de abrir o app ao público.
+   - Apagar a conta de um owner falha (a academia ficaria sem owner). O fluxo de exclusão de conta vai precisar exigir a transferência antes, ou apagar a academia.
+   - Rejeitado pode pedir de novo sem limite: considerar um intervalo mínimo.
 1. **Validação do usuário** da Fase 1 e da paleta/tipografia no aparelho. Já conferido no simulador iPhone 17 Pro: login e deep link de convite (preview anônimo) em claro e escuro. As telas autenticadas (tabs) NÃO foram conferidas visualmente; o fluxo delas foi validado via API e pelos testes pgTAP.
-2. **Decisões de produto pendentes** (levantadas pela revisão de segurança):
-   - só o DONO aprova professores e gira o link de professor?
-   - links de professor expiram?
+2. **Decisões de produto pendentes:**
    - rejeitado pode pedir de novo sem limite (hoje: pode)?
+   - (resolvidas em 2026-11-04: só o owner aprova professores; código de professor é de uso único e vale 7 dias.)
 3. **Google Sign-In:** precisa dos client IDs do Google Cloud. Apple precisa de time de assinatura + `[auth.external.apple]` no `config.toml`.
 4. **Produção:** ligar a confirmação de e-mail (`enable_confirmations`) e Universal/App Links (precisa de domínio).
 5. **Fase 2:** `belt_goals`, `class_schedules`, `checkins` (ligados a `memberships`), faixa atual no vínculo, sequência semanal (regra pura + teste).
@@ -168,7 +214,10 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 - **Rotas:** NENHUM grupo protegido pode ter `index`. Com o "/" só dentro de um grupo protegido, o cold start deslogado dava "Unmatched Route". O "/" é o `src/app/index.tsx`, sem guard, que redireciona. A aba Início é `(tabs)/home`.
 - **Metro em `CI=1` NÃO observa arquivos** (o bundle fica velho). Para desenvolver, `npm start` sem CI.
 - **React Query no RN:** `focusManager` ligado ao `AppState` em `infra/query/queryClient.ts`, para refazer queries ao voltar para o app.
-- **Convite pendente:** só é apagado em sucesso ou erro definitivo. Em erro de rede, fica guardado para tentar de novo.
+- **Código pendente (`pendingCode`):** só é apagado em sucesso ou erro definitivo. Em erro de rede, fica guardado para tentar de novo. Sobrevive ao logout de propósito.
+- **Tipos do banco:** em 2026-11-04 o `types/database.ts` foi gerado do banco LOCAL (as migrations novas ainda não estavam no remoto). Depois do `db push`, rode `npm run db:types` de novo.
+- **Dev client do simulador desatualizado:** em 2026-11-04 o build instalado não tinha o `ExpoSecureStore`. Antes de testar, rode `npx expo run:ios`.
+- **Rotas tipadas:** se o `tsc` reclamar de rotas existentes, o `.expo/types/router.d.ts` está velho. Suba o Metro uma vez para regenerar.
 - **`Card`:** as margens vão para o contêiner externo (com a borda), e o resto estiliza a face. Margem na face esticava a borda cinza.
 - **Apple:** o nome só vem na PRIMEIRA autorização, e o `authService.signInWithApple` grava no perfil na hora.
 - **Android emulador:** `EXPO_PUBLIC_SUPABASE_URL=http://10.0.2.2:54321`.

@@ -2,130 +2,225 @@ import { router } from 'expo-router';
 import { ActivityIndicator, Alert, Share } from 'react-native';
 
 import { BeltChip, Box, Button, Card, EmptyState, Icon, Screen, Text, TextButton } from '@components';
-import { useGymInviteCode, useGymInvites, useRotateInvite, type GymInvite, type InviteRole } from '@domain/Gym';
-import { membershipLabel, useGymMembers, useRemoveMembership, type GymMember } from '@domain/Membership';
+import {
+  formatCodeExpiry,
+  useCreateProfessorCode,
+  useProfessorCodes,
+  useRegenerateStudentCode,
+  useRevokeProfessorCode,
+  useStudentCode,
+  type ProfessorCode,
+} from '@domain/Gym';
+import { membershipLabel, splitMembers, useGymMembers, useRemoveMembership, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
+import { haptics } from '@utils/haptics';
 import { toBelt } from '@screens/professor/shared';
 import { useSession } from '@services/session';
-
-const INVITE_COPY: Record<InviteRole, { title: string; description: string }> = {
-  student: {
-    title: 'Link para alunos',
-    description: 'Quem entrar por este link vira aluno após sua aprovação.',
-  },
-  professor: {
-    title: 'Link para professores',
-    description: 'Dá acesso de professor após aprovação. Compartilhe só com quem confia.',
-  },
-};
+import { joinCodeMessage } from '@utils/deepLinks';
 
 export function StudentsScreen() {
-  const { active } = useActiveGym();
-  const invites = useGymInvites(active?.gymId);
+  const { active, isOwner } = useActiveGym();
   const members = useGymMembers(active?.gymId);
 
   // Membership lost (sign-out / removed) while this tab is still mounted.
   if (!active) return null;
 
+  const { staff, students } = splitMembers(members.data ?? []);
+
   return (
     <Screen title="Alunos" bottomInset={false}>
-      <Box gap="s12" marginBottom="s32">
-        <Text variant="captionCaps">Convites</Text>
-        {invites.isLoading ? <ActivityIndicator /> : null}
-        {invites.isError ? (
-          <EmptyState
-            visual="icon"
-            icon="offline"
-            title="Não foi possível carregar os convites"
-            action={<Button title="Tentar de novo" variant="secondary" onPress={() => invites.refetch()} />}
-          />
-        ) : null}
-        <InviteCodeCard gymId={active.gymId} gymName={active.gymName} />
-        {invites.data?.map((invite) => (
-          <InviteCard key={invite.id} invite={invite} gymId={active.gymId} gymName={active.gymName} />
-        ))}
-      </Box>
+      {/* Codes are owner-only: professors do not see this section at all. */}
+      {isOwner ? <CodesSection gymId={active.gymId} gymName={active.gymName} /> : null}
 
-      <Box gap="s12">
-        <Text variant="captionCaps">Membros ({members.data?.length ?? 0})</Text>
-        {members.isLoading ? <ActivityIndicator /> : null}
-        {members.isError ? (
-          <EmptyState
-            visual="icon"
-            icon="offline"
-            title="Não foi possível carregar os membros"
-            action={<Button title="Tentar de novo" variant="secondary" onPress={() => members.refetch()} />}
-          />
-        ) : null}
-        {/* Only the professor so far: nobody else joined. */}
-        {members.data?.length === 1 ? (
-          <EmptyState title="Ninguém entrou ainda." description="Compartilhe o código ou o link para alunos." />
-        ) : null}
-        {members.data?.map((member) => <MemberRow key={member.id} member={member} />)}
-      </Box>
+      {members.isLoading ? <ActivityIndicator /> : null}
+      {members.isError ? (
+        <EmptyState
+          visual="icon"
+          icon="offline"
+          title="Não foi possível carregar os membros"
+          action={<Button title="Tentar de novo" variant="secondary" onPress={() => members.refetch()} />}
+        />
+      ) : null}
+
+      {members.data ? (
+        <Box gap="s32">
+          <Box gap="s12">
+            <Text variant="captionCaps">Professores ({staff.length})</Text>
+            {staff.map((member) => (
+              <MemberRow key={member.id} member={member} canRemove={isOwner} />
+            ))}
+          </Box>
+
+          <Box gap="s12">
+            <Text variant="captionCaps">Alunos ({students.length})</Text>
+            {students.length === 0 ? (
+              <EmptyState
+                visual="icon"
+                icon="users"
+                title="Nenhum aluno ainda."
+                description={isOwner ? 'Compartilhe o código para alunos.' : 'Peça ao proprietário o código para alunos.'}
+              />
+            ) : null}
+            {students.map((member) => (
+              <MemberRow key={member.id} member={member} canRemove={isOwner} />
+            ))}
+          </Box>
+        </Box>
+      ) : null}
     </Screen>
   );
 }
 
-/** Short code a student types in "Entrar com código". Joining still needs approval. */
-function InviteCodeCard({ gymId, gymName }: { gymId: string; gymName: string }) {
-  const { data: code } = useGymInviteCode(gymId);
-  if (!code) return null;
-
-  const share = () =>
-    Share.share({ message: `Entre na ${gymName} pelo Kimi com o código ${code}` });
-
+function CodesSection({ gymId, gymName }: { gymId: string; gymName: string }) {
   return (
-    <Card gap="s12">
-      <Box gap="s4">
-        <Text variant="heading">Código para alunos</Text>
-        <Text variant="title" selectable>
-          {code}
-        </Text>
-        <Text variant="caption">O aluno digita este código no app e entra após sua aprovação.</Text>
-      </Box>
-      <Button title="Compartilhar código" icon="share" variant="secondary" onPress={share} />
-    </Card>
+    <Box gap="s12" marginBottom="s32">
+      <Text variant="captionCaps">Códigos de entrada</Text>
+      <StudentCodeCard gymId={gymId} gymName={gymName} />
+      <ProfessorCodesCard gymId={gymId} gymName={gymName} />
+    </Box>
   );
 }
 
-function InviteCard({ invite, gymId, gymName }: { invite: GymInvite; gymId: string; gymName: string }) {
-  const rotate = useRotateInvite(gymId);
+/** One fixed code per academy. Joining still needs approval. */
+function StudentCodeCard({ gymId, gymName }: { gymId: string; gymName: string }) {
+  const code = useStudentCode(gymId);
+  const regenerate = useRegenerateStudentCode(gymId);
   const confirm = useConfirm();
-  const copy = INVITE_COPY[invite.role];
 
-  const share = () =>
-    Share.share({ message: `Entre na ${gymName} pelo Kimi: ${invite.url}` });
-
-  const confirmRotate = async () => {
+  const confirmRegenerate = async () => {
     const ok = await confirm({
-      title: 'Gerar novo link?',
-      message: 'O link atual para de funcionar. Pedidos já enviados continuam valendo.',
-      confirmLabel: 'Gerar novo link',
+      title: 'Gerar novo código?',
+      message: 'O código atual para de funcionar. Pedidos já enviados com ele continuam valendo.',
+      confirmLabel: 'Gerar novo código',
       tone: 'danger',
     });
-    if (ok) rotate.mutate(invite.role, { onError: (e) => Alert.alert('Convite', errorMessage(e)) });
+    if (ok) regenerate.mutate(undefined, { onError: (e) => Alert.alert('Código', errorMessage(e)) });
   };
 
   return (
     <Card gap="s12">
       <Box gap="s4">
-        <Text variant="heading">{copy.title}</Text>
-        <Text variant="caption">{copy.description}</Text>
+        <Text variant="heading">Código para alunos</Text>
+        {code.isLoading ? <ActivityIndicator /> : null}
+        {code.isError ? (
+          <Text variant="caption" color="danger">
+            Não foi possível carregar o código.
+          </Text>
+        ) : null}
+        {code.data ? (
+          <Text variant="displayXl" selectable accessibilityLabel={`Código ${code.data.split('').join(' ')}`}>
+            {code.data}
+          </Text>
+        ) : null}
+        <Text variant="caption">O aluno digita este código no app e entra depois da aprovação.</Text>
       </Box>
-      <Button title="Compartilhar link" icon="share" variant="secondary" onPress={share} />
-      <TextButton title="Gerar novo link" onPress={confirmRotate} disabled={rotate.isPending} />
+      <Button
+        title="Compartilhar código"
+        icon="share"
+        variant="secondary"
+        disabled={!code.data}
+        onPress={() => code.data && Share.share({ message: joinCodeMessage(gymName, code.data, 'student') })}
+      />
+      <TextButton title="Gerar novo código" onPress={confirmRegenerate} disabled={regenerate.isPending || !code.data} />
     </Card>
   );
 }
 
-function MemberRow({ member }: { member: GymMember }) {
+/** Single-use codes, 7 days. Only the owner sees, creates and revokes them. */
+function ProfessorCodesCard({ gymId, gymName }: { gymId: string; gymName: string }) {
+  const codes = useProfessorCodes(gymId);
+  const create = useCreateProfessorCode(gymId);
+
+  return (
+    <Card gap="s12">
+      <Box gap="s4">
+        <Text variant="heading">Códigos para professores</Text>
+        <Text variant="caption">
+          Cada código vale para uma pessoa e expira em 7 dias. Você aprova o pedido depois.
+        </Text>
+      </Box>
+      {codes.isLoading ? <ActivityIndicator /> : null}
+      {codes.isError ? (
+        <EmptyState
+          visual="icon"
+          icon="offline"
+          title="Não foi possível carregar os códigos"
+          action={<Button title="Tentar de novo" variant="secondary" onPress={() => codes.refetch()} />}
+        />
+      ) : null}
+      {codes.data?.length === 0 ? (
+        <Text variant="body" color="textMuted">
+          Nenhum código ativo.
+        </Text>
+      ) : null}
+      {codes.data?.map((c) => <ProfessorCodeRow key={c.id} code={c} gymId={gymId} gymName={gymName} />)}
+      <Button
+        title="Gerar código de professor"
+        icon="plus"
+        variant="secondary"
+        loading={create.isPending}
+        onPress={() =>
+          create.mutate(undefined, {
+            onSuccess: (c) => {
+              haptics.success();
+              Share.share({ message: joinCodeMessage(gymName, c.code, 'professor') });
+            },
+            onError: (e) => Alert.alert('Código', errorMessage(e)),
+          })
+        }
+      />
+    </Card>
+  );
+}
+
+function ProfessorCodeRow({ code, gymId, gymName }: { code: ProfessorCode; gymId: string; gymName: string }) {
+  const revoke = useRevokeProfessorCode(gymId);
+  const confirm = useConfirm();
+
+  const confirmRevoke = async () => {
+    const ok = await confirm({
+      title: 'Revogar código?',
+      message: `O código ${code.code} para de funcionar na hora.`,
+      confirmLabel: 'Revogar',
+      tone: 'danger',
+    });
+    if (ok) revoke.mutate(code.id, { onError: (e) => Alert.alert('Código', errorMessage(e)) });
+  };
+
+  return (
+    <Box gap="s8" padding="s12" borderRadius="md" backgroundColor="surfaceRaised">
+      <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap="s12">
+        <Text variant="heading" selectable>
+          {code.code}
+        </Text>
+        <Text variant="caption">expira em {formatCodeExpiry(code.expiresAt)}</Text>
+      </Box>
+      <Box flexDirection="row" gap="s12">
+        <Box flex={1}>
+          <Button
+            title="Compartilhar"
+            icon="share"
+            variant="secondary"
+            onPress={() => Share.share({ message: joinCodeMessage(gymName, code.code, 'professor') })}
+          />
+        </Box>
+        <Box flex={1}>
+          <TextButton title="Revogar" color="danger" onPress={confirmRevoke} disabled={revoke.isPending} />
+        </Box>
+      </Box>
+    </Box>
+  );
+}
+
+function MemberRow({ member, canRemove }: { member: GymMember; canRemove: boolean }) {
   const { userId } = useSession();
   const remove = useRemoveMembership();
   const confirm = useConfirm();
   const isSelf = member.userId === userId;
+  // The owner removes everyone but themselves; professors never see the action.
+  const showRemove = canRemove && !isSelf && member.role !== 'owner';
   const belt = toBelt(member.belt);
 
   const confirmRemove = async () => {
@@ -146,7 +241,11 @@ function MemberRow({ member }: { member: GymMember }) {
       alignItems="center"
       gap="s12"
     >
-      <Icon name={member.role === 'professor' ? 'professor' : 'user'} color="textMuted" />
+      <Icon
+        name={member.role === 'owner' ? 'owner' : member.role === 'professor' ? 'professor' : 'user'}
+        color={member.role === 'owner' ? 'accent' : 'textMuted'}
+        active={member.role === 'owner'}
+      />
       <Box flex={1} gap="s4">
         <Text variant="bodyStrong">
           {member.fullName}
@@ -155,7 +254,7 @@ function MemberRow({ member }: { member: GymMember }) {
         <Text variant="caption">{membershipLabel(member)}</Text>
         {belt ? <BeltChip belt={belt} /> : null}
       </Box>
-      {!isSelf ? (
+      {showRemove ? (
         <TextButton
           title="Remover"
           color="danger"

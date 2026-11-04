@@ -224,7 +224,7 @@ function RequestCard({ request }: { request: PendingRequest }) {
     if (request.role !== 'professor') return run(true);
     const ok = await confirm({
       title: 'Aprovar professor?',
-      message: `${request.fullName} poderá aprovar alunos e gerenciar a academia.`,
+      message: `${request.fullName} poderá confirmar check-ins, aprovar alunos, cuidar dos horários e das faixas.`,
       confirmLabel: 'Aprovar',
     });
     if (ok) run(true);
@@ -235,7 +235,7 @@ function RequestCard({ request }: { request: PendingRequest }) {
       <Box gap="s4">
         <Text variant="heading">{request.fullName}</Text>
         <Text variant="caption">{request.email}</Text>
-        <Text variant="captionCaps" color={request.role === 'professor' ? 'text' : 'textMuted'}>
+        <Text variant="captionCaps" color={request.role === 'student' ? 'textMuted' : 'text'}>
           Quer entrar como {roleLabel[request.role].toLowerCase()}
         </Text>
       </Box>

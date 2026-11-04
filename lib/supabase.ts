@@ -1,4 +1,4 @@
-import { createClient, processLock } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 
 import { env } from '../src/infra/env';
@@ -14,7 +14,7 @@ export const supabase = createClient<Database>(env.supabaseUrl, env.supabasePubl
     autoRefreshToken: true,
     persistSession: Platform.OS !== 'web',
     detectSessionInUrl: false,
-    lock: processLock,
+    // No `lock`: since supabase-js 2.118 the client coordinates refreshes by itself.
   },
 });
 

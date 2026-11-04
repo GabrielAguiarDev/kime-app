@@ -3,7 +3,7 @@ import { supabase } from '@infra/supabase';
 async function listMine(userId: string) {
   const { data, error } = await supabase
     .from('memberships')
-    .select('id, academy_id, role, status, is_competitor, belt, academies(name)')
+    .select('id, academy_id, role, status, is_competitor, belt, academies(name, logo_path)')
     .eq('user_id', userId)
     .order('created_at');
   if (error) throw error;
@@ -28,20 +28,22 @@ async function listPending(gymId: string) {
 }
 
 async function remove(membershipId: string) {
-  // RLS: professor of the academy; never themselves nor the owner.
+  // RLS: the owner removes others; anyone but the owner removes themselves (leaves).
   const { data, error } = await supabase.from('memberships').delete().eq('id', membershipId).select('id');
   if (error) throw error;
   if (data.length === 0) throw new Error('cannot_remove_member');
 }
 
-async function request(token: string) {
-  const { data, error } = await supabase.rpc('request_membership', { p_token: token });
+async function transferOwnership(gymId: string, membershipId: string) {
+  const { error } = await supabase.rpc('transfer_ownership', {
+    p_academy_id: gymId,
+    p_membership_id: membershipId,
+  });
   if (error) throw error;
-  return data;
 }
 
 async function decide(membershipId: string, approve: boolean) {
-  // RLS: professor of the academy. A trigger accepts only pending → decided
+  // RLS: staff decide student requests; only the owner decides professor ones. A trigger accepts only pending → decided
   // and stamps decided_by / decided_at.
   const { data, error } = await supabase
     .from('memberships')
@@ -52,7 +54,7 @@ async function decide(membershipId: string, approve: boolean) {
   if (data.length === 0) throw new Error('membership_not_found');
 }
 
-export const membershipApi = { listMine, listByGym, listPending, remove, request, decide };
+export const membershipApi = { listMine, listByGym, listPending, remove, decide, transferOwnership };
 
 export type MembershipRowApi = Awaited<ReturnType<typeof listMine>>[number];
 export type GymMemberRowApi = Awaited<ReturnType<typeof listByGym>>[number];

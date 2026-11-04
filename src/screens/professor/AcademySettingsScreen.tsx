@@ -151,7 +151,7 @@ function LogoSection({
         </Box>
       </Box>
       <Text variant="caption">
-        Aparece para o aluno quando ele entra com o código ou o link de convite.
+        Aparece no topo do app e para quem entra com um código da academia.
       </Text>
       {error ? (
         <Text variant="caption" color="danger">

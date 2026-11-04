@@ -1,6 +1,7 @@
 import {
   addDays,
   beltProgress,
+  checkinStreak,
   classesOn,
   isClassMilestone,
   milestoneCrossed,
@@ -34,6 +35,40 @@ describe('weeklyStreak', () => {
   });
   it('counts several classes in the same week once', () => {
     expect(weeklyStreak(['2026-11-02', '2026-11-03', '2026-11-04'], today)).toBe(1);
+  });
+
+  describe('week turn (Sunday → Monday)', () => {
+    // Weeks of 10-26, 11-02 and 11-09. Sunday 11-08 closes the week of 11-02.
+    const history = ['2026-11-01', '2026-11-08']; // Sundays: weeks of 10-26 and 11-02
+    it('Sunday and the next Monday are different weeks', () => {
+      expect(weeklyStreak(['2026-11-08', '2026-11-09'], '2026-11-09')).toBe(2);
+    });
+    it('on Sunday the current week still counts', () => {
+      expect(weeklyStreak(history, '2026-11-08')).toBe(2);
+    });
+    it('on Monday the streak survives while the new week has no class yet', () => {
+      expect(weeklyStreak(history, '2026-11-09')).toBe(2);
+    });
+    it('a whole week without a confirmed class zeroes the streak at the next Monday', () => {
+      // Last class on Sunday 11-08; the week of 11-09 passes empty.
+      expect(weeklyStreak(history, '2026-11-15')).toBe(2); // Sunday: week of 11-09 not over yet
+      expect(weeklyStreak(history, '2026-11-16')).toBe(0); // Monday: week of 11-09 had nothing
+    });
+  });
+
+  describe('only confirmed check-ins count', () => {
+    it('a week with only pending or rejected check-ins breaks the streak', () => {
+      const checkins = [
+        { classDate: '2026-11-03', status: 'confirmed' as const },
+        { classDate: '2026-10-28', status: 'pending' as const },
+        { classDate: '2026-10-27', status: 'rejected' as const },
+        { classDate: '2026-10-21', status: 'confirmed' as const },
+      ];
+      expect(checkinStreak(checkins, today)).toBe(1);
+    });
+    it('no confirmed check-in means no streak', () => {
+      expect(checkinStreak([{ classDate: '2026-11-03', status: 'pending' }], today)).toBe(0);
+    });
   });
 });
 

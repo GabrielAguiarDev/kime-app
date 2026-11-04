@@ -10,8 +10,10 @@ export type AppErrorCode =
   | 'membership_not_found'
   | 'membership_not_pending'
   | 'cannot_remove_member'
-  | 'cannot_change_owner'
-  | 'cannot_change_own_role'
+  | 'cannot_change_role'
+  | 'transfer_target_invalid'
+  | 'academy_needs_owner'
+  | 'too_many_codes'
   | 'invalid_academy_name'
   | 'invalid_modalities'
   | 'invalid_credentials'
@@ -32,8 +34,10 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'membership_not_found',
   'membership_not_pending',
   'cannot_remove_member',
-  'cannot_change_owner',
-  'cannot_change_own_role',
+  'cannot_change_role',
+  'transfer_target_invalid',
+  'academy_needs_owner',
+  'too_many_codes',
   'invalid_academy_name',
   'invalid_modalities',
 ];
@@ -90,13 +94,15 @@ export function toAppError(error: unknown): AppError {
 const MESSAGES: Record<AppErrorCode, string> = {
   not_authenticated: 'Sua sessão expirou. Entre novamente.',
   forbidden: 'Você não tem permissão para isso.',
-  invite_invalid: 'Este convite não é mais válido. Peça um novo link ao professor.',
+  invite_invalid: 'Código não encontrado. Confira as letras ou peça um novo código.',
+  too_many_codes: 'Há muitos códigos de professor ativos. Revogue algum antes de gerar outro.',
   invalid_gym_name: 'O nome da academia precisa ter entre 2 e 80 caracteres.',
   membership_not_found: 'Solicitação não encontrada.',
   membership_not_pending: 'Esta solicitação já foi respondida.',
   cannot_remove_member: 'Não é possível remover este membro.',
-  cannot_change_owner: 'O dono da academia continua sendo professor.',
-  cannot_change_own_role: 'Você não pode mudar o seu próprio papel.',
+  cannot_change_role: 'O papel de um membro não pode ser alterado por aqui.',
+  transfer_target_invalid: 'Só é possível transferir para um professor ativo desta academia.',
+  academy_needs_owner: 'A academia precisa de um proprietário. Transfira a academia antes de sair.',
   invalid_academy_name: 'O nome da academia precisa ter entre 2 e 80 caracteres.',
   invalid_modalities: 'Escolha pelo menos uma modalidade (até 20).',
   invalid_credentials: 'E-mail ou senha incorretos.',

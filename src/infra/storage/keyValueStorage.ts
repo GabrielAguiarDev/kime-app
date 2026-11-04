@@ -6,7 +6,10 @@ import Storage from 'expo-sqlite/kv-store';
  */
 export const StorageKeys = {
   activeGymId: 'kimi.activeGymId',
-  pendingInviteToken: 'kimi.pendingInviteToken',
+  /** Code confirmed before signing in; turned into a join request right after. */
+  pendingCode: 'kimi.pendingCode',
+  /** Path chosen on the first screen (student | professor): how to enter, not a role. */
+  entryPath: 'kimi.entryPath',
 } as const;
 
 type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

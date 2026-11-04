@@ -15,20 +15,25 @@ import {
   Screen,
   SelectionCard,
   Text,
+  TextButton,
   type Belt,
 } from '@components';
 import { beltProgress, useAwardBelt, useBeltGoals, useBeltHistory, useMemberStats } from '@domain/Classes';
-import { membershipLabel, useGymMembers } from '@domain/Membership';
+import { membershipLabel, useGymMembers, useTransferOwnership } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
+import { useConfirm } from '@services/confirm';
 import { haptics } from '@utils/haptics';
 
 import { formatDate, SheetForm, toBelt } from './shared';
 
-/** Professor: one member's classes, belt progress and belt history; awards belts. */
+/**
+ * Staff: one member's classes, belt progress and belt history; awards belts
+ * (staff: students; owner: anyone). Owner on a professor: transfer the academy.
+ */
 export function MemberDetailScreen() {
   const { membershipId } = useLocalSearchParams<{ membershipId: string }>();
-  const { active } = useActiveGym();
+  const { active, isOwner } = useActiveGym();
   const members = useGymMembers(active?.gymId);
   const stats = useMemberStats(active?.gymId);
   const goals = useBeltGoals(active?.gymId);
@@ -51,12 +56,14 @@ export function MemberDetailScreen() {
   }
 
   const progress = beltProgress(goals.data ?? [], belt, memberStats?.confirmedSinceBelt ?? 0);
+  // Professors set students' belts; the owner sets anyone's (same rule as the database).
+  const canAward = !!member && (isOwner || member.role === 'student');
 
   return (
     <Screen
       title={member?.fullName ?? ' '}
       onBack={() => router.back()}
-      footer={<Button title="Definir faixa" onPress={() => setSheetOpen(true)} disabled={!member} />}
+      footer={canAward ? <Button title="Definir faixa" onPress={() => setSheetOpen(true)} /> : undefined}
     >
       {loading ? <ActivityIndicator /> : null}
       {member ? (
@@ -83,10 +90,12 @@ export function MemberDetailScreen() {
               <Text variant="body" color="textMuted">
                 {goals.data?.length
                   ? 'Já está na última faixa da academia.'
-                  : 'Cadastre as metas de faixa para acompanhar a graduação.'}
+                  : isOwner
+                    ? 'Cadastre as metas de faixa para acompanhar a graduação.'
+                    : 'A academia ainda não tem metas de faixa.'}
               </Text>
             )}
-            {goals.data?.length === 0 ? (
+            {goals.data?.length === 0 && isOwner ? (
               <Button title="Metas de faixa" variant="secondary" onPress={() => router.push('/academy/belts')} />
             ) : null}
           </Card>
@@ -106,6 +115,10 @@ export function MemberDetailScreen() {
               </Card>
             ))}
           </Box>
+
+          {isOwner && member.role === 'professor' ? (
+            <TransferOwnership gymId={active.gymId} gymName={active.gymName} member={member} />
+          ) : null}
         </Box>
       ) : null}
 
@@ -181,5 +194,49 @@ function AwardForm({
         </Text>
       ) : null}
     </SheetForm>
+  );
+}
+
+function TransferOwnership({
+  gymId,
+  gymName,
+  member,
+}: {
+  gymId: string;
+  gymName: string;
+  member: { id: string; fullName: string };
+}) {
+  const transfer = useTransferOwnership(gymId);
+  const confirm = useConfirm();
+
+  const run = async () => {
+    const ok = await confirm({
+      title: `Transferir ${gymName}?`,
+      message: `${member.fullName} passa a ser o proprietário: configurações, códigos, professores e remoção de membros. Você continua na academia como professor e não pode desfazer isso sozinho.`,
+      confirmLabel: 'Transferir academia',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    transfer.mutate(member.id, {
+      onSuccess: () => {
+        haptics.success();
+        router.back();
+      },
+    });
+  };
+
+  return (
+    <Box gap="s8">
+      <Text variant="captionCaps">Propriedade</Text>
+      <Text variant="body" color="textMuted">
+        Para sair da academia, transfira a propriedade para um professor antes.
+      </Text>
+      <TextButton title="Transferir academia" color="danger" onPress={run} disabled={transfer.isPending} />
+      {transfer.error ? (
+        <Text variant="caption" color="danger">
+          {errorMessage(transfer.error)}
+        </Text>
+      ) : null}
+    </Box>
   );
 }

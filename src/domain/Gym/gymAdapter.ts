@@ -1,22 +1,25 @@
-import { inviteUrl } from '@utils/deepLinks';
+import { logoUrl, type CodeLookupApi, type GymSettingsRowApi, type JoinResultApi, type ProfessorCodeRowApi } from './gymApi';
+import type { CodeLookup, GymSettings, JoinResult, ProfessorCode } from './gymTypes';
 
-import { logoUrl, type CodePreviewApi, type GymInviteRowApi, type GymSettingsRowApi, type InvitePreviewApi } from './gymApi';
-import type { CodePreview, GymInvite, GymSettings, InvitePreview } from './gymTypes';
-
-function toInvite(row: GymInviteRowApi): GymInvite {
-  return { id: row.id, role: row.role, token: row.token, url: inviteUrl(row.token) };
+function toCodeLookup(row: CodeLookupApi): CodeLookup {
+  return {
+    gymName: row.academy_name,
+    logoUrl: logoUrl(row.logo_path),
+    // lookup_invite_code only returns student or professor.
+    codeType: row.code_type === 'professor' ? 'professor' : 'student',
+  };
 }
 
-function toInvitePreview(row: InvitePreviewApi): InvitePreview {
-  return { gymName: row.academy_name, role: row.role, logoUrl: logoUrl(row.logo_path) };
+function toJoinResult(row: JoinResultApi): JoinResult {
+  return { membershipId: row.membership_id, gymId: row.academy_id, status: row.status };
 }
 
-function toCodePreview(row: CodePreviewApi): CodePreview {
-  return { gymName: row.academy_name, logoUrl: logoUrl(row.logo_path) };
+function toProfessorCode(row: ProfessorCodeRowApi): ProfessorCode {
+  return { id: row.id, code: row.code, expiresAt: row.expires_at };
 }
 
 function toSettings(row: GymSettingsRowApi): GymSettings {
   return { id: row.id, name: row.name, timezone: row.timezone, logoPath: row.logo_path, logoUrl: logoUrl(row.logo_path) };
 }
 
-export const gymAdapter = { toInvite, toInvitePreview, toCodePreview, toSettings };
+export const gymAdapter = { toCodeLookup, toJoinResult, toProfessorCode, toSettings };

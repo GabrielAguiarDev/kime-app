@@ -1,3 +1,5 @@
+import { logoUrl } from '@domain/Gym/gymApi';
+
 import type { GymMemberRowApi, MembershipRowApi, PendingRequestRowApi } from './membershipApi';
 import type { GymMember, Membership, PendingRequest } from './membershipTypes';
 
@@ -6,6 +8,7 @@ function toMembership(row: MembershipRowApi): Membership {
     id: row.id,
     gymId: row.academy_id,
     gymName: row.academies?.name ?? '',
+    gymLogoUrl: logoUrl(row.academies?.logo_path),
     role: row.role,
     status: row.status,
     isCompetitor: row.is_competitor,

@@ -39,14 +39,6 @@ async function remove(membershipId: string): Promise<void> {
   }
 }
 
-async function requestWithInvite(token: string): Promise<string> {
-  try {
-    return await membershipApi.request(token);
-  } catch (e) {
-    throw toAppError(e);
-  }
-}
-
 async function decide(membershipId: string, approve: boolean): Promise<void> {
   try {
     await membershipApi.decide(membershipId, approve);
@@ -55,11 +47,20 @@ async function decide(membershipId: string, approve: boolean): Promise<void> {
   }
 }
 
+/** Owner only. The target must be an active professor; the owner becomes a professor. */
+async function transferOwnership(gymId: string, membershipId: string): Promise<void> {
+  try {
+    await membershipApi.transferOwnership(gymId, membershipId);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
 export const membershipService = {
+  transferOwnership,
   listMine,
   listByGym,
   listPending,
   remove,
-  requestWithInvite,
   decide,
 };

@@ -5,13 +5,14 @@ import { useSession } from '@services/session';
 
 /**
  * Entry route "/". Always matchable (never guarded) and sends the user to the
- * right group, so cold starts and `router.replace('/')` never hit an unmatched route.
+ * right place, so cold starts and `router.replace('/')` never hit an unmatched route.
  */
 export default function Index() {
   const { session } = useSession();
   const { active } = useActiveGym();
 
-  if (!session) return <Redirect href="/sign-in" />;
+  // Signed out: always the "Sou aluno / Sou professor" screen (user decision).
+  if (!session) return <Redirect href="/start" />;
   if (!active) return <Redirect href="/welcome" />;
   return <Redirect href="/home" />;
 }

@@ -19,13 +19,12 @@ function tabIcon(name: IconName) {
  * Tabs per role:
  *  - student:    Início, Aulas, Perfil
  *  - competitor: Início, Aulas, Competição, Perfil
- *  - professor:  Início, Alunos, Confirmações, Perfil
+ *  - staff (owner or professor): Início, Alunos, Confirmações, Perfil
  */
 export default function TabsLayout() {
-  const { role, isCompetitor } = useActiveGym();
+  const { isStaff, isCompetitor } = useActiveGym();
   const { colors, size, border } = useAppTheme();
   const { bottom } = useSafeAreaInsets();
-  const isProfessor = role === 'professor';
 
   return (
     <Tabs
@@ -62,7 +61,7 @@ export default function TabsLayout() {
         name="home"
         options={{ title: 'Início', tabBarAccessibilityLabel: 'Início', tabBarIcon: tabIcon('home') }}
       />
-      <Tabs.Protected guard={!isProfessor}>
+      <Tabs.Protected guard={!isStaff}>
         <Tabs.Screen
           name="classes"
           options={{ title: 'Aulas', tabBarAccessibilityLabel: 'Aulas', tabBarIcon: tabIcon('calendar') }}
@@ -74,7 +73,7 @@ export default function TabsLayout() {
           options={{ title: 'Competição', tabBarAccessibilityLabel: 'Competição', tabBarIcon: tabIcon('trophy') }}
         />
       </Tabs.Protected>
-      <Tabs.Protected guard={isProfessor}>
+      <Tabs.Protected guard={isStaff}>
         <Tabs.Screen
           name="students"
           options={{ title: 'Alunos', tabBarAccessibilityLabel: 'Alunos', tabBarIcon: tabIcon('users') }}

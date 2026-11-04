@@ -1,7 +1,7 @@
 import { ActivityIndicator } from 'react-native';
 
 import { Box, Button, EmptyState, MascotBalloon } from '@components';
-import { useAcademyToday, useMemberStats, useMyCheckins, useSchedules, weeklyStreak } from '@domain/Classes';
+import { useAcademyToday, useMemberStats, useMyCheckins, useSchedules, checkinStreak } from '@domain/Classes';
 import { useActiveGym } from '@services/activeGym';
 import { useClassRewards } from '@services/classRewards';
 import { useSession } from '@services/session';
@@ -39,13 +39,12 @@ export function StudentHome() {
 
   const own = stats.data?.find((s) => s.userId === userId);
   const list = checkins.data ?? [];
-  const confirmedDates = list.filter((c) => c.status === 'confirmed').map((c) => c.classDate);
   const pendingToday = list.some((c) => c.status === 'pending' && c.classDate === today.data);
 
   return (
     <Box gap="s24">
       <TopBar
-        streakWeeks={weeklyStreak(confirmedDates, today.data)}
+        streakWeeks={checkinStreak(list, today.data)}
         confirmedTotal={own?.confirmedTotal ?? 0}
         belt={own?.belt ?? null}
       />

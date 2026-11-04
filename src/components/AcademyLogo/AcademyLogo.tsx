@@ -18,7 +18,10 @@ function initials(name: string): string {
   return letters.toUpperCase();
 }
 
-/** Academy logo (square, radius-lg, 2px border) or its initials when there is none. */
+/**
+ * Academy logo (square, radius-lg, 2px border). Without a logo: the academy
+ * initials in accent on a surface-raised square with radius-md.
+ */
 export function AcademyLogo({ name, url, size = 'large' }: AcademyLogoProps) {
   const theme = useAppTheme();
   const px = size === 'large' ? theme.size.academyLogo : theme.size.academyLogoSmall;
@@ -26,10 +29,10 @@ export function AcademyLogo({ name, url, size = 'large' }: AcademyLogoProps) {
     <Box
       width={px}
       height={px}
-      borderRadius="lg"
-      borderWidth={theme.border.width}
+      borderRadius={url ? 'lg' : 'md'}
+      borderWidth={url ? theme.border.width : 0}
       borderColor="border"
-      backgroundColor="surface"
+      backgroundColor={url ? 'surface' : 'surfaceRaised'}
       alignItems="center"
       justifyContent="center"
       overflow="hidden"
@@ -39,7 +42,7 @@ export function AcademyLogo({ name, url, size = 'large' }: AcademyLogoProps) {
       {url ? (
         <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={0} />
       ) : (
-        <Text variant={size === 'large' ? 'title' : 'heading'} color="textMuted">
+        <Text variant={size === 'large' ? 'title' : 'heading'} color="accent">
           {initials(name)}
         </Text>
       )}

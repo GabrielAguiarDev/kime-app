@@ -14,7 +14,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { queryClient } from "@infra";
 import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
 import { ConfirmProvider } from "@services/confirm";
-import { useConsumePendingInvite } from "@services/useConsumePendingInvite";
+import { useConsumePendingCode } from "@services/entry";
 import { useWaterSync } from "@services/useWaterSync";
 import { SessionProvider, useSession } from "@services/session";
 import { fontAssets, useSchemeTheme } from "@theme";
@@ -64,12 +64,13 @@ export default function RootLayout() {
  *  - signed out                       → (auth)
  *  - signed in, no active gym         → (onboarding)  (create gym / waiting approval)
  *  - signed in, active membership     → (tabs)        (tabs vary by role)
- *  - convite/[token] is always reachable (deep link kimi://convite/<token>)
+ *  - entrar is always reachable: code → academy confirmation, signed in or
+ *    out (deep link kimi://entrar?codigo=XXXXXXXX)
  */
 function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const { session, isRestoring } = useSession();
-  const { active, isLoading: membershipsLoading } = useActiveGym();
-  useConsumePendingInvite();
+  const { active, isOwner, isStaff, isLoading: membershipsLoading } = useActiveGym();
+  useConsumePendingCode();
   useWaterSync();
 
   // Gate only the boot. After that the Stack stays mounted; screens show their
@@ -98,17 +99,19 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !!active}>
         <Stack.Screen name="(tabs)" />
-        {/* Phase 2: pushed from the tabs (professor management, member detail, achievements). */}
-        <Stack.Screen name="academy/settings" />
-        <Stack.Screen name="academy/schedules" />
-        <Stack.Screen name="academy/belts" />
-        <Stack.Screen name="member/[membershipId]" />
         <Stack.Screen name="achievement" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
       </Stack.Protected>
-      <Stack.Screen
-        name="convite/[token]"
-        options={{ presentation: "modal" }}
-      />
+      {/* Staff screens, pushed from the tabs. */}
+      <Stack.Protected guard={signedIn && isStaff}>
+        <Stack.Screen name="academy/schedules" />
+        <Stack.Screen name="member/[membershipId]" />
+      </Stack.Protected>
+      {/* Owner only: academy settings (name, logo, codes) and belt goals. */}
+      <Stack.Protected guard={signedIn && isOwner}>
+        <Stack.Screen name="academy/settings" />
+        <Stack.Screen name="academy/belts" />
+      </Stack.Protected>
+      <Stack.Screen name="entrar" />
     </Stack>
   );
 }

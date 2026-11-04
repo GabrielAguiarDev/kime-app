@@ -4,18 +4,26 @@ import { useState } from 'react';
 import { Box, Button, Screen, Text, TextButton, TextField } from '@components';
 import { isValidEmail, normalizeEmail, useSignIn } from '@domain/Auth';
 import { AppError, errorMessage } from '@infra';
+import { AcademyCard } from '@screens/entry/AcademyCard';
+import { backToStart } from '@screens/entry/StartScreen';
+import { entryPath } from '@services/entry';
 
 import { AppleSignInButton } from './AppleSignInButton';
+import { usePendingAcademy } from './usePendingAcademy';
 
 export function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { mutate, isPending, error } = useSignIn();
+  const academy = usePendingAcademy();
+  const [asProfessor] = useState(() => entryPath.get() === 'professor');
 
   const canSubmit = isValidEmail(email) && password.length > 0;
 
   return (
+    // Back returns to the previous step (code or first screen) to switch paths.
     <Screen
+      onBack={backToStart}
       footer={
         <>
           <Button
@@ -42,8 +50,21 @@ export function SignInScreen() {
       }
     >
       <Box flex={1} justifyContent="center" gap="s16">
-        <Text variant="displayXl">KIMI</Text>
-        <Text variant="heading">Entre para ver seus treinos.</Text>
+        {academy ? (
+          <AcademyCard
+            gymName={academy.gymName}
+            logoUrl={academy.logoUrl}
+            codeType={academy.codeType}
+            caption="Você vai pedir para entrar em"
+          />
+        ) : (
+          <>
+            <Text variant="displayXl">KIMI</Text>
+            <Text variant="heading">
+              {asProfessor ? 'Entre para cuidar das suas aulas.' : 'Entre para ver seus treinos.'}
+            </Text>
+          </>
+        )}
         <TextField
           label="E-mail"
           value={email}

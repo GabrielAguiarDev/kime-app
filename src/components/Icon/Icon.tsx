@@ -10,6 +10,7 @@ import { Check } from 'phosphor-react-native/src/icons/Check';
 import { CheckCircle } from 'phosphor-react-native/src/icons/CheckCircle';
 import { Checks } from 'phosphor-react-native/src/icons/Checks';
 import { Clock } from 'phosphor-react-native/src/icons/Clock';
+import { Crown } from 'phosphor-react-native/src/icons/Crown';
 import { CloudSlash } from 'phosphor-react-native/src/icons/CloudSlash';
 import { DeviceMobile } from 'phosphor-react-native/src/icons/DeviceMobile';
 import { Drop } from 'phosphor-react-native/src/icons/Drop';
@@ -64,6 +65,7 @@ const ICONS = {
   linkBroken: LinkBreak,
   dark: Moon,
   offline: CloudSlash,
+  owner: Crown,
   professor: Medal,
   refresh: ArrowClockwise,
   rejected: XCircle,

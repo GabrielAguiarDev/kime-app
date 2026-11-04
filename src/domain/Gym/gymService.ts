@@ -3,7 +3,8 @@ import { toAppError } from '@infra/supabase';
 import { gymAdapter } from './gymAdapter';
 import { gymApi } from './gymApi';
 import { prepareLogo } from './gymLogo';
-import type { CodePreview, GymInvite, GymSettings, InvitePreview, InviteRole } from './gymTypes';
+import { normalizeCode } from './gymRules';
+import type { CodeLookup, GymSettings, JoinResult, ProfessorCode } from './gymTypes';
 
 async function create(name: string, modalities: string[]): Promise<string> {
   try {
@@ -13,53 +14,62 @@ async function create(name: string, modalities: string[]): Promise<string> {
   }
 }
 
-/** Short code typed by the student. Lands as a pending request. */
-async function joinWithCode(code: string): Promise<string> {
+/** Name, logo and kind of a live code; null for anything else (no hint why). */
+async function lookupCode(code: string): Promise<CodeLookup | null> {
   try {
-    return await gymApi.joinWithCode(code.trim());
+    const row = await gymApi.lookupCode(normalizeCode(code));
+    return row ? gymAdapter.toCodeLookup(row) : null;
   } catch (e) {
     throw toAppError(e);
   }
 }
 
-async function getInviteCode(gymId: string): Promise<string> {
+/** Student or professor code → pending request (or the existing membership). */
+async function joinWithCode(code: string): Promise<JoinResult> {
   try {
-    return await gymApi.getInviteCode(gymId);
+    return gymAdapter.toJoinResult(await gymApi.joinWithCode(normalizeCode(code)));
   } catch (e) {
     throw toAppError(e);
   }
 }
 
-async function listActiveInvites(gymId: string): Promise<GymInvite[]> {
+async function getStudentCode(gymId: string): Promise<string> {
   try {
-    const rows = await gymApi.listActiveInvites(gymId);
-    return rows.map(gymAdapter.toInvite);
+    return await gymApi.getStudentCode(gymId);
   } catch (e) {
     throw toAppError(e);
   }
 }
 
-async function rotateInvite(gymId: string, role: InviteRole): Promise<void> {
+async function regenerateStudentCode(gymId: string): Promise<string> {
   try {
-    await gymApi.rotateInvite(gymId, role);
+    return await gymApi.regenerateStudentCode(gymId);
   } catch (e) {
     throw toAppError(e);
   }
 }
 
-async function invitePreview(token: string): Promise<InvitePreview | null> {
+async function listProfessorCodes(gymId: string): Promise<ProfessorCode[]> {
   try {
-    const row = await gymApi.invitePreview(token);
-    return row ? gymAdapter.toInvitePreview(row) : null;
+    return (await gymApi.listProfessorCodes(gymId)).map(gymAdapter.toProfessorCode);
   } catch (e) {
     throw toAppError(e);
   }
 }
 
-async function previewByCode(code: string): Promise<CodePreview | null> {
+async function createProfessorCode(gymId: string): Promise<ProfessorCode> {
   try {
-    const row = await gymApi.previewByCode(code.trim());
-    return row ? gymAdapter.toCodePreview(row) : null;
+    const row = await gymApi.createProfessorCode(gymId);
+    if (!row) throw new Error('unknown');
+    return gymAdapter.toProfessorCode(row);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+async function revokeProfessorCode(codeId: string): Promise<void> {
+  try {
+    await gymApi.revokeProfessorCode(codeId);
   } catch (e) {
     throw toAppError(e);
   }
@@ -108,15 +118,16 @@ async function removeLogo(gymId: string, path: string): Promise<void> {
 }
 
 export const gymService = {
-  previewByCode,
+  create,
+  lookupCode,
+  joinWithCode,
+  getStudentCode,
+  regenerateStudentCode,
+  listProfessorCodes,
+  createProfessorCode,
+  revokeProfessorCode,
   getSettings,
   updateSettings,
   changeLogo,
   removeLogo,
-  create,
-  joinWithCode,
-  getInviteCode,
-  listActiveInvites,
-  rotateInvite,
-  invitePreview,
 };
