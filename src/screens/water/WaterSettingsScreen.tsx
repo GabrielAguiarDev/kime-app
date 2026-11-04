@@ -36,7 +36,7 @@ export function WaterSettingsScreen() {
 
   if (!profile.data) {
     return (
-      <Screen title="Água" onBack={back}>
+      <Screen title="Sua garrafa" onBack={back}>
         {profile.isError ? (
           <Text variant="body" color="danger">
             {errorMessage(profile.error)}
@@ -100,7 +100,7 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
 
   return (
     <Screen
-      title="Água"
+      title="Sua garrafa"
       onBack={onDone}
       footer={<Button title="Salvar" disabled={!valid} loading={save.isPending} onPress={submit} />}
     >
