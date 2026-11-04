@@ -9,6 +9,8 @@ const m = (gymId: string, status: Membership['status'], role: Membership['role']
   role,
   status,
   isCompetitor: false,
+  competitorInvitedAt: null,
+  competitorSince: null,
   decidedAt: null,
 });
 

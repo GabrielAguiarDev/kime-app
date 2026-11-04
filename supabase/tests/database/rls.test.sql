@@ -161,9 +161,12 @@ update public.memberships set status = 'active'
   where academy_id = pg_temp.id('a1') and status = 'pending';
 select is((select decided_by from public.memberships where user_id = pg_temp.id('s1')),
   pg_temp.id('p1'), 'decision stamped with the professor');
-update public.memberships set is_competitor = true where user_id = pg_temp.id('s1');
+select public.invite_competitor((select id from public.memberships where user_id = pg_temp.id('s1') and academy_id = pg_temp.id('a1')));
+select pg_temp.login(pg_temp.id('s1'));
+select public.respond_competitor_invite((select id from public.memberships where user_id = pg_temp.id('s1') and academy_id = pg_temp.id('a1')), true);
+select pg_temp.login(pg_temp.id('p1'));
 select is((select is_competitor from public.memberships where user_id = pg_temp.id('s1')),
-  true, 'professor promotes student to competitor');
+  true, 'student accepts the invite and becomes a competitor');
 select throws_ok(
   $$ update public.memberships set status = 'pending' where user_id = pg_temp.id('s1') $$,
   '22023', 'membership_not_pending', 'decision cannot be reverted');
@@ -172,16 +175,15 @@ select pg_temp.login(pg_temp.id('p2'));
 update public.memberships set status = 'active'
   where academy_id = pg_temp.id('a2') and status = 'pending';
 -- Professor 2 cannot touch academy 1 memberships.
-update public.memberships set is_competitor = true where user_id = pg_temp.id('t1');
+update public.memberships set status = 'rejected' where user_id = pg_temp.id('t1');
 
 select pg_temp.logout();
 insert into t_ids select 't1_membership', id from public.memberships where user_id = pg_temp.id('t1');
-select is((select is_competitor from public.memberships where user_id = pg_temp.id('t1')),
-  false, 'professor of another academy cannot edit memberships');
+select is((select status::text from public.memberships where user_id = pg_temp.id('t1')),
+  'active', 'professor of another academy cannot edit memberships');
 
 -- Students cannot change role or competitor flag.
 select pg_temp.login(pg_temp.id('t1'));
-update public.memberships set is_competitor = true where user_id = pg_temp.id('t1');
 select throws_ok($$ update public.memberships set role = 'instructor' where user_id = pg_temp.id('t1') $$,
   '42501', null, 'role has no column grant: nobody changes it through the API');
 select pg_temp.logout();
@@ -645,9 +647,12 @@ select lives_ok(
   $$ insert into public.belt_history (membership_id, belt_id)
      select id, '00000000-0000-0000-00ee-000000000001' from public.memberships where user_id = pg_temp.id('u1') $$,
   'professor sets a student''s belt');
-update public.memberships set is_competitor = true where user_id = pg_temp.id('u1');
+select public.invite_competitor((select id from public.memberships where user_id = pg_temp.id('u1') and academy_id = pg_temp.id('a1')));
+select pg_temp.login(pg_temp.id('u1'));
+select public.respond_competitor_invite((select id from public.memberships where user_id = pg_temp.id('u1') and academy_id = pg_temp.id('a1')), true);
+select pg_temp.login(pg_temp.id('q1'));
 select is((select is_competitor from public.memberships where user_id = pg_temp.id('u1')),
-  true, 'professor promotes a competitor');
+  true, 'invited student accepts and becomes a competitor');
 select lives_ok(
   $$ insert into public.championships (academy_id, name, event_date)
      values (pg_temp.id('a1'), 'Copa Auxiliar', '2026-12-15') $$,
