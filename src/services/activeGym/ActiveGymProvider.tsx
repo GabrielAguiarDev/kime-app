@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 import {
+  isOwnerRole,
+  isStaffRole,
   resolveActiveMembership,
   useMyMemberships,
   type Membership,
@@ -15,6 +17,10 @@ interface ActiveGymContextValue {
   /** Active membership the app is showing. Null = onboarding. */
   active: Membership | null;
   role: MembershipRole | null;
+  /** Owner or professor of the active gym. */
+  isStaff: boolean;
+  /** Owner of the active gym (settings, professors, removing members). */
+  isOwner: boolean;
   /** Active membership is a competitor (student flag). */
   isCompetitor: boolean;
   pending: Membership[];
@@ -54,6 +60,8 @@ export function ActiveGymProvider({ children }: { children: ReactNode }) {
       memberships,
       active,
       role: active?.role ?? null,
+      isStaff: isStaffRole(active?.role),
+      isOwner: isOwnerRole(active?.role),
       isCompetitor: active?.isCompetitor ?? false,
       pending: memberships.filter((m) => m.status === 'pending'),
       isLoading: !!userId && isLoading,

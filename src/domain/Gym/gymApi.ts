@@ -1,43 +1,67 @@
 import { supabase } from '@infra/supabase';
 
-import type { InviteRole } from './gymTypes';
-
 async function create(name: string, modalities: string[]) {
   const { data, error } = await supabase.rpc('create_academy', { p_name: name, p_modalities: modalities });
   if (error) throw error;
   return data;
 }
 
-async function joinWithCode(code: string) {
-  const { data, error } = await supabase.rpc('join_academy', { p_invite_code: code });
+// ---------------------------------------------------------------- codes ---
+/** Anyone, signed in or not: academy name + logo + kind for a live code. */
+async function lookupCode(code: string) {
+  const { data, error } = await supabase.rpc('lookup_invite_code', { p_code: code });
   if (error) throw error;
-  return data;
+  return data[0] ?? null;
 }
 
-async function getInviteCode(gymId: string) {
-  const { data, error } = await supabase
-    .from('academies')
-    .select('invite_code')
-    .eq('id', gymId)
-    .single();
+async function joinWithCode(code: string) {
+  const { data, error } = await supabase.rpc('join_with_code', { p_code: code });
+  if (error) throw error;
+  const row = data[0];
+  if (!row) throw new Error('invite_invalid');
+  return row;
+}
+
+async function getStudentCode(gymId: string) {
+  const { data, error } = await supabase.from('academies').select('invite_code').eq('id', gymId).single();
   if (error) throw error;
   return data.invite_code;
 }
 
-async function listActiveInvites(gymId: string) {
-  const { data, error } = await supabase
-    .from('academy_invites')
-    .select('id, role, token')
-    .eq('academy_id', gymId)
-    .is('revoked_at', null);
+async function regenerateStudentCode(gymId: string) {
+  const { data, error } = await supabase.rpc('regenerate_student_code', { p_academy_id: gymId });
   if (error) throw error;
   return data;
 }
 
-async function rotateInvite(gymId: string, role: InviteRole) {
-  const { data, error } = await supabase.rpc('rotate_invite', { p_academy_id: gymId, p_role: role });
+/** Live codes only (RLS: owner). */
+async function listProfessorCodes(gymId: string) {
+  const { data, error } = await supabase
+    .from('professor_codes')
+    .select('id, code, expires_at')
+    .eq('academy_id', gymId)
+    .is('used_at', null)
+    .is('revoked_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false });
   if (error) throw error;
   return data;
+}
+
+async function createProfessorCode(gymId: string) {
+  const { data, error } = await supabase.rpc('create_professor_code', { p_academy_id: gymId });
+  if (error) throw error;
+  return data[0];
+}
+
+async function revokeProfessorCode(codeId: string) {
+  const { data, error } = await supabase
+    .from('professor_codes')
+    .update({ revoked_at: new Date().toISOString() })
+    .eq('id', codeId)
+    .select('id');
+  if (error) throw error;
+  if (data.length === 0) throw new Error('forbidden');
 }
 
 // ------------------------------------------------------------- settings ---
@@ -77,33 +101,22 @@ async function removeLogoFile(path: string) {
   if (error) throw error;
 }
 
-async function previewByCode(code: string) {
-  const { data, error } = await supabase.rpc('get_academy_preview_by_code', { p_invite_code: code });
-  if (error) throw error;
-  return data[0] ?? null;
-}
-
-async function invitePreview(token: string) {
-  const { data, error } = await supabase.rpc('get_invite_preview', { p_token: token });
-  if (error) throw error;
-  return data[0] ?? null;
-}
-
 export const gymApi = {
   create,
+  lookupCode,
   joinWithCode,
-  getInviteCode,
-  listActiveInvites,
-  rotateInvite,
-  invitePreview,
-  previewByCode,
+  getStudentCode,
+  regenerateStudentCode,
+  listProfessorCodes,
+  createProfessorCode,
+  revokeProfessorCode,
   getSettings,
   updateSettings,
   uploadLogo,
   removeLogoFile,
 };
 
-export type GymInviteRowApi = Awaited<ReturnType<typeof listActiveInvites>>[number];
-export type InvitePreviewApi = NonNullable<Awaited<ReturnType<typeof invitePreview>>>;
-export type CodePreviewApi = NonNullable<Awaited<ReturnType<typeof previewByCode>>>;
+export type CodeLookupApi = NonNullable<Awaited<ReturnType<typeof lookupCode>>>;
+export type JoinResultApi = Awaited<ReturnType<typeof joinWithCode>>;
+export type ProfessorCodeRowApi = Awaited<ReturnType<typeof listProfessorCodes>>[number];
 export type GymSettingsRowApi = Awaited<ReturnType<typeof getSettings>>;

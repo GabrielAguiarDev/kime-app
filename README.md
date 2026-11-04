@@ -59,8 +59,11 @@ Só no banco **local**: o `supabase/seed.sql` roda a cada `npm run db:reset` e c
 
 | Papel | E-mail | Senha |
 | --- | --- | --- |
-| Professor (dono) | `professor@kimi.dev` | `kimi12345` |
+| Proprietário (owner) | `dono@kimi.dev` | `kimi12345` |
+| Professor | `professor@kimi.dev` | `kimi12345` |
 | Aluno | `aluno@kimi.dev` | `kimi12345` |
+
+Códigos do seed: aluno `KMJJ2526`, professor `PRF2526K` (uso único, vale 7 dias a partir do `db reset`).
 
 ## Testes
 
@@ -71,18 +74,19 @@ npm run typecheck
 npm run lint
 ```
 
-## Convites (deep link)
+## Códigos de entrada (deep link)
 
-O professor compartilha um link `kimi://convite/<token>`, um para alunos e outro para professores. Quem abre o link pede entrada, e o vínculo fica pendente até um professor aprovar.
+- **Código de aluno:** fixo por academia, com 8 caracteres e sem 0/O/1/I/L. Só o owner gera um novo, e os pedidos já enviados continuam valendo.
+- **Código de professor:** uso único, vale 7 dias. Só o owner gera, vê e revoga.
+- **Entrada:** quem digita o código vê o card da academia (logo + nome) antes do login (`lookup_invite_code`, a única função liberada para `anon`). Depois cria a conta ou entra, e o pedido fica pendente até a aprovação. Pedido de professor só o owner aprova.
+- **Compartilhar:** a mensagem leva o nome da academia, o código escrito e o link `kimi://entrar?codigo=XXXXXXXX`, que abre direto na confirmação.
 
 Para testar no simulador:
 
 ```bash
-xcrun simctl openurl booted "kimi://convite/<token>"
-adb shell am start -a android.intent.action.VIEW -d "kimi://convite/<token>"
+xcrun simctl openurl booted "kimi://entrar?codigo=KMJJ2526"
+adb shell am start -a android.intent.action.VIEW -d "kimi://entrar?codigo=KMJJ2526"
 ```
-
-Os tokens válidos aparecem na tela **Alunos** (professor) ou na tabela `academy_invites` do Studio.
 
 ## Login social
 

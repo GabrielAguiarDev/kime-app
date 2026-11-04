@@ -36,8 +36,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // Everything that belongs to a user dies with their session (sign-out or
   // expired refresh token). Runs as an effect so screens unmount first.
-  // The pending invite token survives on purpose: it is consumed after the
-  // next sign-in/sign-up.
+  // So does a pending code (it must never reach the next account). The entry
+  // path stays: it is a device preference, not user data.
   useEffect(() => {
     if (session) {
       wasSignedIn.current = true;
@@ -47,6 +47,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       wasSignedIn.current = false;
       queryClient.clear();
       keyValueStorage.remove(StorageKeys.activeGymId);
+      keyValueStorage.remove(StorageKeys.pendingCode);
     }
   }, [session]);
 

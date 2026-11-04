@@ -1,25 +1,26 @@
-import type { Enums } from '@infra/supabase';
+/** Kind of an invite code: it decides the role of the join request. */
+export type CodeType = 'student' | 'professor';
 
-export type InviteRole = Enums<'membership_role'>;
-
-export interface GymInvite {
-  id: string;
-  role: InviteRole;
-  token: string;
-  url: string;
-}
-
-export interface InvitePreview {
+/** What anyone (signed in or not) sees for a live code: academy card + kind. */
+export interface CodeLookup {
   gymName: string;
-  role: InviteRole;
   /** Public URL of the academy logo, when it has one. */
   logoUrl: string | null;
+  codeType: CodeType;
 }
 
-/** Name + logo shown before joining with the short code. */
-export interface CodePreview {
-  gymName: string;
-  logoUrl: string | null;
+/** Result of asking to join with a code. `active` = already a member. */
+export interface JoinResult {
+  membershipId: string;
+  gymId: string;
+  status: 'pending' | 'active' | 'rejected';
+}
+
+/** A live professor code (single use, 7 days), as the owner sees it. */
+export interface ProfessorCode {
+  id: string;
+  code: string;
+  expiresAt: string;
 }
 
 export interface GymSettings {

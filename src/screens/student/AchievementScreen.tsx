@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 
 import { BELTS, Box, Button, Mascot, Screen, Text, type Belt } from '@components';
-import { useAcademyToday, useMemberStats, useMyCheckins, weeklyStreak } from '@domain/Classes';
+import { useAcademyToday, useMemberStats, useMyCheckins, checkinStreak } from '@domain/Classes';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 import { useAppTheme, type ColorToken } from '@theme';
@@ -28,8 +28,7 @@ export function AchievementScreen() {
 
   const own = stats.data?.find((s) => s.userId === userId);
   const total = own?.confirmedTotal ?? Number(value ?? 0);
-  const confirmedDates = (checkins.data ?? []).filter((c) => c.status === 'confirmed').map((c) => c.classDate);
-  const streak = today.data ? weeklyStreak(confirmedDates, today.data) : 0;
+  const streak = today.data ? checkinStreak(checkins.data ?? [], today.data) : 0;
   const beltInfo = kind === 'belt' && belt && BELTS[belt] ? BELTS[belt] : null;
 
   const title = beltInfo

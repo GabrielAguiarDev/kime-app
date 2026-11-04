@@ -4,15 +4,18 @@ import { useState } from 'react';
 import { Box, Button, Screen, Text, TextButton, TextField } from '@components';
 import { isValidEmail, isValidPassword, normalizeEmail, PASSWORD_MIN_LENGTH, useSignUp } from '@domain/Auth';
 import { errorMessage } from '@infra';
-import { pendingInvite } from '@services/pendingInvite';
+import { AcademyCard } from '@screens/entry/AcademyCard';
+import { backToStart } from '@screens/entry/StartScreen';
+
+import { usePendingAcademy } from './usePendingAcademy';
 
 export function SignUpScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { mutate, isPending, error } = useSignUp();
-  // Without an invite, sign-up leads to creating a gym (professor).
-  const [hasInvite] = useState(() => !!pendingInvite.get());
+  // With a confirmed code, the join request goes out right after sign-up.
+  const academy = usePendingAcademy();
 
   const nameOk = fullName.trim().length >= 2;
   const canSubmit = nameOk && isValidEmail(email) && isValidPassword(password);
@@ -20,6 +23,7 @@ export function SignUpScreen() {
   return (
     <Screen
       title="Criar conta"
+      onBack={backToStart}
       footer={
         <>
           <Button
@@ -45,16 +49,25 @@ export function SignUpScreen() {
           />
           <TextButton
             title="Já tenho conta"
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/sign-in'))}
+            // Swaps for the sign-in in the same stack: back still returns to the code.
+            onPress={() => router.replace('/sign-in')}
           />
         </>
       }
     >
       <Box gap="s16">
+        {academy ? (
+          <AcademyCard
+            gymName={academy.gymName}
+            logoUrl={academy.logoUrl}
+            codeType={academy.codeType}
+            caption="Você vai pedir para entrar em"
+          />
+        ) : null}
         <Text variant="body" color="textMuted">
-          {hasInvite
+          {academy
             ? 'Crie sua conta para pedir entrada na academia.'
-            : 'Crie sua conta e cadastre sua academia. É aluno? Abra o link de convite enviado pelo seu professor.'}
+            : 'Crie sua conta. Depois você cadastra sua academia ou entra com um código de professor.'}
         </Text>
         <TextField
           label="Nome"

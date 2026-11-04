@@ -15,6 +15,13 @@ interface CodeFieldProps {
   length: number;
   errorMessage?: string;
   autoFocus?: boolean;
+  /**
+   * digits: one-time codes (number pad, iOS "From Mail" suggestion).
+   * invite: academy codes — letters and digits, upper case as you type.
+   */
+  kind?: 'digits' | 'invite';
+  /** invite: keeps only the characters a code can have (e.g. normalizeCode). */
+  normalize?: (text: string) => string;
 }
 
 /**
@@ -32,7 +39,10 @@ export function CodeField({
   length,
   errorMessage,
   autoFocus,
+  kind = 'digits',
+  normalize,
 }: CodeFieldProps) {
+  const isInvite = kind === 'invite';
   const theme = useAppTheme();
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const [focused, setFocused] = useState(false);
@@ -40,7 +50,8 @@ export function CodeField({
   const activeIndex = Math.min(value.length, length - 1);
 
   const handleChange = (text: string) => {
-    const next = text.replace(/\D/g, '').slice(0, length);
+    const cleaned = isInvite ? (normalize ? normalize(text) : text.toUpperCase().replace(/[^A-Z0-9]/g, '')) : text.replace(/\D/g, '');
+    const next = cleaned.slice(0, length);
     onChangeText(next);
     if (next.length === length && value.length !== length) onComplete?.(next);
   };
@@ -77,14 +88,17 @@ export function CodeField({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           autoFocus={autoFocus}
-          maxLength={length}
-          keyboardType="number-pad"
-          autoComplete="one-time-code"
-          textContentType="oneTimeCode"
+          // invite: no maxLength, so a pasted code with spaces/dashes still fits after cleaning.
+          maxLength={isInvite ? undefined : length}
+          keyboardType={isInvite ? 'default' : 'number-pad'}
+          autoCapitalize={isInvite ? 'characters' : 'none'}
+          autoCorrect={false}
+          autoComplete={isInvite ? 'off' : 'one-time-code'}
+          textContentType={isInvite ? 'none' : 'oneTimeCode'}
           caretHidden
           contextMenuHidden={false}
           accessibilityLabel={label}
-          accessibilityHint={`Código de ${length} dígitos`}
+          accessibilityHint={isInvite ? `Código de ${length} letras e números` : `Código de ${length} dígitos`}
           style={styles.hiddenInput}
         />
       </Pressable>

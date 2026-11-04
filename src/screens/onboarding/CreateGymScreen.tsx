@@ -64,7 +64,7 @@ export function CreateGymScreen() {
       <Box gap="s24">
         <Box gap="s16">
           <Text variant="body" color="textMuted">
-            Você será o professor responsável. Depois, compartilhe o código ou o link de convite com seus alunos.
+            Você será o proprietário da academia. Depois, compartilhe o código com seus alunos.
           </Text>
           <TextField
             label="Nome da academia"

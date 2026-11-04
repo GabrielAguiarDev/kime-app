@@ -7,7 +7,9 @@ export type MembershipStatus = Enums<'membership_status'>;
 export interface Membership {
   id: string;
   gymId: string;
+  /** Empty when the academy is no longer readable (e.g. a rejected request). */
   gymName: string;
+  gymLogoUrl: string | null;
   role: MembershipRole;
   status: MembershipStatus;
   /** Only students compete. */

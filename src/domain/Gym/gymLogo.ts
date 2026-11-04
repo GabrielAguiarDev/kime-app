@@ -11,10 +11,10 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-/** Resizes the picked (already square-cropped) image and encodes it as JPEG. */
+/** Resizes the picked (square-cropped) image to 512×512 and compresses it as JPEG. */
 export async function prepareLogo(uri: string): Promise<{ bytes: ArrayBuffer; contentType: string; extension: string }> {
   const context = ImageManipulator.manipulate(uri);
-  context.resize({ width: LOGO_SIZE, height: null });
+  context.resize({ width: LOGO_SIZE, height: LOGO_SIZE });
   const image = await context.renderAsync();
   const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
   if (!result.base64) throw new Error('unknown');

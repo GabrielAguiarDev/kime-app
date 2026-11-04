@@ -1,8 +1,15 @@
 export * from './gymTypes';
+export * from './gymRules';
 export { gymService } from './gymService';
 export { useCreateGym } from './useCases/useCreateGym';
-export { useGymInviteCode, useGymInvites, useRotateInvite } from './useCases/useGymInvites';
-export { useJoinGym } from './useCases/useJoinGym';
-export { useCodePreview, useGymSettings, useGymSettingsMutations } from './useCases/useGymSettings';
-export { useInvitePreview } from './useCases/useInvitePreview';
+export {
+  useCodeLookup,
+  useCreateProfessorCode,
+  useJoinWithCode,
+  useProfessorCodes,
+  useRegenerateStudentCode,
+  useRevokeProfessorCode,
+  useStudentCode,
+} from './useCases/useCodes';
+export { useGymSettings, useGymSettingsMutations } from './useCases/useGymSettings';
 export { BR_TIMEZONES, timezoneLabel } from './timezones';

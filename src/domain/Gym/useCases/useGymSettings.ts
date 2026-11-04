@@ -34,13 +34,3 @@ export function useGymSettingsMutations(gymId: string) {
     removeLogo: useMutation({ mutationFn: (path: string) => gymService.removeLogo(gymId, path), onSuccess }),
   };
 }
-
-/** Name + logo for a typed invite code (before joining). */
-export function useCodePreview(code: string | undefined) {
-  return useQuery({
-    queryKey: [QueryKeys.CodePreview, code],
-    queryFn: () => gymService.previewByCode(code!),
-    enabled: !!code,
-    retry: false,
-  });
-}

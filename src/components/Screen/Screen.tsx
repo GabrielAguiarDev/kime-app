@@ -1,12 +1,12 @@
-import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { ReactNode } from "react";
+import { Pressable, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAppTheme } from '@theme';
+import { useAppTheme } from "@theme";
 
-import { Box } from '../Box/Box';
-import { Icon } from '../Icon/Icon';
-import { Text } from '../Text/Text';
+import { Box } from "../Box/Box";
+import { Icon } from "../Icon/Icon";
+import { Text } from "../Text/Text";
 
 interface ScreenProps {
   children: ReactNode;
@@ -46,7 +46,7 @@ export function Screen({
       style={{
         width: size.touchTarget,
         height: size.touchTarget,
-        justifyContent: 'center',
+        justifyContent: "center",
         marginLeft: -spacing.s8,
         paddingLeft: spacing.s8,
         marginBottom: spacing.s8,
@@ -68,39 +68,50 @@ export function Screen({
   );
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Box flex={1} backgroundColor="bg" style={{ paddingTop: top + spacing.s16 }}>
-        {scrollable ? (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            showsHorizontalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{
-              paddingHorizontal: spacing.screenMargin,
-              paddingBottom: hasBottom ? spacing.s16 : paddingBottom,
-              flexGrow: 1,
-            }}
-          >
-            {header}
-            {children}
-          </ScrollView>
-        ) : (
+    // No KeyboardAvoidingView: the footer stays at the bottom (under the
+    // keyboard) instead of riding up over the fields. Only the scroll area
+    // makes room, so the focused field stays visible.
+    <Box
+      flex={1}
+      backgroundColor="bg"
+      style={{ paddingTop: top + spacing.s16 }}
+    >
+      {scrollable ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+          contentContainerStyle={{
+            paddingHorizontal: spacing.screenMargin,
+            paddingBottom: hasBottom ? spacing.s16 : paddingBottom,
+            flexGrow: 1,
+          }}
+        >
+          {header}
+          {children}
+        </ScrollView>
+      ) : (
+        <Box
+          flex={1}
+          paddingHorizontal="screenMargin"
+          style={{ paddingBottom: hasBottom ? 0 : paddingBottom }}
+        >
+          {header}
+          {children}
+        </Box>
+      )}
+      {feedback ??
+        (footer ? (
           <Box
-            flex={1}
             paddingHorizontal="screenMargin"
-            style={{ paddingBottom: hasBottom ? 0 : paddingBottom }}
+            style={{ paddingBottom }}
+            gap="s12"
           >
-            {header}
-            {children}
+            {footer}
           </Box>
-        )}
-        {feedback ??
-          (footer ? (
-            <Box paddingHorizontal="screenMargin" style={{ paddingBottom }} gap="s12">
-              {footer}
-            </Box>
-          ) : null)}
-      </Box>
-    </KeyboardAvoidingView>
+        ) : null)}
+    </Box>
   );
 }

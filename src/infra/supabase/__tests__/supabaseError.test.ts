@@ -21,7 +21,7 @@ describe('toAppError', () => {
   });
 
   it('returns pt-BR messages', () => {
-    expect(errorMessage({ message: 'invite_invalid' })).toMatch(/convite/i);
+    expect(errorMessage({ message: 'invite_invalid' })).toMatch(/código/i);
   });
 });
 
