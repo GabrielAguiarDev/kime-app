@@ -6,7 +6,7 @@ import WidgetKit
 
 struct WaterEntry: TimelineEntry {
   enum State {
-    /// No account on this device (signed out): open the app.
+    /// No config: signed out or no approved membership yet. No button; a tap opens the entry flow.
     case signedOut
     /// No bottle configured: the button cannot work, open the bottle setup.
     case noBottle

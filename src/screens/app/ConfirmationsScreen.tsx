@@ -1,18 +1,30 @@
+import { useState } from 'react';
 import { ActivityIndicator, Alert } from 'react-native';
 
-import { Box, Button, Card, EmptyState, Screen, StatusBadge, Text } from '@components';
+import { Avatar, BottomSheet, Box, Button, Card, EmptyState, Screen, SelectionCard, StatusBadge, Text, TextButton } from '@components';
 import {
   classesOn,
   useAcademyCheckins,
   useAcademyToday,
+  useClassSessions,
   useConfirmAll,
+  useSetSessionInstructor,
   useDecideCheckin,
   useSchedules,
   type AcademyCheckin,
+  type ClassSession,
   type ClassSchedule,
   type LocalDate,
 } from '@domain/Classes';
-import { roleLabel, useDecideMembership, usePendingRequests, type PendingRequest } from '@domain/Membership';
+import {
+  roleLabel,
+  useDecideMembership,
+  useGymMembers,
+  usePendingRequests,
+  type GymMember,
+  type PendingRequest,
+} from '@domain/Membership';
+import { SheetForm } from '@screens/professor/shared';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
@@ -25,19 +37,25 @@ export function ConfirmationsScreen() {
   const today = useAcademyToday(active?.gymId);
   const schedules = useSchedules(active?.gymId);
   const checkins = useAcademyCheckins(active?.gymId, today.data);
+  const sessions = useClassSessions(active?.gymId, today.data);
+  const members = useGymMembers(active?.gymId);
 
   if (!active) return null;
+  // Who can be the instructor of a class: active owner and instructors.
+  const staff = (members.data ?? []).filter((m) => m.role === 'owner' || m.role === 'instructor');
 
   const groups = today.data ? groupByClass(schedules.data ?? [], checkins.data ?? [], today.data) : [];
   const pendingCheckins = (checkins.data ?? []).filter((c) => c.status === 'pending').length;
   const pendingRequests = requests.data?.length ?? 0;
   const loaded = !!checkins.data && !!requests.data && !!schedules.data;
-  const allClear = loaded && pendingCheckins === 0 && pendingRequests === 0;
+  // Classes already given today stay listed (their instructor can still be switched).
+  const givenToday = (checkins.data ?? []).some((c) => c.status === 'confirmed');
+  const allClear = loaded && pendingCheckins === 0 && pendingRequests === 0 && !givenToday;
   const checkinsLoading = today.isLoading || schedules.isLoading || checkins.isLoading;
   const checkinsError = today.isError || schedules.isError || checkins.isError;
 
   return (
-    <Screen title="Confirmações" bottomInset={false}>
+    <Screen nativeHeader title="Confirmações" bottomInset={false}>
       {allClear ? (
         <EmptyState title="Tudo em dia." description="Nenhum check-in ou pedido pendente." />
       ) : null}
@@ -71,7 +89,14 @@ export function ConfirmationsScreen() {
               </Text>
             ) : null}
             {groups.map((group) => (
-              <ClassCheckinsCard key={group.scheduleId ?? 'deleted'} group={group} academyId={active.gymId} date={today.data!} />
+              <ClassCheckinsCard
+                key={group.scheduleId ?? 'deleted'}
+                group={group}
+                academyId={active.gymId}
+                date={today.data!}
+                session={(sessions.data ?? []).find((x) => x.scheduleId === group.scheduleId && !!group.scheduleId)}
+                staff={staff}
+              />
             ))}
           </Box>
 
@@ -127,9 +152,23 @@ function groupByClass(schedules: ClassSchedule[], checkins: AcademyCheckin[], to
   return groups;
 }
 
-function ClassCheckinsCard({ group, academyId, date }: { group: ClassGroup; academyId: string; date: LocalDate }) {
+function ClassCheckinsCard({
+  group,
+  academyId,
+  date,
+  session,
+  staff,
+}: {
+  group: ClassGroup;
+  academyId: string;
+  date: LocalDate;
+  session: ClassSession | undefined;
+  staff: GymMember[];
+}) {
   const confirmAll = useConfirmAll(academyId);
   const pending = group.checkins.filter((c) => c.status === 'pending');
+  // Check-ins of the class finished: who taught it (owner by default) can be switched.
+  const finished = pending.length === 0 && group.checkins.some((c) => c.status === 'confirmed');
 
   return (
     <Card gap="s12">
@@ -161,7 +200,75 @@ function ClassCheckinsCard({ group, academyId, date }: { group: ClassGroup; acad
           }
         />
       ) : null}
+      {finished && session ? <InstructorField academyId={academyId} session={session} staff={staff} /> : null}
     </Card>
+  );
+}
+
+/** "Professor da aula": the class's instructor, switchable among the academy's staff. */
+function InstructorField({
+  academyId,
+  session,
+  staff,
+}: {
+  academyId: string;
+  session: ClassSession;
+  staff: GymMember[];
+}) {
+  const setInstructor = useSetSessionInstructor(academyId);
+  const [open, setOpen] = useState(false);
+  const current = staff.find((m) => m.userId === session.instructorId);
+  const name = current?.fullName ?? 'Sem professor';
+
+  return (
+    <Box gap="s8" paddingTop="s8">
+      <Text variant="captionCaps">Professor da aula</Text>
+      <Box flexDirection="row" alignItems="center" gap="s12">
+        <Avatar name={name} path={current?.avatarPath} />
+        <Text variant="bodyStrong" flex={1} numberOfLines={1}>
+          {name}
+        </Text>
+        {staff.length > 1 ? (
+          <TextButton
+            title="Trocar"
+            fullWidth={false}
+            disabled={setInstructor.isPending}
+            onPress={() => setOpen(true)}
+            accessibilityLabel={`Trocar o professor da aula. Atual: ${name}`}
+          />
+        ) : null}
+      </Box>
+      {setInstructor.error ? (
+        <Text variant="caption" color="danger">
+          {errorMessage(setInstructor.error)}
+        </Text>
+      ) : null}
+
+      <BottomSheet visible={open} onRequestClose={() => setOpen(false)}>
+        <SheetForm
+          title="Professor da aula"
+          actions={<Button title="Cancelar" variant="secondary" onPress={() => setOpen(false)} />}
+        >
+          {staff.map((member) => (
+            <SelectionCard
+              key={member.id}
+              label={member.fullName}
+              description={roleLabel[member.role]}
+              leading={<Avatar name={member.fullName} path={member.avatarPath} />}
+              selected={member.userId === session.instructorId}
+              onPress={() => {
+                setOpen(false);
+                if (member.userId === session.instructorId) return;
+                setInstructor.mutate(
+                  { sessionId: session.id, instructorId: member.userId },
+                  { onSuccess: () => haptics.success() },
+                );
+              }}
+            />
+          ))}
+        </SheetForm>
+      </BottomSheet>
+    </Box>
   );
 }
 
@@ -221,7 +328,7 @@ function RequestCard({ request }: { request: PendingRequest }) {
     );
 
   const confirmApprove = async () => {
-    if (request.role !== 'professor') return run(true);
+    if (request.role !== 'instructor') return run(true);
     const ok = await confirm({
       title: 'Aprovar professor?',
       message: `${request.fullName} poderá confirmar check-ins, aprovar alunos, cuidar dos horários e das faixas.`,

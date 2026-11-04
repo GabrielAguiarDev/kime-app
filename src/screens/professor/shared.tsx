@@ -1,13 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Keyboard, Pressable, ScrollView, useWindowDimensions } from 'react-native';
 
-import { BELTS, Box, Icon, Text, type Belt, type IconName } from '@components';
+import { Box, Icon, Text, type IconName } from '@components';
 import { useAppTheme } from '@theme';
-
-/** Belt columns only hold palette keys (DB check); anything else is treated as no belt. */
-export function toBelt(value: string | null | undefined): Belt | null {
-  return value && value in BELTS ? (value as Belt) : null;
-}
 
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -51,11 +46,14 @@ export function SheetForm({
   children,
   actions,
   headerAction,
+  tall = false,
 }: {
   title: string;
   children: ReactNode;
   actions: ReactNode;
   headerAction?: SheetHeaderAction;
+  /** Long forms: the body scrolls in a taller area; the actions stay fixed at the bottom. */
+  tall?: boolean;
 }) {
   const { height } = useWindowDimensions();
   const { size, spacing } = useAppTheme();
@@ -86,7 +84,7 @@ export function SheetForm({
         ) : null}
       </Box>
       <ScrollView
-        style={{ maxHeight: (height - keyboard) * 0.55 }}
+        style={{ maxHeight: (height - keyboard) * (tall ? 0.7 : 0.55) }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

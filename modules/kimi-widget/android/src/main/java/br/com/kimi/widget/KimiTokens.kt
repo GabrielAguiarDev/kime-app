@@ -47,6 +47,16 @@ object KimiTokens {
     val brown = Color(0xFF7A4A2A)
     val black = Color(0xFF151515)
     val red = Color(0xFFC8242F)
+    val lightGray = Color(0xFFC4C6CA)
+    val darkGray = Color(0xFF55585E)
+    val darkYellow = Color(0xFFC9A227)
+    val lightGreen = Color(0xFF6CC24A)
+    val darkGreen = Color(0xFF1E6B37)
+    val lightBlue = Color(0xFF5AA9F0)
+    val darkBlue = Color(0xFF16337A)
+    val lightPurple = Color(0xFFA687E3)
+    val lightBrown = Color(0xFFA9744A)
+    val darkRed = Color(0xFF7D1A22)
   }
 
   object Opacity {
@@ -70,6 +80,8 @@ object KimiTokens {
     val bodyStrong = 16.sp // textSemiBold 600, line height 22
     val caption = 13.sp // textSemiBold 600, line height 18
     val button = 15.sp // textBold 700, line height 20, uppercase
+    val navLargeTitle = 34.sp // displayBold 700, line height 41
+    val navTitle = 17.sp // textSemiBold 600, line height 22
   }
 
   object Space {
@@ -110,6 +122,10 @@ object KimiTokens {
     val trailRingStroke = 6.dp
     val academyLogo = 96.dp
     val academyLogoSmall = 48.dp
+    val academyLogoHero = 128.dp
+    val avatar = 112.dp
+    val avatarSmall = 44.dp
+    val headerLogo = 32.dp
     val tabBar = 64.dp
     val progressBar = 14.dp
     val progressShine = 3.dp
@@ -120,6 +136,8 @@ object KimiTokens {
     val widgetRingStroke = 8.dp
     val beltChipWidth = 28.dp
     val beltChipHeight = 10.dp
+    val beltColorSwatch = 44.dp
+    val beltPreviewHeight = 24.dp
     val badgeIcon = 14.dp
     val iconInline = 20.dp
     val icon = 24.dp
@@ -128,5 +146,6 @@ object KimiTokens {
     val mascotEmpty = 96.dp
     val mascotFeedback = 56.dp
     val touchTarget = 44.dp
+    val reorderRow = 60.dp
   }
 }

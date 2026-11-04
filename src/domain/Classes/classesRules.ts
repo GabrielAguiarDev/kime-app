@@ -1,6 +1,14 @@
-import type { Belt } from '@components';
-
-import type { BeltGoal, Checkin, ClassSchedule, LocalDate, Weekday } from './classesTypes';
+import type {
+  BeltColorKey,
+  BeltLook,
+  Checkin,
+  ClassSchedule,
+  LocalDate,
+  Modality,
+  ModalityBelt,
+  ModalityStats,
+  Weekday,
+} from './classesTypes';
 
 // ----------------------------------------------------------------- dates ---
 // Local dates are plain `YYYY-MM-DD` strings in the academy timezone (the
@@ -96,22 +104,172 @@ export function milestoneCrossed(previous: number, current: number): number | nu
 // -------------------------------------------------------- belt progress ---
 
 export interface BeltProgress {
-  /** The belt being worked toward; null when there is no next goal. */
-  next: BeltGoal | null;
+  /** The belt being worked toward; null when there is no next belt. */
+  next: ModalityBelt | null;
   done: number;
   required: number;
 }
 
+/** Belts of one modality in their order. */
+export function beltsOf(belts: ModalityBelt[], modalityId: string): ModalityBelt[] {
+  return belts.filter((b) => b.modalityId === modalityId).sort((a, b) => a.position - b.position);
+}
+
 /**
- * Next belt = the goal right after the current belt in the academy order
- * (the first goal when the member has no belt yet). Progress counts confirmed
- * classes since the last graduation.
+ * Next belt = the one right after the current (the first belt when the
+ * student has none). Progress counts confirmed classes IN THAT MODALITY since
+ * the last graduation in it (all of them before the first belt). `required`
+ * is 0 when the next belt has no number of classes yet.
  */
-export function beltProgress(goals: BeltGoal[], current: Belt | null, sinceBelt: number): BeltProgress {
-  const ordered = [...goals].sort((a, b) => a.position - b.position);
-  const index = current ? ordered.findIndex((g) => g.belt === current) : -1;
+export function beltProgress(
+  modalityBelts: ModalityBelt[],
+  currentBeltId: string | null,
+  sinceBelt: number,
+): BeltProgress {
+  const ordered = [...modalityBelts].sort((a, b) => a.position - b.position);
+  const index = currentBeltId ? ordered.findIndex((b) => b.id === currentBeltId) : -1;
   const next = ordered[index + 1] ?? null;
-  return { next, done: Math.min(sinceBelt, next?.classesRequired ?? sinceBelt), required: next?.classesRequired ?? 0 };
+  const required = next?.classesRequired ?? 0;
+  return { next, done: Math.min(sinceBelt, required), required };
+}
+
+/**
+ * Modalities a student trains: a confirmed class or a belt in it. When there
+ * is none yet, every modality of the academy (the student still sees the
+ * trails before the first class).
+ */
+export function trainedModalities(modalities: Modality[], stats: ModalityStats[]): Modality[] {
+  const trained = modalities.filter((m) =>
+    stats.some((s) => s.modalityId === m.id && (s.confirmedTotal > 0 || !!s.beltId)),
+  );
+  return trained.length > 0 ? trained : modalities;
+}
+
+/** The most recently awarded belt across modalities (top bar color), if any. */
+export function latestBelt(stats: ModalityStats[], belts: ModalityBelt[]): ModalityBelt | null {
+  let latest: ModalityStats | null = null;
+  for (const s of stats) {
+    if (!s.beltId || !s.beltAwardedAt) continue;
+    if (!latest || Date.parse(s.beltAwardedAt) > Date.parse(latest.beltAwardedAt!)) latest = s;
+  }
+  return latest ? (belts.find((b) => b.id === latest!.beltId) ?? null) : null;
+}
+
+// ---------------------------------------------------------- belt colors ---
+
+/** Main palette, in order (DESIGN-SYSTEM.md 2.4): the grid shown first. */
+export const BELT_COLOR_KEYS: BeltColorKey[] = [
+  'white',
+  'gray',
+  'yellow',
+  'orange',
+  'green',
+  'blue',
+  'purple',
+  'brown',
+  'black',
+  'red',
+];
+
+/** Light/dark shades (DESIGN-SYSTEM.md 2.4, variações). */
+export const BELT_EXTRA_COLOR_KEYS: BeltColorKey[] = [
+  'light_gray',
+  'dark_gray',
+  'dark_yellow',
+  'light_green',
+  'dark_green',
+  'light_blue',
+  'dark_blue',
+  'light_purple',
+  'light_brown',
+  'dark_red',
+];
+
+/** Every belt color as the belt sheet shows it: grouped by family (neutrals, warm, cool). */
+export const BELT_PICKER_ORDER: BeltColorKey[] = [
+  'white',
+  'light_gray',
+  'gray',
+  'dark_gray',
+  'black',
+  'light_brown',
+  'brown',
+  'yellow',
+  'dark_yellow',
+  'orange',
+  'red',
+  'dark_red',
+  'light_purple',
+  'purple',
+  'light_green',
+  'green',
+  'dark_green',
+  'light_blue',
+  'blue',
+  'dark_blue',
+];
+
+/** Belt names are always feminine ("faixa …"). */
+export const BELT_COLOR_LABEL: Record<BeltColorKey, string> = {
+  white: 'Branca',
+  gray: 'Cinza',
+  yellow: 'Amarela',
+  orange: 'Laranja',
+  green: 'Verde',
+  blue: 'Azul',
+  purple: 'Roxa',
+  brown: 'Marrom',
+  black: 'Preta',
+  red: 'Vermelha',
+  light_gray: 'Cinza-clara',
+  dark_gray: 'Cinza-escura',
+  dark_yellow: 'Amarela-escura',
+  light_green: 'Verde-clara',
+  dark_green: 'Verde-escura',
+  light_blue: 'Azul-clara',
+  dark_blue: 'Azul-escura',
+  light_purple: 'Roxa-clara',
+  light_brown: 'Marrom-clara',
+  dark_red: 'Vermelha-escura',
+};
+
+export function isBeltColorKey(value: string | null | undefined): value is BeltColorKey {
+  return !!value && ([...BELT_COLOR_KEYS, ...BELT_EXTRA_COLOR_KEYS] as string[]).includes(value);
+}
+
+/** "Vermelha" / "Vermelha/ponta preta". */
+export function beltName(belt: BeltLook): string {
+  const main = BELT_COLOR_LABEL[belt.primary];
+  return belt.tip ? `${main}/ponta ${BELT_COLOR_LABEL[belt.tip].toLowerCase()}` : main;
+}
+
+export function sameBeltLook(a: BeltLook, b: BeltLook): boolean {
+  return a.primary === b.primary && (a.tip ?? null) === (b.tip ?? null);
+}
+
+/** White always gets the `border` outline; black too (the app is dark only). */
+export function beltColorNeedsOutline(key: BeltColorKey): boolean {
+  return key === 'white' || key === 'black';
+}
+
+/** Light colors need dark text/icons on top of them (achievement header, selected check). */
+const LIGHT_BELT_COLORS: BeltColorKey[] = [
+  'white',
+  'yellow',
+  'gray',
+  'light_gray',
+  'dark_yellow',
+  'light_green',
+  'light_blue',
+  'light_purple',
+];
+
+export function beltColorIsLight(key: BeltColorKey): boolean {
+  return LIGHT_BELT_COLORS.includes(key);
+}
+
+export function beltNeedsDarkText(belt: BeltLook): boolean {
+  return beltColorIsLight(belt.primary);
 }
 
 /** Classes per node of the graduation trail (11.2): "Aulas 21–30". */

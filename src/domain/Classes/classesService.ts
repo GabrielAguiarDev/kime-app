@@ -1,4 +1,3 @@
-import type { Belt } from '@components';
 import { toAppError } from '@infra/supabase';
 
 import { classesAdapter as adapter } from './classesAdapter';
@@ -7,13 +6,17 @@ import type { ScheduleGroupPlan } from './scheduleGroups';
 import type {
   AcademyCheckin,
   BeltAward,
-  BeltGoal,
+  BeltInput,
   Checkin,
   ClassSchedule,
   LocalDate,
   MemberStats,
   Modality,
+  ModalityBelt,
+  ModalityStats,
   ScheduleInput,
+  ClassSession,
+  InstructorStats,
 } from './classesTypes';
 
 /** Wraps an API call so every failure reaches the UI as an AppError. */
@@ -26,6 +29,26 @@ async function call<T>(run: () => Promise<T>): Promise<T> {
 }
 
 export const classesService = {
+  listSessionsOn: (academyId: string, date: LocalDate): Promise<ClassSession[]> =>
+    call(async () =>
+      (await api.listSessionsOn(academyId, date)).map((r) => ({
+        id: r.id,
+        scheduleId: r.schedule_id,
+        classDate: r.class_date,
+        instructorId: r.instructor_id,
+      })),
+    ),
+  setSessionInstructor: (sessionId: string, instructorId: string) =>
+    call(() => api.setSessionInstructor(sessionId, instructorId)),
+  listInstructorStats: (academyId: string): Promise<InstructorStats[]> =>
+    call(async () =>
+      (await api.listInstructorStats(academyId)).map((r) => ({
+        membershipId: r.membership_id ?? '',
+        userId: r.user_id ?? '',
+        classesTaught: r.classes_taught ?? 0,
+      })),
+    ),
+
   academyToday: (academyId: string): Promise<LocalDate> =>
     call(async () => {
       const today = await api.academyToday(academyId);
@@ -35,42 +58,39 @@ export const classesService = {
 
   listSchedules: (academyId: string): Promise<ClassSchedule[]> =>
     call(async () => (await api.listSchedules(academyId)).map(adapter.toSchedule)),
-  createSchedule: (academyId: string, input: ScheduleInput) =>
-    call(() => api.createSchedule(academyId, { ...input, modality: input.modality.trim() })),
-  updateSchedule: (id: string, input: ScheduleInput) =>
-    call(() => api.updateSchedule(id, { ...input, modality: input.modality.trim() })),
+  createSchedule: (academyId: string, input: ScheduleInput) => call(() => api.createSchedule(academyId, input)),
+  updateSchedule: (id: string, input: ScheduleInput) => call(() => api.updateSchedule(id, input)),
   setScheduleActive: (id: string, active: boolean) => call(() => api.setScheduleActive(id, active)),
   /** Applies a planScheduleGroup() result. Off first, so a day never has two active rows. */
-  saveScheduleGroup: (academyId: string, plan: ScheduleGroupPlan, startTime: string, modality: string) =>
+  saveScheduleGroup: (academyId: string, plan: ScheduleGroupPlan, startTime: string, modalityId: string) =>
     call(async () => {
-      const name = modality.trim();
       await api.updateSchedules(plan.deactivate, { active: false });
-      await api.updateSchedules(plan.retime, { start_time: startTime, modality: name, active: true });
+      await api.updateSchedules(plan.retime, { start_time: startTime, modality_id: modalityId, active: true });
       await api.updateSchedules(plan.activate, { active: true });
       await api.createSchedules(
         academyId,
-        plan.create.map((weekday) => ({ weekday, startTime, modality: name })),
+        plan.create.map((weekday) => ({ weekday, startTime, modalityId })),
       );
     }),
   setSchedulesActive: (ids: string[], active: boolean) => call(() => api.updateSchedules(ids, { active })),
   deleteSchedules: (ids: string[]) => call(() => api.deleteSchedules(ids)),
 
   listModalities: (academyId: string): Promise<Modality[]> =>
-    call(async () => (await api.listModalities(academyId)).map((m) => ({ id: m.id, name: m.name, position: m.position }))),
-  /** Adds a modality to the academy (no-op when it already exists). */
-  createModality: (academyId: string, name: string, position: number) =>
-    call(() => api.createModality(academyId, name.trim(), position)),
-  renameModality: (id: string, name: string) => call(() => api.renameModality(id, name.trim())),
+    call(async () => (await api.listModalities(academyId)).map(adapter.toModality)),
+  createModality: (academyId: string, name: string, position: number, usesBelts: boolean) =>
+    call(() => api.createModality(academyId, name.trim(), position, usesBelts)),
+  updateModality: (id: string, name: string, usesBelts: boolean) =>
+    call(() => api.updateModality(id, { name: name.trim(), uses_belts: usesBelts })),
+  /** Fails with modality_has_schedules (23503) while schedules point at it. */
   deleteModality: (id: string) => call(() => api.deleteModality(id)),
 
-  listBeltGoals: (academyId: string): Promise<BeltGoal[]> =>
-    call(async () => (await api.listBeltGoals(academyId)).map(adapter.toBeltGoal)),
-  createBeltGoal: (academyId: string, belt: Belt, position: number, classesRequired: number) =>
-    call(() => api.createBeltGoal(academyId, belt, position, classesRequired)),
-  updateBeltGoal: (id: string, classesRequired: number) => call(() => api.updateBeltGoal(id, classesRequired)),
-  deleteBeltGoal: (id: string) => call(() => api.deleteBeltGoal(id)),
-  reorderBeltGoals: (academyId: string, orderedIds: string[]) =>
-    call(() => api.reorderBeltGoals(academyId, orderedIds)),
+  listBelts: (academyId: string): Promise<ModalityBelt[]> =>
+    call(async () => (await api.listBelts(academyId)).map(adapter.toBelt)),
+  createBelt: (academyId: string, modalityId: string, input: BeltInput, position: number) =>
+    call(() => api.createBelt(academyId, modalityId, input, position)),
+  updateBelt: (id: string, input: BeltInput) => call(() => api.updateBelt(id, input)),
+  deleteBelt: (id: string) => call(() => api.deleteBelt(id)),
+  reorderBelts: (modalityId: string, orderedIds: string[]) => call(() => api.reorderBelts(modalityId, orderedIds)),
 
   listMyCheckins: (academyId: string, userId: string): Promise<Checkin[]> =>
     call(async () => (await api.listMyCheckins(academyId, userId)).map(adapter.toCheckin)),
@@ -84,7 +104,9 @@ export const classesService = {
 
   listMemberStats: (academyId: string): Promise<MemberStats[]> =>
     call(async () => (await api.listMemberStats(academyId)).map(adapter.toMemberStats)),
+  listModalityStats: (academyId: string): Promise<ModalityStats[]> =>
+    call(async () => (await api.listModalityStats(academyId)).map(adapter.toModalityStats)),
   listBeltHistory: (membershipId: string): Promise<BeltAward[]> =>
     call(async () => (await api.listBeltHistory(membershipId)).map(adapter.toBeltAward)),
-  awardBelt: (membershipId: string, belt: Belt) => call(() => api.awardBelt(membershipId, belt)),
+  awardBelt: (membershipId: string, beltId: string) => call(() => api.awardBelt(membershipId, beltId)),
 };

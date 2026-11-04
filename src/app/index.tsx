@@ -1,18 +1,13 @@
 import { Redirect } from 'expo-router';
 
-import { useActiveGym } from '@services/activeGym';
-import { useSession } from '@services/session';
+import { useRouteAccess } from '@services/access';
 
 /**
- * Entry route "/". Always matchable (never guarded) and sends the user to the
- * right place, so cold starts and `router.replace('/')` never hit an unmatched route.
+ * Entry route "/". Always matchable (never guarded): sends the user to the
+ * home of their access level (services/access), so cold starts, deep links
+ * and `router.replace('/')` never hit an unmatched route.
  */
 export default function Index() {
-  const { session } = useSession();
-  const { active } = useActiveGym();
-
-  // Signed out: always the "Sou aluno / Sou professor" screen (user decision).
-  if (!session) return <Redirect href="/start" />;
-  if (!active) return <Redirect href="/welcome" />;
-  return <Redirect href="/home" />;
+  const { home } = useRouteAccess();
+  return <Redirect href={home} />;
 }

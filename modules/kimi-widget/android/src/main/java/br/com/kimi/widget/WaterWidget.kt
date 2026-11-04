@@ -55,7 +55,7 @@ import java.util.Locale
 
 /** What the widget shows, read from WaterStore. */
 private sealed interface WaterState {
-  /** No account on this device (signed out): open the app. */
+  /** No config: signed out or no approved membership yet. No button; a tap opens the entry flow. */
   data object SignedOut : WaterState
 
   /** No bottle configured: the button cannot work, open the bottle setup. */

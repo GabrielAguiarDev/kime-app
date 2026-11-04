@@ -1,16 +1,24 @@
 import {
   addDays,
+  beltColorNeedsOutline,
+  beltName,
+  beltNeedsDarkText,
+  sameBeltLook,
+  isBeltColorKey,
   beltProgress,
+  beltsOf,
   checkinStreak,
   classesOn,
   isClassMilestone,
+  latestBelt,
   milestoneCrossed,
+  trainedModalities,
   trailNodes,
   weekStart,
   weekdayOf,
   weeklyStreak,
 } from '../classesRules';
-import type { BeltGoal, ClassSchedule } from '../classesTypes';
+import type { BeltColorKey, ClassSchedule, Modality, ModalityBelt, ModalityStats } from '../classesTypes';
 
 describe('dates', () => {
   it('works on plain local dates across month ends', () => {
@@ -85,23 +93,117 @@ describe('milestones', () => {
   });
 });
 
+const belt = (
+  id: string,
+  modalityId: string,
+  position: number,
+  classesRequired: number | null,
+  primary: BeltColorKey = 'blue',
+): ModalityBelt => ({ id, modalityId, primary, tip: null, position, classesRequired });
+
 describe('beltProgress', () => {
-  const goals: BeltGoal[] = [
-    { id: 'b', belt: 'blue', position: 1, classesRequired: 120 },
-    { id: 'w', belt: 'white', position: 0, classesRequired: 1 },
-    { id: 'p', belt: 'purple', position: 2, classesRequired: 150 },
+  const goals: ModalityBelt[] = [
+    belt('b', 'bjj', 1, 120),
+    belt('w', 'bjj', 0, 10, 'white'),
+    belt('p', 'bjj', 2, 150, 'purple'),
   ];
-  it('aims at the goal after the current belt', () => {
-    expect(beltProgress(goals, 'blue', 40)).toEqual({ next: goals[2], done: 40, required: 150 });
+  it('aims at the belt after the current one', () => {
+    expect(beltProgress(goals, 'b', 40)).toEqual({ next: goals[2], done: 40, required: 150 });
   });
-  it('aims at the first goal without a belt', () => {
-    expect(beltProgress(goals, null, 0).next?.belt).toBe('white');
+  it('aims at the first belt when the student has none', () => {
+    expect(beltProgress(goals, null, 4)).toEqual({ next: goals[1], done: 4, required: 10 });
   });
-  it('has no next goal at the last belt', () => {
-    expect(beltProgress(goals, 'purple', 10).next).toBeNull();
+  it('has no next belt at the last one', () => {
+    expect(beltProgress(goals, 'p', 10)).toEqual({ next: null, done: 0, required: 0 });
   });
   it('caps progress at the requirement', () => {
-    expect(beltProgress(goals, 'white', 130).done).toBe(120);
+    expect(beltProgress(goals, 'w', 130).done).toBe(120);
+  });
+  it('a next belt without a number of classes (old data) has required 0', () => {
+    const odd = [belt('w', 'bjj', 0, null, 'white'), belt('x', 'bjj', 1, 40)];
+    expect(beltProgress(odd, null, 5)).toEqual({ next: odd[0], done: 0, required: 0 });
+  });
+  it('treats an unknown current belt as none and handles an empty list', () => {
+    expect(beltProgress(goals, 'ghost', 0).next?.id).toBe('w');
+    expect(beltProgress([], null, 5)).toEqual({ next: null, done: 0, required: 0 });
+  });
+  it('does not mutate the input order', () => {
+    const copy = [...goals];
+    beltProgress(goals, null, 0);
+    expect(goals).toEqual(copy);
+  });
+});
+
+describe('beltsOf', () => {
+  it('filters one modality and orders by position', () => {
+    const all = [belt('x2', 'mt', 2, 5), belt('b1', 'bjj', 1, 5), belt('x1', 'mt', 1, 5)];
+    expect(beltsOf(all, 'mt').map((b) => b.id)).toEqual(['x1', 'x2']);
+    expect(beltsOf(all, 'none')).toEqual([]);
+  });
+});
+
+describe('trainedModalities', () => {
+  const mods: Modality[] = [
+    { id: 'bjj', name: 'Jiu-Jitsu', position: 0, usesBelts: true },
+    { id: 'mt', name: 'Muay Thai', position: 1, usesBelts: false },
+  ];
+  const stat = (modalityId: string, over: Partial<ModalityStats> = {}): ModalityStats => ({
+    membershipId: 'm', userId: 'u', modalityId, beltId: null, beltAwardedAt: null,
+    confirmedTotal: 0, confirmedSinceBelt: 0, ...over,
+  });
+  it('falls back to every modality when none was trained', () => {
+    expect(trainedModalities(mods, [])).toEqual(mods);
+    expect(trainedModalities(mods, [stat('bjj'), stat('mt')])).toEqual(mods);
+  });
+  it('keeps only modalities with confirmed classes', () => {
+    expect(trainedModalities(mods, [stat('mt', { confirmedTotal: 3 })]).map((m) => m.id)).toEqual(['mt']);
+  });
+  it('counts a belt alone as trained', () => {
+    expect(trainedModalities(mods, [stat('bjj', { beltId: 'b' })]).map((m) => m.id)).toEqual(['bjj']);
+  });
+  it('ignores stats of unknown modalities', () => {
+    expect(trainedModalities(mods, [stat('ghost', { confirmedTotal: 9 })])).toEqual(mods);
+  });
+});
+
+describe('latestBelt', () => {
+  const belts = [belt('b1', 'bjj', 1, 5), belt('b2', 'mt', 1, 5)];
+  const stat = (modalityId: string, beltId: string | null, beltAwardedAt: string | null): ModalityStats => ({
+    membershipId: 'm', userId: 'u', modalityId, beltId, beltAwardedAt, confirmedTotal: 0, confirmedSinceBelt: 0,
+  });
+  it('picks the most recently awarded belt across modalities', () => {
+    const stats = [stat('bjj', 'b1', '2026-01-01T00:00:00Z'), stat('mt', 'b2', '2026-06-01T00:00:00Z')];
+    expect(latestBelt(stats, belts)?.id).toBe('b2');
+  });
+  it('is null without belts, without dates or when the belt is unknown', () => {
+    expect(latestBelt([], belts)).toBeNull();
+    expect(latestBelt([stat('bjj', null, null)], belts)).toBeNull();
+    expect(latestBelt([stat('bjj', 'b1', null)], belts)).toBeNull();
+    expect(latestBelt([stat('bjj', 'ghost', '2026-01-01T00:00:00Z')], belts)).toBeNull();
+  });
+});
+
+describe('belt colors', () => {
+  it('derives the feminine name, with the tip', () => {
+    expect(beltName({ primary: 'red', tip: null })).toBe('Vermelha');
+    expect(beltName({ primary: 'red', tip: 'black' })).toBe('Vermelha/ponta preta');
+    expect(beltName({ primary: 'white', tip: 'yellow' })).toBe('Branca/ponta amarela');
+  });
+  it('compares combinations', () => {
+    expect(sameBeltLook({ primary: 'red', tip: null }, { primary: 'red', tip: null })).toBe(true);
+    expect(sameBeltLook({ primary: 'red', tip: 'black' }, { primary: 'red', tip: null })).toBe(false);
+  });
+  it('knows the palette keys', () => {
+    expect(isBeltColorKey('red')).toBe(true);
+    expect(isBeltColorKey('coral')).toBe(false);
+    expect(isBeltColorKey(null)).toBe(false);
+  });
+  it('outlines white and black, dark text on light belts', () => {
+    expect(beltColorNeedsOutline('white')).toBe(true);
+    expect(beltColorNeedsOutline('black')).toBe(true);
+    expect(beltColorNeedsOutline('blue')).toBe(false);
+    expect(beltNeedsDarkText({ primary: 'yellow', tip: null })).toBe(true);
+    expect(beltNeedsDarkText({ primary: 'blue', tip: 'black' })).toBe(false);
   });
 });
 
@@ -125,7 +227,7 @@ describe('trailNodes', () => {
 
 describe('classesOn', () => {
   const s = (id: string, weekday: ClassSchedule['weekday'], startTime: string, active = true): ClassSchedule => ({
-    id, academyId: 'a', weekday, startTime, modality: 'Jiu-Jitsu', active,
+    id, academyId: 'a', weekday, startTime, modalityId: 'bjj', modality: 'Jiu-Jitsu', active,
   });
   it('returns active classes of that weekday by time', () => {
     const list = [s('late', 3, '19:00'), s('early', 3, '07:00'), s('off', 3, '12:00', false), s('thu', 4, '07:00')];

@@ -6,14 +6,14 @@ import { Box, Button, Card, CodeField, FeedbackSheet, Screen, Text, TextButton }
 import { CODE_LENGTH, normalizeCode, useCodeLookup, useJoinWithCode, type CodeType } from '@domain/Gym';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
-import { entryPath, pendingCode } from '@services/entry';
+import { entryPath, joinOutcome, joinOutcomeText, pendingCode, type JoinOutcome } from '@services/entry';
 import { useSession } from '@services/session';
 import { haptics } from '@utils/haptics';
 
 import { AcademyCard } from './AcademyCard';
 import { backToStart } from './StartScreen';
 
-const TYPE_LABEL: Record<CodeType, string> = { student: 'aluno', professor: 'professor' };
+const TYPE_LABEL: Record<CodeType, string> = { student: 'aluno', instructor: 'professor' };
 
 /**
  * Two routes render this screen:
@@ -53,10 +53,13 @@ function EnterCode({ initialCode, pathParam }: { initialCode?: string; pathParam
   // Path the user is on. A deep link follows the code's own kind.
   const [path, setPath] = useState<CodeType | null>(() => {
     if (fromDeepLink) return null;
-    if (pathParam === 'student' || pathParam === 'professor') return pathParam;
+    if (pathParam === 'professor') return 'instructor';
+    if (pathParam === 'student' || pathParam === 'instructor') return pathParam;
     return signedIn ? null : (entryPath.get() ?? 'student');
   });
-  const [sent, setSent] = useState(false);
+  // What happened after "Sim, continuar" (signed in): a new request, or nothing new.
+  const [outcome, setOutcome] = useState<JoinOutcome | null>(null);
+  const [joinedGymId, setJoinedGymId] = useState<string | null>(null);
 
   const complete = code.length === CODE_LENGTH;
   const lookup = useCodeLookup(complete ? code : undefined);
@@ -71,6 +74,7 @@ function EnterCode({ initialCode, pathParam }: { initialCode?: string; pathParam
   const typeAnother = () => {
     setCode('');
     setStep('code');
+    setOutcome(null);
     join.reset();
   };
 
@@ -93,7 +97,7 @@ function EnterCode({ initialCode, pathParam }: { initialCode?: string; pathParam
   const goToSignIn = () => (inAuthStack ? router.push('/sign-in') : router.replace('/sign-in'));
   const switchEntryPath = (to: CodeType) => {
     entryPath.set(to);
-    if (to === 'professor') goToSignIn();
+    if (to === 'instructor') goToSignIn();
     else setPath('student');
   };
 
@@ -112,16 +116,17 @@ function EnterCode({ initialCode, pathParam }: { initialCode?: string; pathParam
     }
     join.mutate(code, {
       onSuccess: (result) => {
-        if (result.status === 'active') {
-          // Already in that academy: no new request, straight into it.
-          selectGym(result.gymId);
-          close();
+        setJoinedGymId(result.gymId);
+        const next = joinOutcome(result);
+        if (next !== 'sent') {
+          // Nothing new was created: say why.
+          setOutcome(next);
           return;
         }
         haptics.success();
         // Without an active academy, the waiting screen underneath takes over.
         if (!active) close();
-        else setSent(true);
+        else setOutcome('sent');
       },
     });
   };
@@ -149,15 +154,32 @@ function EnterCode({ initialCode, pathParam }: { initialCode?: string; pathParam
       );
     }
 
-    const feedback = sent ? (
-      <FeedbackSheet
-        tone="success"
-        title="Pedido enviado"
-        message={`Assim que a ${academy?.gymName ?? 'academia'} aprovar, ela aparece no seu Perfil.`}
-        actionLabel="Continuar"
-        onAction={close}
-      />
-    ) : undefined;
+    const text = outcome ? joinOutcomeText(outcome, academy?.gymName) : null;
+    const feedback =
+      outcome === 'sent' && text ? (
+        <FeedbackSheet tone="success" title={text.title} message={text.message} actionLabel="Continuar" onAction={close} />
+      ) : outcome === 'alreadyMember' && text ? (
+        <FeedbackSheet
+          tone="accent"
+          icon="check"
+          title={text.title}
+          message={text.message}
+          actionLabel={joinedGymId && joinedGymId !== active?.gymId ? 'Abrir academia' : 'Continuar'}
+          onAction={() => {
+            if (joinedGymId) selectGym(joinedGymId);
+            close();
+          }}
+        />
+      ) : outcome === 'alreadyPending' && text ? (
+        <FeedbackSheet
+          tone="warning"
+          icon="clock"
+          title={text.title}
+          message={text.message}
+          actionLabel="Continuar"
+          onAction={close}
+        />
+      ) : undefined;
 
     return (
       <Screen
@@ -186,7 +208,7 @@ function EnterCode({ initialCode, pathParam }: { initialCode?: string; pathParam
           <Box gap="s16">
             <AcademyCard gymName={academy.gymName} logoUrl={academy.logoUrl} codeType={academy.codeType} />
             <Text variant="body" color="textMuted">
-              {academy.codeType === 'professor'
+              {academy.codeType === 'instructor'
                 ? 'Seu pedido vai para o proprietário da academia, que precisa aprovar sua entrada como professor.'
                 : 'Seu pedido vai para os professores da academia, que precisam aprovar sua entrada.'}
             </Text>
@@ -240,7 +262,7 @@ function CodeStep({
   onSwitchPath: (to: CodeType) => void;
   onClose: () => void;
 }) {
-  const isProfessor = path === 'professor';
+  const isProfessor = path === 'instructor';
 
   return (
     <Screen
@@ -253,7 +275,7 @@ function CodeStep({
             <TextButton title="Já tenho conta? Entrar" onPress={onSignIn} />
             <TextButton
               title={isProfessor ? 'Sou aluno' : 'Sou professor'}
-              onPress={() => onSwitchPath(isProfessor ? 'student' : 'professor')}
+              onPress={() => onSwitchPath(isProfessor ? 'student' : 'instructor')}
             />
           </>
         ) : undefined
@@ -295,7 +317,7 @@ function MismatchNotice({
     <Card gap="s12" accessibilityRole="alert">
       <Text variant="heading">Este é um código de {TYPE_LABEL[codeType]}.</Text>
       <Text variant="body" color="textMuted">
-        {codeType === 'professor'
+        {codeType === 'instructor'
           ? 'Ele serve para entrar na academia como professor.'
           : 'Ele serve para entrar na academia como aluno.'}
       </Text>

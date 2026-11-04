@@ -1,7 +1,16 @@
 import { ActivityIndicator } from 'react-native';
 
 import { Box, Button, EmptyState, MascotBalloon } from '@components';
-import { useAcademyToday, useMemberStats, useMyCheckins, useSchedules, checkinStreak } from '@domain/Classes';
+import {
+  checkinStreak,
+  latestBelt,
+  useAcademyToday,
+  useBelts,
+  useMemberStats,
+  useModalityStats,
+  useMyCheckins,
+  useSchedules,
+} from '@domain/Classes';
 import { useActiveGym } from '@services/activeGym';
 import { useClassRewards } from '@services/classRewards';
 import { useSession } from '@services/session';
@@ -20,9 +29,11 @@ export function StudentHome() {
   const schedules = useSchedules(academyId);
   const checkins = useMyCheckins(academyId, userId);
   const stats = useMemberStats(academyId);
+  const modalityStats = useModalityStats(academyId);
+  const belts = useBelts(academyId);
   const rewards = useClassRewards(academyId, userId);
 
-  const queries = [today, schedules, checkins, stats];
+  const queries = [today, schedules, checkins, stats, modalityStats, belts];
   if (queries.some((q) => q.isLoading)) {
     return <ActivityIndicator accessibilityLabel="Carregando" />;
   }
@@ -46,7 +57,7 @@ export function StudentHome() {
       <TopBar
         streakWeeks={checkinStreak(list, today.data)}
         confirmedTotal={own?.confirmedTotal ?? 0}
-        belt={own?.belt ?? null}
+        belt={latestBelt((modalityStats.data ?? []).filter((s) => s.userId === userId), belts.data ?? [])}
       />
       <TodayClasses
         academyId={academyId}

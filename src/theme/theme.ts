@@ -45,6 +45,17 @@ function buildColors(scheme: Scheme) {
     beltBrown: belt.brown,
     beltBlack: belt.black,
     beltRed: belt.red,
+    // Extra shades ("Mais cores" in the belt sheet).
+    beltLightGray: belt.lightGray,
+    beltDarkGray: belt.darkGray,
+    beltDarkYellow: belt.darkYellow,
+    beltLightGreen: belt.lightGreen,
+    beltDarkGreen: belt.darkGreen,
+    beltLightBlue: belt.lightBlue,
+    beltDarkBlue: belt.darkBlue,
+    beltLightPurple: belt.lightPurple,
+    beltLightBrown: belt.lightBrown,
+    beltDarkRed: belt.darkRed,
 
     transparent: 'transparent',
   };
@@ -95,6 +106,9 @@ export const lightTheme = createTheme({
     /** Caption in caps: big-counter labels and section labels. */
     captionCaps: { ...textVariant('caption'), color: 'textMuted' as const, textTransform: 'uppercase' as const },
     button: textVariant('button'),
+    /** Native header: compact title (iOS/Android) and large title (iOS). */
+    navTitle: textVariant('navTitle'),
+    navLargeTitle: textVariant('navLargeTitle'),
   },
   breakpoints: {},
 });

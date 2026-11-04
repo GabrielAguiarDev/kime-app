@@ -1,7 +1,7 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: Fase 3 (água + widget de água) — 2026-11-04
+> Última atualização: correções pré-Fase 3 (guard, perfil, modalidades e faixas) — 2026-11-04
 
 ## 1. Visão geral
 
@@ -47,7 +47,7 @@ src/
     index.tsx           "/" sem guard: <Redirect> para /sign-in, /welcome ou /home
     (auth)/             start (Sou aluno / Sou professor), codigo (fluxo do código deslogado), sign-in, sign-up (telas separadas; card da academia no topo quando há código), verify-email
     (onboarding)/       welcome (espera / recusado / sem academia), create-gym
-    (tabs)/             home, classes, competition, students, confirmations, profile
+    (tabs)/             home, classes, competition, students, confirmations, profile (cada uma: pasta com _layout Stack + index)
     entrar.tsx          código → confirmação da academia; sempre acessível; deep link kimi://entrar?codigo=XXXXXXXX
   screens/{auth,entry,onboarding,app,professor,student,water}/
   domain/{Auth,Gym,Membership,Profile,Classes,Water}/  xApi, xAdapter, xService, xTypes, xRules, useCases/, index
@@ -64,11 +64,14 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 ```
 
 - **Aliases:** `@components`, `@domain/*`, `@infra`, `@screens/*`, `@services/*`, `@theme`, `@utils/*`. Estão no tsconfig (o Metro lê) e no `jest.moduleNameMapper`.
-- **Guards da raiz** (`src/app/_layout.tsx`):
-  - deslogado → `(auth)`;
-  - logado sem vínculo ATIVO → `(onboarding)`;
-  - logado com vínculo ativo → `(tabs)`.
-  - A splash fica só no BOOT (fontes ou erro de fonte + sessão + vínculos). Depois do boot, o Stack nunca desmonta, e as telas mostram o próprio loading: `WelcomeScreen` mostra spinner enquanto os vínculos carregam ou o convite pendente está sendo enviado (`useIsConsumingInvite`).
+- **Guard de rotas central** (`src/services/access/routeAccess.ts`, usado pela raiz `src/app/_layout.tsx` e pelo `src/app/index.tsx`): a ÚNICA regra de acesso.
+  - deslogado (`signedOut`) → só o fluxo de entrada `(auth)`; home `/start`;
+  - logado sem vínculo APROVADO (`awaitingApproval`) → `(onboarding)` (espera, criar academia); home `/welcome`;
+  - logado com vínculo aprovado (`member`) → `(tabs)` e todas as telas do app (água, conquista…); staff/owner somam o papel da academia ativa.
+  - Todo `Stack.Protected` usa `redirectTo={access.home}` (SDK 58): navegação interna, deep link, widget ou notificação caem na home do estado. `entrar` (código → academia) é parte do fluxo de entrada e fica acessível em qualquer estado.
+  - `src/app/+native-intent.tsx` (`normalizeExternalPath`): links de fora só abrem `/`, `/entrar`, `/agua`, `/agua/configurar`; qualquer outro vira `/`. Ele não decide acesso (roda fora do React).
+  - Widget: o app só publica `water.config` com login + vínculo aprovado (`useWidgetConfig`); sem config, o widget mostra "Entre no Kimi para registrar sua água." sem o botão, e o toque abre `kimi://`. Limitação conhecida: se o acesso mudar com o app fechado (removido da academia, sessão expirada), o widget só atualiza na próxima abertura do app.
+  - A splash fica só no BOOT (fontes ou erro de fonte + sessão + vínculos). Depois do boot, o Stack nunca desmonta, e as telas mostram o próprio loading.
 - **Tabs por papel** (`(tabs)/_layout.tsx`, `Tabs.Protected`), só com ícones:
   - aluno: Início, Aulas, Perfil;
   - competidor: + Competição;
@@ -77,6 +80,13 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 - **Academia ativa:** `ActiveGymProvider` resolve com `resolveActiveMembership` (a guardada no kv-store se ainda ativa, senão a primeira ativa). Troca no Perfil.
 - **Erros:** services fazem `throw toAppError(e)`. As RPCs levantam códigos de máquina (`invite_invalid`...) como mensagem da exception. A UI usa `errorMessage(e)` (pt-BR) de `@infra`.
 - **Tipos do banco:** `npm run db:types` (gera `types/database.ts` do remoto) após cada `db push`. `src/infra/supabase/database.types.ts` só reexporta.
+- **Header nativo (2026-11-04, padrão WhatsApp):** abas e telas internas usam o header do Stack nativo, configurado em UM lugar (`useNativeHeaderOptions`, `components/NativeHeader`).
+  - iOS: `headerLargeTitleEnabled`, `headerTransparent`, `headerLargeStyle` transparente (repouso sem barra nem desfoque), `headerBlurEffect: systemChromeMaterialDark` (só na barra compacta), sem sombras, altura padrão; título grande Barlow Condensed (`navLargeTitle`, 34) e compacto Inter SemiBold 17 (`navTitle`) centralizado; cores dos tokens. O conteúdo passa por baixo da barra com desfoque; a transição é do sistema (exceção autorizada à regra de sem animações).
+  - Android (por enquanto): header compacto padrão, título à esquerda, fundo `bg`.
+  - Cada aba é uma pasta com o próprio Stack (`(tabs)/<aba>/_layout.tsx` + `index.tsx`). As telas internas do Stack da raiz (`academy/*`, `member/[id]`, `agua/*`) recebem `options={header}`. Entrada, onboarding e conquista continuam sem header.
+  - `<Screen nativeHeader title=… onBack=… topAction=… headerLeft/headerRight>`: escreve as opções da rota (`Stack.Screen`, só `title` em texto, nunca `headerTitle` customizado) e o ScrollView é a RAIZ nativa da tela (o react-native-screens procura o scroll pela cadeia do primeiro filho; sem isso o título grande não recolhe). `contentInsetAdjustmentBehavior="automatic"`, `flexGrow: 1`, sem SafeAreaView nem padding de topo. Rodapé/folha de feedback flutuam por cima (irmão posterior, fundo `bg`) e o conteúdo ganha espaço embaixo. Botões do header: `HeaderButton` (ícone Phosphor, sem fundo próprio; o iOS 26 põe o círculo de vidro). Voltar = `HeaderButton` "back".
+  - Início (decisão do usuário, 2026-11-04): sem título e sem título grande (`largeTitle={false}`); à esquerda, logo + nome da academia num só botão (abre o Perfil; token `headerLogo`), contador de água à direita (aluno e staff; saiu da barra de sequência/aulas do aluno).
+- **Área segura (telas sem header nativo):** aplicada UMA vez, no `Screen`, via `SafeAreaView` (`edges={['top']}`), que só acolchoa a parte da view que está de fato sob a barra de status; o conteúdo começa `s16` abaixo. Nenhum navegador tem header (`headerShown: false` em todos).
 - **Componentes:** `Screen` sempre esconde as barras de rolagem e recebe `footer` para a ação primária fixa, ou `feedback` para a `FeedbackSheet`. Dentro das tabs, usar `bottomInset={false}`. `Button` e `Card` tocável disparam o haptic leve sozinhos. `EmptyState` usa o mascote (96) por padrão e `visual="icon"` (48) dentro de cards/seções.
 
 ## Decisões da Fase 2 (usuário, 2026-11-04)
@@ -95,7 +105,8 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 
 - **Papéis:** `membership_role` = `owner | professor | student`.
   - staff (owner ou professor): check-ins, pedidos de ALUNO, horários, faixa de alunos, competidores, campeonatos, água e dieta;
-  - só owner: academia (nome, logo, fuso, código de aluno, modalidades, metas de faixa), códigos de professor, aprovar/remover professores, remover alunos, transferir a academia. Mensalidades e assinatura também serão só do owner quando existirem.
+  - só owner: academia (nome, logo, código de aluno, modalidades, faixas), códigos de professor, aprovar/remover professores, remover alunos, transferir a academia. Mensalidades e assinatura também serão só do owner quando existirem.
+  - **Só alunos treinam no app** (2026-11-04): owner e professor não fazem check-in (policy exige `private.is_student`), não têm contagem de aulas (as views filtram `role = student`), trilha nem faixa. O detalhe de um owner/professor mostra só foto, nome e papel.
   - Helpers: `private.is_owner`/`private.is_staff` (o `is_professor` foi removido). `is_staff_of_member`, `is_staff_of_competitor` e `is_competitor_of` olham staff.
 - **Invariantes no banco:**
   - um owner por academia (índice único parcial `memberships_one_owner_idx`);
@@ -103,7 +114,7 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - owner sempre ativo.
   - `role` não tem grant de coluna: só muda por `transfer_ownership` (owner → professor ativo; o antigo vira professor) e pelo fluxo de entrada.
   - Qualquer um sai da academia (delete do próprio vínculo), menos o owner.
-  - Faixa: staff define a de alunos, o owner a de qualquer um.
+  - Faixa: staff define a de ALUNOS ativos (por modalidade); ninguém dá faixa a owner/professor.
   - Staff não confirma o PRÓPRIO check-in.
   - O professor não lê pedidos de professor pendentes/recusados (nem o perfil de quem pede); só o owner lê.
   - Código revogado ou usado não volta (trigger `guard_professor_code_update`).
@@ -112,7 +123,7 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - aluno = `academies.invite_code`, fixo; o owner pode gerar outro (`regenerate_student_code`) e os pedidos já enviados continuam valendo;
   - professor = tabela `professor_codes`: uso único, 7 dias, owner gera (`create_professor_code`, máximo de 20 ativos), lista e revoga (update `revoked_at`). Expirado, usado ou revogado se comporta como código inexistente.
   - `lookup_invite_code(code)` → nome, logo e tipo. É a ÚNICA função com EXECUTE para `anon`, e o retorno é vazio para qualquer código inválido.
-  - `join_with_code(code)` → `(membership_id, academy_id, status)`. Quem já é membro ativo/pendente recebe o vínculo existente, sem duplicar e sem gastar o código de professor.
+  - `join_with_code(code)` → `(membership_id, academy_id, status, is_new)`. Quem já é membro ativo/pendente recebe o vínculo existente (`is_new = false`), sem duplicar e sem gastar o código de professor. O app mostra "Você já faz parte da …" (ativo) ou "Seu pedido para a … já está aguardando aprovação." (pendente).
   - `academy_invites`, `request_membership`, `get_invite_preview`, `rotate_invite`, `join_academy` e `get_academy_preview_by_code` foram removidos.
 - **Fluxo de entrada (app):**
   - `/start` → "Sou aluno" (`/codigo`, dentro do `(auth)`) ou "Sou professor" (`/sign-in`), escolha salva em `entryPath` (só ordena opções/textos). Deslogado, o app SEMPRE abre na `/start` (decisão do usuário, 2026-11-04).
@@ -126,11 +137,40 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
     - só recusado → aviso + "Digitar outro código";
     - sem vínculo → opções de professor ou de aluno conforme o `entryPath`.
   - "Criar academia" passa por `canCreateAcademy()` (`domain/Gym/gymRules.ts`), o ponto isolado para a futura assinatura.
-  - Perfil → "Entrar em outra academia" (`/entrar` logado), pedidos pendentes e "Sair de {academia}" (não aparece para o owner).
+  - Perfil → "Entrar em outra academia" (`/entrar` logado). Pedido pendente aparece em Academias com o badge "Aguardando aprovação" e "Cancelar pedido" (delete do próprio vínculo); nunca é selecionável. Recusado some da lista e mostra um aviso UMA vez (Perfil ou Início), via `services/joinRequests`: como a academia recusada deixa de ser legível (RLS), o nome é guardado no aparelho enquanto o pedido está pendente (kv-store `joinRequests`, por usuário; um novo pedido recusado de novo tem outro `decided_at` e avisa de novo). "Sair de {academia}" não aparece para o owner.
+- **Foto de perfil** (2026-11-04): bucket PRIVADO `avatars`, pasta por usuário (`<user_id>/avatar-<ts>.jpg`, arquivo novo a cada troca; o antigo é apagado). Escrita só na própria pasta; leitura pelo próprio usuário e por owner/professores das academias em que ele tem vínculo (`private.is_staff_of_member`), sempre por URL assinada (1 h; `useAvatarUrl`, cache do `expo-image` por caminho). Perfil: avatar grande (iniciais sem foto) → Tirar foto / Escolher da galeria / Remover; recorte quadrado no picker, 512×512 JPEG (`utils/squareImage.ts`, o mesmo da logo). Nome editável abaixo do avatar e e-mail em texto secundário; seções Academias, Água, Gestão da academia e Conta.
 - **Logo:** só o owner envia (RLS do storage). O app gera 512×512 JPEG. Sem logo: iniciais em `accent` sobre `surfaceRaised`, `radius-md`. A logo aparece no topo da Início, com o nome ao lado.
 - **Seed:**
-  - `dono@kimi.dev` (owner), `professor@kimi.dev` (professor) e `aluno@kimi.dev`;
+  - `dono@kimi.dev` (owner), `professor@kimi.dev` (professor, papel `instructor`) e `aluno@kimi.dev`;
+  - modalidades Jiu-Jitsu (com faixas Branca→Preta), No-Gi e Open mat (sem faixas); o aluno tem a branca há 6 semanas e ~12 aulas de Jiu-Jitsu + ~6 de No-Gi confirmadas depois dela;
   - código de aluno `KMJJ2526`, de professor `PRF2526K`.
+
+## Modalidades e faixas (2026-11-04, substitui `belt_goals` e `memberships.belt`)
+
+- `academy_modalities` (nome, posição, `uses_belts`), cadastradas pelo owner em Perfil → Gestão da academia → **Modalidades** (`academy/modalities`: cards com nome, status, lixeira, Editar e Faixas; "Adicionar modalidade" fixo na base). Saíram das Configurações da academia. Professor não edita modalidades nem faixas.
+- `class_schedules.modality_id` aponta para uma modalidade cadastrada (FK composta com `academy_id`, `on delete restrict`: modalidade com horários não pode ser removida). A coluna de texto saiu; a migration criou as modalidades a partir dos textos antigos. Na tela de horários, a modalidade é escolhida entre as cadastradas (sem "Outra").
+- `checkins.modality_id`: carimbado por trigger a partir do horário no check-in (sobrevive à exclusão do horário e a uma troca de modalidade do horário).
+- `modality_belts`: sequência por modalidade com cores como CHAVES da paleta 2.4 (`primary_color` + `tip_color` opcional: white, gray, yellow, orange, green, blue, purple, brown, black, red; migration `20261104230000`). Nome e cores são derivados (`beltName`: "Vermelha", "Vermelha/ponta preta", sempre no feminino). Uma combinação por modalidade. Lista de faixas compacta (uma linha: faixa, nome, aulas, ícones de editar e lixeira); a ordem é feita em `academy/belts-order?modalidade=<id>` (botão no canto superior direito), segurando e arrastando (`ReorderList`: Gesture Handler 3 + Reanimated 4; a linha segue o dedo, as outras trocam de lugar sem animação, `TODO(motion)` no pegar/soltar; ações de acessibilidade "Mover para cima/baixo") e salvando com `reorder_modality_belts`. `classes_required` = aulas na faixa anterior para receber esta; na primeira faixa, aulas do aluno sem faixa (decisão do usuário, 2026-11-04: o campo aparece e é obrigatório em TODAS as faixas; a ideia de faixa de entrada sem número foi descartada). A coluna segue anulável só por dados antigos: a migration `20261104230000` zerou o número da primeira faixa de cada sequência, e a lista mostra "Defina as aulas necessárias" até o owner preencher. Cores: as 10 da paleta + 10 variações claras/escuras (decisão do usuário, 2026-11-04; tokens `belt*`, DS 2.4 "Variações", migration `20261104240000`). Sheet: prévia grande; switch "Adicionar ponta" que mostra duas caixas "Faixa" / "Ponta" (escolhem a parte que a grade pinta); UMA grade com as 20 cores em quadrados de 44pt (alvo mínimo de toque), agrupadas por família (`BELT_PICKER_ORDER`), quebrando linha conforme a largura; a ponta não oferece a cor da faixa; Salvar fixo. `BeltSwatch`/`BeltChip` desenham a ponta nos últimos 25% em todo o app. Faixa já entregue não pode ser removida (FK do histórico). Tela `academy/belts?modalidade=<id>`.
+- `belt_history` (`membership_id`, `belt_id`; `modality_id` vem da faixa por trigger): a faixa atual do aluno em cada modalidade é a última entrega nela.
+- Views (`security_invoker`, só alunos): `membership_class_stats` (total confirmado em todas as modalidades) e `modality_class_stats` (por aluno × modalidade: faixa atual, total na modalidade e confirmadas na modalidade DEPOIS do dia da última graduação nela).
+- App: aba Aulas com seletor no topo quando o aluno treina mais de uma modalidade (`trainedModalities`: aula confirmada ou faixa; sem nenhuma, todas); modalidade sem faixas mostra só o total dela; a barra do topo usa a faixa mais recente entre as modalidades. "Definir faixa" escolhe modalidade e faixa. Cores de faixa vêm dos tokens `belt*` pela chave (`BELT_COLOR_TOKEN`); branca e preta ganham borda `border`.
+- Dados existentes (migration `180004`, testada contra dados antigos): as `belt_goals` e o histórico de cada academia foram para a primeira modalidade dela (nomes/cores da paleta 2.4), que fica com faixas; `memberships.belt` sem histórico ganhou uma linha de histórico antes do drop; academia com faixas e sem modalidade ganha a modalidade "Geral"; check-ins de horários já apagados vão para a primeira modalidade; modalidades criadas a partir dos textos dos horários ficam SEM faixas. A graduação só aceita faixa de modalidade com `uses_belts`.
+- A contagem para a próxima faixa conta as aulas DEPOIS do dia da graduação (o texto do app diz "a partir de amanhã").
+
+## Aulas dadas e professor da aula (2026-11-04)
+
+- `class_sessions`: uma linha por aula dada (horário + data), criada pelo banco quando o PRIMEIRO check-in dela é confirmado (trigger `checkins_ensure_session`, SECURITY DEFINER), com o proprietário atual como professor padrão. Sobrevive à exclusão do horário (`schedule_id` vira null). Clientes não inserem; staff lê e troca só `instructor_id` (trigger `guard_session_instructor`: precisa ser owner/professor ATIVO da academia → `instructor_invalid`).
+- `instructor_class_stats` (view `security_invoker`): aulas dadas por owner/professor ativo = sessões em que ele é o professor.
+- App: em Confirmações, quando todos os check-ins de uma aula foram decididos e pelo menos um foi confirmado, aparece "Professor da aula" com "Trocar" (lista owner + professores). As aulas já dadas hoje continuam listadas mesmo sem pendências. O detalhe de owner/professor mostra "Aulas dadas", e a lista de Alunos mostra a contagem na linha de cada professor.
+- Testes: `supabase/tests/database/class_sessions.test.sql` (20). Migration `20261104200000` aplicada no remoto em 2026-11-04 (357 testes passando lá).
+
+## Meus dados (2026-11-04)
+
+- Perfil: avatar com selo de lápis (o toque edita a foto); nome sem lápis e sem e-mail embaixo. Conta → "Meus dados" (`/conta/dados`, header nativo, guard `app`).
+- Dados pessoais: nome, sexo (`profiles.sex`: female | male | unspecified), data de nascimento (`profiles.birth_date`, máscara DD/MM/AAAA, sem data futura no app; o banco só limita a 1900+), peso e altura (as mesmas colunas da meta de água). Mesma visibilidade do resto do perfil (o próprio usuário e o staff das academias dele).
+- E-mail: `updateUser({ email })` + código de 6 dígitos (`verifyOtp` type `email_change`). Com "secure email change" ligado (`double_confirm_changes`), o app pede também o código do e-mail atual. No painel do Supabase, o template "Change Email Address" precisa usar `{{ .Token }}`.
+- Senha: contas com senha confirmam a atual (login com ela) antes de `updateUser({ password })`; contas só Apple definem uma sem a atual.
+- Testes: `profile_data.test.sql` (6) e `profileRules.test.ts`. Migration `20261104210000` aplicada no remoto em 2026-11-04 (363 testes passando lá).
 
 ## 4. Mapa de progresso (fases)
 
@@ -140,7 +180,7 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - Aluno: barra do topo + aulas de hoje com check-in + balão do mascote (Início), trilha de graduação e horários da semana (Aulas), recompensas em `services/classRewards` (snapshot por usuário+academia no kv-store: faixa nova > marco > check-in confirmado; primeira abertura não recompensa o histórico), tela `achievement`.
   - Componentes novos: `SelectionCard` (11.5), `MascotBalloon` (11.3), `BottomSheet` (3.13), `ConfirmSheet` + `useConfirm()`.
   - Ajustes pós-Fase 2 (2026-11-04): horários agrupados por horário + modalidade (uma linha por dia no banco; `planScheduleGroup` grava só a diferença; desmarcar um dia DESATIVA). Apagar horário mantém os check-ins (`schedule_id` vira null). Modalidades em `academy_modalities`, escolhidas no cadastro da academia (`create_academy(name, modalities)`).
-  - **Configurações da academia** (`academy/settings`, Perfil → Gestão da academia): logo, nome, fuso (`BR_TIMEZONES`) e modalidades (adicionar, renomear, remover).
+  - **Configurações da academia** (`academy/settings`, só owner), de cima para baixo (sem a seção de modalidades desde 2026-11-04): logo grande centralizada com selo de lápis (`EditBadge`; toque → Tirar foto / Escolher da galeria). **Logo obrigatória** (2026-11-04): pode ser trocada, nunca removida (trigger `academies_guard_logo_removal` → `logo_required`); academias antigas sem logo seguem com as iniciais até o owner adicionar. nome, Modalidades e faixas, Códigos de convite (saíram da aba Alunos; lá fica um atalho) e, separada no fim, Ações sensíveis (transferir a academia para um professor). **Fuso fixo** `America/Sao_Paulo` (decisão do usuário, 2026-11-04): a coluna `academies.timezone` continua (com esse valor) e o cliente perdeu o grant de update; não há mais escolha no app.
   - **Logo:** bucket PÚBLICO `academy-logos` (decisão do usuário: logo é marca e aparece antes de o aluno entrar). Caminho `<academy_id>/logo-<timestamp>.jpg`, sempre um arquivo novo (sem cache velho de CDN); a antiga é apagada depois. Escrita só pelo professor da academia (RLS em `storage.objects`); limite de 2 MB, só JPEG/PNG/WebP. O app recorta em quadrado (`expo-image-picker`) e reduz para 512 px JPEG (`expo-image-manipulator`).
   - **Prévia antes de entrar:** `get_academy_preview_by_code` (nome + logo) na tela "Entrar com código"; o convite por link também mostra a logo. Testar storage local exige subir a stack COM `storage-api`.
 - [x] 3. Água + widget de água: perfil, meta automática, eventos, storage compartilhado, widget interativo iOS/Android, sync. **CONCLUÍDA no código**, aguardando o build do usuário e a validação no aparelho (nada nativo foi compilado pelo agente).
@@ -175,6 +215,23 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 - [ ] 5. Dieta: cadastro e visualização do plano diário
 - [ ] 6. Polimento: estados vazios, erros, acessibilidade, revisão dos TODO(motion)
 
+## Backlog (depois da Fase 6)
+
+Ideias registradas pelo usuário em 2026-11-04. **Não implementar agora**: seguimos com as fases planejadas (4 → 6).
+
+- **Ofensivas e recompensas (inspirado no Duolingo):**
+  - ofensiva de água (diária) e de treinos (semanal);
+  - chama acesa/apagada conforme a ofensiva está ativa ou quebrada;
+  - congelamento de ofensiva (protege um dia/semana perdido);
+  - lembretes para não perder a ofensiva;
+  - conquistas por recorde (maior ofensiva).
+- **Ranking da academia:**
+  - baseado só em aulas confirmadas (não em água nem peso);
+  - mensal, com histórico dos campeões de cada mês;
+  - geral e por modalidade;
+  - opção no Perfil para o aluno não aparecer no ranking;
+  - visual seguindo o DESIGN-SYSTEM.md.
+
 ## 5. Domínios & features implementados
 
 ### Banco (`supabase/migrations/`)
@@ -194,7 +251,7 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 - RPCs SECURITY DEFINER (justificadas no SQL): `create_academy`, `join_academy`, `request_membership`, `get_invite_preview`, `list_pending_requests`. `rotate_invite` é INVOKER. Os advisors avisam (WARN) sobre essas cinco: são intencionais.
 - Colunas graváveis limitadas por grant de coluna (ex.: aluno só insere `checkins` sem `status`; professor só altera `role/is_competitor/belt/status` em `memberships`). Dono não pode ser rebaixado nem removido.
 
-**Testes:** 185 testes pgTAP em `supabase/tests/database/rls.test.sql` (duas academias, owner + 2 alunos em cada, um competidor; professor não-owner, pedidos de aluno/professor, códigos e transferência na academia 1). Rodam também no remoto (`npx supabase test db --remote --yes`, tudo em rollback): o arquivo faz `set local role postgres` e localiza o schema do pgTAP. O "hoje" dos check-ins usa Pago Pago (UTC−11) × Kiritimati (UTC+14), sempre em datas diferentes.
+**Testes:** 337 testes pgTAP (2026-11-04): `rls.test.sql` (201) e `modalities_avatars.test.sql` (136: modalidades/faixas, meta por modalidade, check-in só de aluno, fuso fixo, `is_new`, storage de avatares). Antes: testes em `supabase/tests/database/rls.test.sql` (duas academias, owner + 2 alunos em cada, um competidor; professor não-owner, pedidos de aluno/professor, códigos e transferência na academia 1). Rodam também no remoto (`npx supabase test db --remote --yes`, tudo em rollback): o arquivo faz `set local role postgres` e localiza o schema do pgTAP. O "hoje" dos check-ins usa Pago Pago (UTC−11) × Kiritimati (UTC+14), sempre em datas diferentes.
 
 ### App
 
@@ -227,6 +284,9 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 6. **Apple Sign-In:** o código já existe (`signInWithIdToken` com nonce). Falta habilitar o provedor Apple no Supabase hospedado (e `[auth.external.apple]` no `config.toml` local) com o bundle id `br.com.kimi.app`, e o capability no time de assinatura.
 
 ### Em andamento
+
+- **Migrations `20261104220000` (logo obrigatória), `20261104230000` (faixas por chave de cor + ponta) e `20261104240000` (variações de cor)** aplicadas no remoto em 2026-11-04 (373 testes pgTAP passando lá; tipos regenerados).
+- **Correções pré-Fase 3 (2026-11-04):** migrations `20261104180000`–`180004` aplicadas no LOCAL e no remoto (`db push` em 2026-11-04; 337 testes pgTAP passando no remoto; `types/database.ts` regenerado do remoto). Build novo necessário por causa da permissão de câmera (`app.json` → `expo-image-picker.cameraPermission`).
 
 - **Fase 3 — água + widget:** código pronto; falta o build do usuário (`npx expo prebuild --clean` + `run:ios` / `run:android`) e testar no aparelho. O `db push` das migrations de 2026-11-04 ainda depende do `npx supabase login`.
 - **Validação do usuário no aparelho:** fluxo de entrada, papéis e ícones novos (precisa de build novo; quem roda é o usuário).

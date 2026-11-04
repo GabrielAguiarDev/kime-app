@@ -1,4 +1,7 @@
-import { useAppTheme, type BeltColor } from '@theme';
+import type { BeltColorKey } from '@domain/Classes/classesTypes';
+import { useAppTheme } from '@theme';
+
+import { BELT_COLOR_TOKEN } from '../BeltChip/BeltChip';
 
 import { Box } from '../Box/Box';
 import { Text } from '../Text/Text';
@@ -8,14 +11,16 @@ interface ProgressBarProps {
   max: number;
   /** Unit shown next to the numbers: "18 / 40 aulas". */
   unit: string;
-  /** Fill color from the context: accent, water or a belt color. */
-  color?: 'accent' | 'water' | BeltColor;
+  /** Fill color from the context: accent or water. */
+  color?: 'accent' | 'water';
+  /** Belt progress: fill in the next belt's main color (2.4). Wins over `color`. */
+  beltColor?: BeltColorKey;
   /** Optional label on the left of the numbers. */
   label?: string;
 }
 
 /** Progress bar (DESIGN-SYSTEM.md, 3.3): 14 high, track `border`, 3px shine on top of the fill. */
-export function ProgressBar({ value, max, unit, color = 'accent', label }: ProgressBarProps) {
+export function ProgressBar({ value, max, unit, color = 'accent', beltColor, label }: ProgressBarProps) {
   const { size, borderRadii } = useAppTheme();
   const ratio = max > 0 ? Math.min(Math.max(value / max, 0), 1) : 0;
   const numbers = `${value} / ${max} ${unit}`;
@@ -38,7 +43,7 @@ export function ProgressBar({ value, max, unit, color = 'accent', label }: Progr
           <Box
             height={size.progressBar}
             borderRadius="progress"
-            backgroundColor={color}
+            backgroundColor={beltColor ? BELT_COLOR_TOKEN[beltColor] : color}
             style={{ width: `${ratio * 100}%` }}
           >
             <Box

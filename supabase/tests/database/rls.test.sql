@@ -9,7 +9,7 @@ create extension if not exists pgtap with schema extensions;
 select set_config('search_path', concat_ws(',',
   (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
   'public', 'extensions'), true);
-select plan(194);
+select plan(201);
 
 -- ---------------------------------------------------------------- helpers ---
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$
@@ -172,26 +172,26 @@ select pg_temp.login(pg_temp.id('p2'));
 update public.memberships set status = 'active'
   where academy_id = pg_temp.id('a2') and status = 'pending';
 -- Professor 2 cannot touch academy 1 memberships.
-update public.memberships set belt = 'black' where user_id = pg_temp.id('t1');
+update public.memberships set is_competitor = true where user_id = pg_temp.id('t1');
 
 select pg_temp.logout();
 insert into t_ids select 't1_membership', id from public.memberships where user_id = pg_temp.id('t1');
-select is((select belt from public.memberships where user_id = pg_temp.id('t1')),
-  null, 'professor of another academy cannot edit memberships');
+select is((select is_competitor from public.memberships where user_id = pg_temp.id('t1')),
+  false, 'professor of another academy cannot edit memberships');
 
--- Students cannot change role, competitor flag or belt.
+-- Students cannot change role or competitor flag.
 select pg_temp.login(pg_temp.id('t1'));
-update public.memberships set is_competitor = true, belt = 'black' where user_id = pg_temp.id('t1');
-select throws_ok($$ update public.memberships set role = 'professor' where user_id = pg_temp.id('t1') $$,
+update public.memberships set is_competitor = true where user_id = pg_temp.id('t1');
+select throws_ok($$ update public.memberships set role = 'instructor' where user_id = pg_temp.id('t1') $$,
   '42501', null, 'role has no column grant: nobody changes it through the API');
 select pg_temp.logout();
-select is((select role::text || '/' || is_competitor::text || '/' || coalesce(belt, '-')
+select is((select role::text || '/' || is_competitor::text
            from public.memberships where user_id = pg_temp.id('t1')),
-  'student/false/-', 'student cannot change role, competitor flag or belt');
+  'student/false', 'student cannot change role or competitor flag');
 select pg_temp.login(pg_temp.id('t1'));
 select throws_ok(
   $$ insert into public.memberships (user_id, academy_id, role, status)
-     values (pg_temp.id('t1'), pg_temp.id('a2'), 'professor', 'active') $$,
+     values (pg_temp.id('t1'), pg_temp.id('a2'), 'instructor', 'active') $$,
   '42501', null, 'nobody inserts memberships directly');
 
 -- Owner protection.
@@ -207,6 +207,8 @@ select is((select count(*)::int from public.memberships where user_id = pg_temp.
 select pg_temp.logout();
 -- "Today" is the academy's local date. Pago Pago (UTC-11) and Kiritimati
 -- (UTC+14) are 25h apart, so their dates always differ: deterministic tests.
+-- The time zone is fixed for clients (no UPDATE grant): only postgres, as
+-- here, can move it.
 update public.academies set timezone = 'Pacific/Pago_Pago' where id = pg_temp.id('a1');
 create temp table t_dates on commit drop as select
   (now() at time zone 'Pacific/Pago_Pago')::date as today,
@@ -216,12 +218,19 @@ create function pg_temp.today() returns date language sql as $$ select today fro
 create function pg_temp.elsewhere() returns date language sql as $$ select elsewhere from t_dates $$;
 grant execute on function pg_temp.today(), pg_temp.elsewhere() to public;
 
-insert into public.class_schedules (id, academy_id, weekday, start_time, modality) values
-  ('00000000-0000-0000-0001-000000000001', pg_temp.id('a1'), extract(dow from pg_temp.today()), '19:00', 'Jiu-Jitsu'),
-  ('00000000-0000-0000-0001-000000000002', pg_temp.id('a1'), extract(dow from pg_temp.elsewhere()), '19:00', 'No-Gi'),
-  ('00000000-0000-0000-0002-000000000001', pg_temp.id('a2'), extract(dow from pg_temp.today()), '19:00', 'Jiu-Jitsu');
-insert into public.belt_goals (academy_id, belt, position, classes_required) values
-  (pg_temp.id('a1'), 'white', 0, 1), (pg_temp.id('a2'), 'white', 0, 1);
+create function pg_temp.modality(p_academy uuid, p_name text) returns uuid language sql as $$
+  select id from public.academy_modalities where academy_id = p_academy and name = p_name
+$$;
+grant execute on function pg_temp.modality(uuid, text) to public;
+
+insert into public.class_schedules (id, academy_id, weekday, start_time, modality_id) values
+  ('00000000-0000-0000-0001-000000000001', pg_temp.id('a1'), extract(dow from pg_temp.today()), '19:00', pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu')),
+  ('00000000-0000-0000-0001-000000000002', pg_temp.id('a1'), extract(dow from pg_temp.elsewhere()), '19:00', pg_temp.modality(pg_temp.id('a1'), 'No-Gi')),
+  ('00000000-0000-0000-0002-000000000001', pg_temp.id('a2'), extract(dow from pg_temp.today()), '19:00', pg_temp.modality(pg_temp.id('a2'), 'Judô'));
+insert into public.modality_belts (id, academy_id, modality_id, primary_color, position, classes_required) values
+  ('00000000-0000-0000-00ee-000000000001', pg_temp.id('a1'), pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'), 'white', 0, 1),
+  ('00000000-0000-0000-00ee-000000000002', pg_temp.id('a1'), pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'), 'blue', 1, 120),
+  ('00000000-0000-0000-00ee-0000000000a1', pg_temp.id('a2'), pg_temp.modality(pg_temp.id('a2'), 'Judô'), 'white', 0, 1);
 
 select is((select private.academy_local_date(pg_temp.id('a1'))), pg_temp.today(),
   'academy local date follows academies.timezone');
@@ -231,10 +240,10 @@ select throws_ok(
 
 select pg_temp.login(pg_temp.id('t1'));
 select is((select count(*)::int from public.class_schedules), 2, 'student reads only own academy schedules');
-select is((select count(*)::int from public.belt_goals), 1, 'student reads only own academy belt goals');
+select is((select count(*)::int from public.modality_belts), 2, 'student reads only own academy belts');
 select throws_ok(
-  $$ insert into public.class_schedules (academy_id, weekday, start_time, modality)
-     values (pg_temp.id('a1'), 1, '07:00', 'X') $$,
+  $$ insert into public.class_schedules (academy_id, weekday, start_time, modality_id)
+     values (pg_temp.id('a1'), 1, '07:00', pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu')) $$,
   '42501', null, 'student cannot create schedules');
 
 select lives_ok(
@@ -425,23 +434,21 @@ select is((select count(*)::int from public.championships), 0, 'student reads no
 
 -- ----------------------------------------------------------- belt history ---
 select pg_temp.login(pg_temp.id('p1'));
-select throws_ok(
-  $$ update public.memberships set belt = 'black' where user_id = pg_temp.id('t1') $$,
-  '42501', 'belt_via_history', 'belt is never set directly on memberships');
+select hasnt_column('public', 'memberships', 'belt', 'the belt is not a membership column anymore');
 select lives_ok(
-  $$ insert into public.belt_history (membership_id, belt)
-     select id, ' blue ' from public.memberships where user_id = pg_temp.id('t1') $$,
-  'professor awards a belt');
-select is((select belt from public.memberships where user_id = pg_temp.id('t1')),
-  'blue', 'awarding a belt updates memberships.belt');
+  $$ insert into public.belt_history (membership_id, belt_id)
+     select id, '00000000-0000-0000-00ee-000000000002' from public.memberships where user_id = pg_temp.id('t1') $$,
+  'owner awards a belt');
 select is((select awarded_by from public.belt_history), pg_temp.id('p1'),
-  'award is stamped with the professor');
+  'award is stamped with the awarding staff member');
+select is((select modality_id from public.belt_history), pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'),
+  'award is stamped with the belt''s modality');
 
 select pg_temp.login(pg_temp.id('t1'));
 select is((select count(*)::int from public.belt_history), 1, 'student reads own belt history');
 select throws_ok(
-  $$ insert into public.belt_history (membership_id, belt)
-     select id, 'black' from public.memberships where user_id = pg_temp.id('t1') $$,
+  $$ insert into public.belt_history (membership_id, belt_id)
+     select id, '00000000-0000-0000-00ee-000000000001' from public.memberships where user_id = pg_temp.id('t1') $$,
   '42501', null, 'student cannot award a belt');
 
 select pg_temp.login(pg_temp.id('s1'));
@@ -450,51 +457,62 @@ select is((select count(*)::int from public.belt_history), 0, 'student does not 
 select pg_temp.login(pg_temp.id('p2'));
 select is((select count(*)::int from public.belt_history), 0, 'other academy professor reads no belt history');
 select throws_ok(
-  $$ insert into public.belt_history (membership_id, belt)
-     values ((select val from t_ids where key = 't1_membership'), 'black') $$,
+  $$ insert into public.belt_history (membership_id, belt_id)
+     values ((select val from t_ids where key = 't1_membership'), '00000000-0000-0000-00ee-000000000001') $$,
   '42501', null, 'other academy professor cannot award a belt');
 
 -- ------------------------------------------------------------ class stats ---
 select pg_temp.login(pg_temp.id('t1'));
 select is((select public.academy_today(pg_temp.id('a1'))), pg_temp.today(), 'academy_today for a member');
 select is((select public.academy_today(pg_temp.id('a2'))), null, 'academy_today is null for a non-member');
-select is((select confirmed_total || '/' || confirmed_since_belt || '/' || belt from public.membership_class_stats),
-  '1/0/blue', 'student stats: 1 confirmed, 0 since the belt awarded today');
+select is((select confirmed_total from public.membership_class_stats), 1, 'student stats: 1 confirmed class');
 select is((select count(*)::int from public.membership_class_stats), 1, 'student reads only own stats row');
-select throws_ok($$ insert into public.belt_goals (academy_id, belt, position, classes_required)
-  values (pg_temp.id('a1'), 'Azul', 9, 10) $$, '42501', null, 'student cannot create belt goals');
+select is((select confirmed_total || '/' || confirmed_since_belt || '/' || (belt_id = '00000000-0000-0000-00ee-000000000002')::text
+           from public.modality_class_stats where modality_id = pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu')),
+  '1/0/true', 'modality stats: 1 confirmed, 0 since the belt awarded today, current belt is Azul');
+select is((select count(*)::int from public.modality_class_stats), 3, 'student reads one modality stats row per modality');
+select throws_ok($$ insert into public.modality_belts (academy_id, modality_id, primary_color, tip_color, position, classes_required)
+  values (pg_temp.id('a1'), pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'), 'purple', null, 9, 10) $$,
+  '42501', null, 'student cannot create belts');
 
 select pg_temp.login(pg_temp.id('p1'));
 select is((select confirmed_total from public.membership_class_stats where user_id = pg_temp.id('t1')),
   1, 'professor reads member stats');
-select throws_ok($$ insert into public.belt_goals (academy_id, belt, position, classes_required)
-  values (pg_temp.id('a1'), 'Azul', 9, 10) $$, '23514', null, 'belt must be a palette key');
+select throws_ok($$ insert into public.modality_belts (academy_id, modality_id, primary_color, tip_color, position, classes_required)
+  values (pg_temp.id('a1'), pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'), 'roxa', null, 9, 10) $$,
+  '23514', null, 'belt color must be a palette key');
 
 select pg_temp.login(pg_temp.id('p2'));
-select is((select count(*)::int from public.membership_class_stats where academy_id = pg_temp.id('a1')),
+select is((select count(*)::int from public.membership_class_stats where academy_id = pg_temp.id('a1'))
+        + (select count(*)::int from public.modality_class_stats where academy_id = pg_temp.id('a1')),
   0, 'other academy professor reads no stats');
 
 -- ------------------------------------------------------------ belt reorder ---
 select pg_temp.login(pg_temp.id('p1'));
-insert into public.belt_goals (id, academy_id, belt, position, classes_required) values
-  ('00000000-0000-0000-00ee-000000000002', pg_temp.id('a1'), 'blue', 1, 120);
+insert into public.modality_belts (academy_id, modality_id, primary_color, tip_color, position, classes_required) values
+  (pg_temp.id('a1'), pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'), 'purple', 'black', 2, 150);
+insert into t_ids select 'roxa', id from public.modality_belts where primary_color = 'purple' and academy_id = pg_temp.id('a1');
+select is((select primary_color || '/' || tip_color from public.modality_belts where id = pg_temp.id('roxa')),
+  'purple/black', 'belt stores primary and tip color keys');
 select lives_ok(
-  $$ select public.reorder_belt_goals(pg_temp.id('a1'), array[
+  $$ select public.reorder_modality_belts(pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'), array[
+       pg_temp.id('roxa'),
        '00000000-0000-0000-00ee-000000000002'::uuid,
-       (select id from public.belt_goals where academy_id = pg_temp.id('a1') and belt = 'white')]) $$,
-  'professor swaps belt positions in one call (deferrable unique)');
-select is((select array_agg(belt order by position) from public.belt_goals where academy_id = pg_temp.id('a1')),
-  array['blue', 'white'], 'belt order rewritten');
+       '00000000-0000-0000-00ee-000000000001'::uuid]) $$,
+  'owner reorders belts in one call (deferrable unique)');
+select is((select array_agg(primary_color order by position) from public.modality_belts where academy_id = pg_temp.id('a1')),
+  array['purple', 'blue', 'white'], 'belt order rewritten');
 select throws_ok(
-  $$ select public.reorder_belt_goals(pg_temp.id('a1'), array['00000000-0000-0000-00ee-000000000002'::uuid]) $$,
+  $$ select public.reorder_modality_belts(pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'), array['00000000-0000-0000-00ee-000000000002'::uuid]) $$,
   '22023', 'belt_order_incomplete', 'reorder must list every belt');
 
 select pg_temp.login(pg_temp.id('t1'));
-select public.reorder_belt_goals(pg_temp.id('a1'), array[
-  (select id from public.belt_goals where academy_id = pg_temp.id('a1') and belt = 'white'),
-  '00000000-0000-0000-00ee-000000000002'::uuid]);
-select is((select array_agg(belt order by position) from public.belt_goals where academy_id = pg_temp.id('a1')),
-  array['blue', 'white'], 'student cannot reorder belts');
+select public.reorder_modality_belts(pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'), array[
+  '00000000-0000-0000-00ee-000000000001'::uuid,
+  '00000000-0000-0000-00ee-000000000002'::uuid,
+  pg_temp.id('roxa')]);
+select is((select array_agg(primary_color order by position) from public.modality_belts where academy_id = pg_temp.id('a1')),
+  array['purple', 'blue', 'white'], 'student cannot reorder belts');
 
 -- -------------------------------------------------------------- modalities ---
 select pg_temp.login(pg_temp.id('t1'));
@@ -578,7 +596,7 @@ select is(
   + (select count(*)::int from public.memberships where academy_id = pg_temp.id('a1'))
   + (select count(*)::int from public.academies where id = pg_temp.id('a1'))
   + (select count(*)::int from public.championships)
-  + (select count(*)::int from public.belt_goals where academy_id = pg_temp.id('a1')),
+  + (select count(*)::int from public.modality_belts where academy_id = pg_temp.id('a1')),
   0, 'professor 2 reads nothing from academy 1');
 select is((select count(*)::int from public.profiles), 3, 'professor reads profiles of own members');
 
@@ -600,9 +618,9 @@ insert into t_ids values
   ('q1', '00000000-0000-0000-0000-0000000000d1'), ('u1', '00000000-0000-0000-0000-0000000000e1'),
   ('r1', '00000000-0000-0000-0000-0000000000f1');
 insert into public.memberships (academy_id, user_id, role, status) values
-  (pg_temp.id('a1'), pg_temp.id('q1'), 'professor', 'active'),
+  (pg_temp.id('a1'), pg_temp.id('q1'), 'instructor', 'active'),
   (pg_temp.id('a1'), pg_temp.id('u1'), 'student', 'pending'),
-  (pg_temp.id('a1'), pg_temp.id('r1'), 'professor', 'pending');
+  (pg_temp.id('a1'), pg_temp.id('r1'), 'instructor', 'pending');
 insert into public.checkins (user_id, academy_id, schedule_id, class_date)
   values (pg_temp.id('s1'), pg_temp.id('a1'), null, pg_temp.today());
 
@@ -620,12 +638,12 @@ update public.memberships set status = 'active' where user_id = pg_temp.id('u1')
 select is((select status::text from public.memberships where user_id = pg_temp.id('u1')),
   'active', 'professor approves a student');
 select lives_ok(
-  $$ insert into public.class_schedules (academy_id, weekday, start_time, modality)
-     values (pg_temp.id('a1'), 2, '07:00', 'Jiu-Jitsu') $$,
+  $$ insert into public.class_schedules (academy_id, weekday, start_time, modality_id)
+     values (pg_temp.id('a1'), 2, '07:00', pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu')) $$,
   'professor creates a class schedule');
 select lives_ok(
-  $$ insert into public.belt_history (membership_id, belt)
-     select id, 'white' from public.memberships where user_id = pg_temp.id('u1') $$,
+  $$ insert into public.belt_history (membership_id, belt_id)
+     select id, '00000000-0000-0000-00ee-000000000001' from public.memberships where user_id = pg_temp.id('u1') $$,
   'professor sets a student''s belt');
 update public.memberships set is_competitor = true where user_id = pg_temp.id('u1');
 select is((select is_competitor from public.memberships where user_id = pg_temp.id('u1')),
@@ -661,15 +679,28 @@ update public.academies set logo_path = null where id = pg_temp.id('a1');
 select is((select name || '/' || coalesce(logo_path, 'null') from public.academies where id = pg_temp.id('a1')),
   'Kimi Jiu-Jitsu/' || pg_temp.id('a1')::text || '/logo-1.png', 'professor cannot change the academy name or logo');
 select throws_ok(
-  $$ insert into public.belt_history (membership_id, belt)
-     select id, 'white' from public.memberships where user_id = pg_temp.id('p1') and academy_id = pg_temp.id('a1') $$,
-  '42501', null, 'professor cannot set the owner''s belt');
+  $$ insert into public.belt_history (membership_id, belt_id)
+     select id, '00000000-0000-0000-00ee-000000000001' from public.memberships where user_id = pg_temp.id('p1') and academy_id = pg_temp.id('a1') $$,
+  '42501', null, 'nobody awards a belt to the owner (instructor tries)');
+select throws_ok(
+  $$ insert into public.belt_history (membership_id, belt_id)
+     select id, '00000000-0000-0000-00ee-000000000001' from public.memberships where user_id = pg_temp.id('q1') and academy_id = pg_temp.id('a1') $$,
+  '42501', null, 'nobody awards a belt to an instructor (not even to themselves)');
 select throws_ok(
   $$ insert into storage.objects (bucket_id, name) values ('academy-logos', pg_temp.id('a1')::text || '/q.png') $$,
   '42501', null, 'professor cannot upload the academy logo');
 select throws_ok(
-  $$ insert into public.belt_goals (academy_id, belt, position, classes_required) values (pg_temp.id('a1'), 'purple', 7, 10) $$,
-  '42501', null, 'professor cannot change belt goals');
+  $$ insert into public.modality_belts (academy_id, modality_id, primary_color, tip_color, position, classes_required)
+     values (pg_temp.id('a1'), pg_temp.modality(pg_temp.id('a1'), 'Jiu-Jitsu'), 'black', null, 7, 10) $$,
+  '42501', null, 'professor cannot create belts');
+select is((select count(*)::int from public.modality_belts where id = pg_temp.id('roxa')),
+  1, 'precondition for the next check: belt exists');
+delete from public.modality_belts where id = pg_temp.id('roxa');
+update public.modality_belts set primary_color = 'red' where id = pg_temp.id('roxa');
+select pg_temp.logout();
+select is((select primary_color from public.modality_belts where id = pg_temp.id('roxa')),
+  'purple', 'professor cannot recolor or delete belts');
+select pg_temp.login(pg_temp.id('q1'));
 select throws_ok(
   $$ insert into public.academy_modalities (academy_id, name) values (pg_temp.id('a1'), 'Boxe') $$,
   '42501', null, 'professor cannot change modalities');
@@ -679,7 +710,11 @@ select throws_ok($$ select public.transfer_ownership(pg_temp.id('a1'), (select i
 
 -- Owner.
 select pg_temp.login(pg_temp.id('p1'));
-select is((select count(*)::int from public.list_pending_requests(pg_temp.id('a1')) where role = 'professor'),
+select throws_ok(
+  $$ insert into public.belt_history (membership_id, belt_id)
+     select id, '00000000-0000-0000-00ee-000000000001' from public.memberships where user_id = pg_temp.id('p1') and academy_id = pg_temp.id('a1') $$,
+  '42501', null, 'the owner cannot award a belt to themselves');
+select is((select count(*)::int from public.list_pending_requests(pg_temp.id('a1')) where role = 'instructor'),
   1, 'owner lists professor requests');
 update public.memberships set status = 'active' where user_id = pg_temp.id('r1');
 select is((select status::text from public.memberships where user_id = pg_temp.id('r1')),
@@ -746,7 +781,7 @@ select is((select academy_name || '/' || code_type from public.lookup_invite_cod
     ' ' || lower((select invite_code from t_codes where id = pg_temp.id('a1'))))),
   'Kimi Jiu-Jitsu/student', 'anon looks up a student code (any case, spaces)');
 select is((select academy_name || '/' || code_type || '/' || logo_path from public.lookup_invite_code(pg_temp.pcode('used'))),
-  'Kimi Jiu-Jitsu/professor/' || pg_temp.id('a1')::text || '/logo-1.png', 'anon looks up a live professor code (name, logo, kind)');
+  'Kimi Jiu-Jitsu/instructor/' || pg_temp.id('a1')::text || '/logo-1.png', 'anon looks up a live professor code (name, logo, kind)');
 select is((select count(*)::int from public.lookup_invite_code(pg_temp.pcode('revoked')))
         + (select count(*)::int from public.lookup_invite_code(pg_temp.pcode('expired')))
         + (select count(*)::int from public.lookup_invite_code('ABC'))
@@ -760,13 +795,14 @@ select throws_ok($$ select public.join_with_code('ZZZZZZZZ') $$, '42501', null, 
 
 -- Joining with a professor code: pending professor, code spent.
 select pg_temp.login(pg_temp.id('n1'));
-select is((select status::text from public.join_with_code(lower(pg_temp.pcode('used')))),
-  'pending', 'professor code creates a pending request');
+select is((select status::text || '/' || is_new::text from public.join_with_code(lower(pg_temp.pcode('used')))),
+  'pending/true', 'professor code creates a new pending request');
 select is((select role::text from public.memberships where user_id = pg_temp.id('n1')),
-  'professor', 'the request carries the professor role');
+  'instructor', 'the request carries the professor role');
 select is((select count(*)::int from public.join_with_code(pg_temp.pcode('spare'))
-           where membership_id = (select id from public.memberships where user_id = pg_temp.id('n1'))),
-  1, 'already pending: the same membership comes back, no duplicate');
+           where membership_id = (select id from public.memberships where user_id = pg_temp.id('n1'))
+             and not is_new and status = 'pending'),
+  1, 'already pending: the same membership comes back with is_new = false, no duplicate');
 select pg_temp.login(pg_temp.id('n2'));
 select throws_ok(format($$ select public.join_with_code(%L) $$, pg_temp.pcode('used')),
   'P0002', 'invite_invalid', 'a used professor code behaves like an unknown code');
@@ -785,8 +821,8 @@ select is((select used_at from public.professor_codes where id = pg_temp.pcode_i
 
 -- Already a member: no second membership, straight to the app.
 select pg_temp.login(pg_temp.id('t1'));
-select is((select status::text from public.join_with_code((select invite_code from t_codes where id = pg_temp.id('a1')))),
-  'active', 'an active member asking again gets the existing active membership');
+select is((select status::text || '/' || is_new::text from public.join_with_code((select invite_code from t_codes where id = pg_temp.id('a1')))),
+  'active/false', 'an active member asking again gets the existing active membership (is_new = false)');
 select is((select count(*)::int from public.memberships where user_id = pg_temp.id('t1')),
   1, 'no duplicate membership');
 
@@ -825,7 +861,7 @@ select throws_ok(
   '23505', null, 'an academy cannot have two owners');
 set constraints memberships_keep_owner immediate;
 select throws_ok(
-  $$ update public.memberships set role = 'professor' where user_id = pg_temp.id('p1') and academy_id = pg_temp.id('a1') $$,
+  $$ update public.memberships set role = 'instructor' where user_id = pg_temp.id('p1') and academy_id = pg_temp.id('a1') $$,
   '23514', 'academy_needs_owner', 'the owner cannot be demoted without a successor');
 select throws_ok(
   $$ delete from public.memberships where user_id = pg_temp.id('p1') and academy_id = pg_temp.id('a1') $$,
@@ -848,7 +884,7 @@ set constraints all deferred;
 select is(
   (select string_agg(role::text, ',' order by role) from public.memberships
    where academy_id = pg_temp.id('a1') and user_id in (pg_temp.id('p1'), pg_temp.id('q1'))),
-  'owner,professor', 'new owner promoted, old owner became professor');
+  'owner,instructor', 'new owner promoted, old owner became professor');
 update public.academies set name = 'Depois da transferência' where id = pg_temp.id('a1');
 select is((select name from public.academies where id = pg_temp.id('a1')),
   'Kimi Jiu-Jitsu', 'the old owner lost the owner permissions');

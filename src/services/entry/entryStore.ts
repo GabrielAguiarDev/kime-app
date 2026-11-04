@@ -11,7 +11,8 @@ export type EntryPath = CodeType;
 export const entryPath = {
   get: (): EntryPath | null => {
     const value = keyValueStorage.get(StorageKeys.entryPath);
-    return value === 'student' || value === 'professor' ? value : null;
+    if (value === 'professor') return 'instructor';
+    return value === 'student' || value === 'instructor' ? value : null;
   },
   set: (path: EntryPath) => keyValueStorage.set(StorageKeys.entryPath, path),
   clear: () => keyValueStorage.remove(StorageKeys.entryPath),

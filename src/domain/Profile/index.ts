@@ -1,3 +1,11 @@
 export * from './profileTypes';
+export * from './profileRules';
 export { profileService } from './profileService';
-export { useMyProfile, useUpdateBodyAndBottle } from './useCases/useMyProfile';
+export {
+  useAvatarMutations,
+  useAvatarUrl,
+  useMyProfile,
+  useUpdateBodyAndBottle,
+  useUpdateName,
+  useUpdatePersonalData,
+} from './useCases/useMyProfile';

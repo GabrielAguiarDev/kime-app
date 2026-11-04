@@ -55,6 +55,16 @@ enum KimiTokens {
     static let brown = fixed(0x7A4A2A)
     static let black = fixed(0x151515)
     static let red = fixed(0xC8242F)
+    static let lightGray = fixed(0xC4C6CA)
+    static let darkGray = fixed(0x55585E)
+    static let darkYellow = fixed(0xC9A227)
+    static let lightGreen = fixed(0x6CC24A)
+    static let darkGreen = fixed(0x1E6B37)
+    static let lightBlue = fixed(0x5AA9F0)
+    static let darkBlue = fixed(0x16337A)
+    static let lightPurple = fixed(0xA687E3)
+    static let lightBrown = fixed(0xA9744A)
+    static let darkRed = fixed(0x7D1A22)
   }
 
   enum Opacity {
@@ -78,6 +88,8 @@ enum KimiTokens {
     static let bodyStrong = Font.custom("Inter-SemiBold", fixedSize: 16).monospacedDigit() // line height 22
     static let caption = Font.custom("Inter-SemiBold", fixedSize: 13).monospacedDigit() // line height 18
     static let button = Font.custom("Inter-Bold", fixedSize: 15).monospacedDigit() // line height 20, tracking 0.6, uppercase
+    static let navLargeTitle = Font.custom("BarlowCondensed-Bold", fixedSize: 34).monospacedDigit() // line height 41
+    static let navTitle = Font.custom("Inter-SemiBold", fixedSize: 17).monospacedDigit() // line height 22
   }
 
   enum Space {
@@ -118,6 +130,10 @@ enum KimiTokens {
     static let trailRingStroke: CGFloat = 6
     static let academyLogo: CGFloat = 96
     static let academyLogoSmall: CGFloat = 48
+    static let academyLogoHero: CGFloat = 128
+    static let avatar: CGFloat = 112
+    static let avatarSmall: CGFloat = 44
+    static let headerLogo: CGFloat = 32
     static let tabBar: CGFloat = 64
     static let progressBar: CGFloat = 14
     static let progressShine: CGFloat = 3
@@ -128,6 +144,8 @@ enum KimiTokens {
     static let widgetRingStroke: CGFloat = 8
     static let beltChipWidth: CGFloat = 28
     static let beltChipHeight: CGFloat = 10
+    static let beltColorSwatch: CGFloat = 44
+    static let beltPreviewHeight: CGFloat = 24
     static let badgeIcon: CGFloat = 14
     static let iconInline: CGFloat = 20
     static let icon: CGFloat = 24
@@ -136,5 +154,6 @@ enum KimiTokens {
     static let mascotEmpty: CGFloat = 96
     static let mascotFeedback: CGFloat = 56
     static let touchTarget: CGFloat = 44
+    static let reorderRow: CGFloat = 60
   }
 }

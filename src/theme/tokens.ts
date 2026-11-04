@@ -60,7 +60,17 @@ export const tokens = {
       "purple": "#6E3FC9",
       "brown": "#7A4A2A",
       "black": "#151515",
-      "red": "#C8242F"
+      "red": "#C8242F",
+      "lightGray": "#C4C6CA",
+      "darkGray": "#55585E",
+      "darkYellow": "#C9A227",
+      "lightGreen": "#6CC24A",
+      "darkGreen": "#1E6B37",
+      "lightBlue": "#5AA9F0",
+      "darkBlue": "#16337A",
+      "lightPurple": "#A687E3",
+      "lightBrown": "#A9744A",
+      "darkRed": "#7D1A22"
     },
     "mascot": {
       "body": "#2A2C30",
@@ -144,6 +154,18 @@ export const tokens = {
         "weight": 700,
         "letterSpacing": 0.6,
         "uppercase": true
+      },
+      "navLargeTitle": {
+        "family": "displayBold",
+        "size": 34,
+        "lineHeight": 41,
+        "weight": 700
+      },
+      "navTitle": {
+        "family": "textSemiBold",
+        "size": 17,
+        "lineHeight": 22,
+        "weight": 600
       }
     }
   },
@@ -182,6 +204,10 @@ export const tokens = {
     "trailRingStroke": 6,
     "academyLogo": 96,
     "academyLogoSmall": 48,
+    "academyLogoHero": 128,
+    "avatar": 112,
+    "avatarSmall": 44,
+    "headerLogo": 32,
     "tabBar": 64,
     "progressBar": 14,
     "progressShine": 3,
@@ -192,6 +218,8 @@ export const tokens = {
     "widgetRingStroke": 8,
     "beltChipWidth": 28,
     "beltChipHeight": 10,
+    "beltColorSwatch": 44,
+    "beltPreviewHeight": 24,
     "badgeIcon": 14,
     "iconInline": 20,
     "icon": 24,
@@ -199,7 +227,8 @@ export const tokens = {
     "mascotHero": 160,
     "mascotEmpty": 96,
     "mascotFeedback": 56,
-    "touchTarget": 44
+    "touchTarget": 44,
+    "reorderRow": 60
   }
 } as const;
 

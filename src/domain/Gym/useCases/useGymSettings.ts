@@ -17,13 +17,12 @@ export function useGymSettingsMutations(gymId: string) {
   const onSuccess = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: [QueryKeys.GymSettings, gymId] }),
-      // Name shows in the memberships list (Home, Perfil); timezone defines "today".
+      // Name shows in the memberships list (Home, Perfil).
       queryClient.invalidateQueries({ queryKey: [QueryKeys.MyMemberships] }),
-      queryClient.invalidateQueries({ queryKey: [QueryKeys.AcademyToday, gymId] }),
     ]);
   return {
     update: useMutation({
-      mutationFn: (patch: { name?: string; timezone?: string }) => gymService.updateSettings(gymId, patch),
+      mutationFn: (patch: { name?: string }) => gymService.updateSettings(gymId, patch),
       onSuccess,
     }),
     changeLogo: useMutation({
@@ -31,6 +30,5 @@ export function useGymSettingsMutations(gymId: string) {
         gymService.changeLogo(gymId, uri, previousPath),
       onSuccess,
     }),
-    removeLogo: useMutation({ mutationFn: (path: string) => gymService.removeLogo(gymId, path), onSuccess }),
   };
 }

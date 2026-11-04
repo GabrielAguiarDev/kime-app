@@ -1,7 +1,7 @@
 import { router, useIsFocused } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 
-import { useMemberStats, useMyCheckins } from '@domain/Classes';
+import { latestBelt, useBelts, useMemberStats, useModalityStats, useMyCheckins } from '@domain/Classes';
 import { keyValueStorage } from '@infra';
 import { haptics } from '@utils/haptics';
 
@@ -16,14 +16,24 @@ import { detectReward, lastConfirmedReviewAt, parseSnapshot } from './classRewar
 export function useClassRewards(academyId: string | undefined, userId: string | undefined) {
   const focused = useIsFocused();
   const stats = useMemberStats(academyId);
+  const modalityStats = useModalityStats(academyId);
+  const belts = useBelts(academyId);
   const checkins = useMyCheckins(academyId, userId);
   const [dismissedKey, setDismissedKey] = useState<string | null>(null);
 
   const own = stats.data?.find((s) => s.userId === userId);
+  // Latest graduation across modalities (each modality has its own belt).
+  const ownModalities = (modalityStats.data ?? []).filter((s) => s.userId === userId);
+  const belt = modalityStats.data && belts.data ? latestBelt(ownModalities, belts.data) : null;
+  const beltAwardedAt = ownModalities.reduce<string | null>(
+    (latest, s) => (s.beltAwardedAt && (!latest || s.beltAwardedAt > latest) ? s.beltAwardedAt : latest),
+    null,
+  );
+  const ready = !!modalityStats.data && !!belts.data;
   const list = checkins.data;
   const lastReviewedAt = list ? lastConfirmedReviewAt(list) : null;
   // Primitive key: detection runs only when progress actually changes.
-  const progressKey = own && list ? `${own.confirmedTotal}|${own.beltAwardedAt}|${lastReviewedAt}` : null;
+  const progressKey = own && list && ready ? `${own.confirmedTotal}|${beltAwardedAt}|${lastReviewedAt}` : null;
   const scope = academyId && userId ? `${userId}.${academyId}` : null;
 
   // Pure detection against the saved snapshot (read synchronously from kv-store).
@@ -32,7 +42,7 @@ export function useClassRewards(academyId: string | undefined, userId: string | 
     const previous = parseSnapshot(keyValueStorage.getScoped('classRewards', scope));
     return detectReward(
       previous,
-      { confirmedTotal: own.confirmedTotal, beltAwardedAt: own.beltAwardedAt, lastReviewedAt, belt: own.belt },
+      { confirmedTotal: own.confirmedTotal, beltAwardedAt, lastReviewedAt, belt: belt ? { primary: belt.primary, tip: belt.tip } : null },
       list,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,7 +59,9 @@ export function useClassRewards(academyId: string | undefined, userId: string | 
       router.push({
         pathname: '/achievement',
         params:
-          reward.kind === 'belt' ? { kind: 'belt', belt: reward.belt } : { kind: 'milestone', value: String(reward.value) },
+          reward.kind === 'belt'
+            ? { kind: 'belt', beltPrimary: reward.belt.primary, beltTip: reward.belt.tip ?? '' }
+            : { kind: 'milestone', value: String(reward.value) },
       });
     }
   }, [detected, scope]);

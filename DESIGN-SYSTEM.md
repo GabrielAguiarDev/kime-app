@@ -84,7 +84,22 @@ Usadas no chip de faixa, na barra de graduação e como toque de personalizaçã
 | Roxa | `#6E3FC9` | |
 | Marrom | `#7A4A2A` | |
 | Preta | `#151515` | No tema escuro, com borda `border` |
-| Coral / Vermelha | `#C8242F` | |
+| Vermelha | `#C8242F` | |
+
+Variações (opção "Mais cores" no cadastro de faixa; mesmos usos das cores acima):
+
+| Faixa | Cor | Observação |
+| --- | --- | --- |
+| Cinza-clara | `#C4C6CA` | Texto escuro |
+| Cinza-escura | `#55585E` | |
+| Amarela-escura | `#C9A227` | Dourada; texto escuro |
+| Verde-clara | `#6CC24A` | Texto escuro |
+| Verde-escura | `#1E6B37` | |
+| Azul-clara | `#5AA9F0` | Texto escuro |
+| Azul-escura | `#16337A` | |
+| Roxa-clara | `#A687E3` | Texto escuro |
+| Marrom-clara | `#A9744A` | |
+| Vermelha-escura | `#7D1A22` | Vinho |
 
 ### 2.5 Tipografia
 

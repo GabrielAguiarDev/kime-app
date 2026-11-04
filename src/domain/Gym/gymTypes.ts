@@ -1,5 +1,5 @@
 /** Kind of an invite code: it decides the role of the join request. */
-export type CodeType = 'student' | 'professor';
+export type CodeType = 'student' | 'instructor';
 
 /** What anyone (signed in or not) sees for a live code: academy card + kind. */
 export interface CodeLookup {
@@ -14,6 +14,8 @@ export interface JoinResult {
   membershipId: string;
   gymId: string;
   status: 'pending' | 'active' | 'rejected';
+  /** False when the user was already a member or already waiting: nothing was created. */
+  isNew: boolean;
 }
 
 /** A live professor code (single use, 7 days), as the owner sees it. */
