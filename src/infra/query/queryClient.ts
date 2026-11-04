@@ -1,5 +1,7 @@
-import { focusManager, QueryClient } from '@tanstack/react-query';
+import { focusManager, MutationCache, QueryClient } from '@tanstack/react-query';
 import { AppState, Platform } from 'react-native';
+
+import { haptics } from '@utils/haptics';
 
 // React Native has no window focus: refetch stale queries when the app returns
 // to the foreground (e.g. a student whose request was approved meanwhile).
@@ -11,6 +13,11 @@ focusManager.setEventListener((setFocused) => {
 });
 
 export const queryClient = new QueryClient({
+  // DESIGN-SYSTEM.md, section 7: every failed action gives the error haptic,
+  // whatever the screen does with the message.
+  mutationCache: new MutationCache({
+    onError: () => void haptics.error(),
+  }),
   defaultOptions: {
     queries: {
       staleTime: 30_000,

@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
-import { Avatar, BigCounter, BottomSheet, Box, Button, Card, EmptyState, Screen, SelectionCard, Text } from '@components';
+import { Avatar, BigCounter, BottomSheet, Box, Button, Card, EmptyState, LoadError, Screen, SelectionCard, Text } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import {
   countdownLabel,
@@ -37,6 +37,13 @@ export function ChampionshipDetailScreen() {
     return (
       <Screen nativeHeader title=" " onBack={back}>
         <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
+  if (championships.isError && !championship) {
+    return (
+      <Screen nativeHeader title="Campeonato" onBack={back}>
+        <LoadError title="Não foi possível carregar o campeonato" onRetry={() => void championships.refetch()} />
       </Screen>
     );
   }
@@ -152,6 +159,15 @@ function ChampionshipDetail({
 
         <Section title={`Atletas inscritos (${selected.size})`}>
           {members.isLoading || entries.isLoading ? <ActivityIndicator /> : null}
+          {members.isError || entries.isError ? (
+            <LoadError
+              title="Não foi possível carregar os atletas"
+              onRetry={() => {
+                void members.refetch();
+                void entries.refetch();
+              }}
+            />
+          ) : null}
           {members.data && competitors.length === 0 && formerIds.length === 0 ? (
             <EmptyState
               visual="icon"

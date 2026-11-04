@@ -1,7 +1,7 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: Fase 5 (dieta) — 2026-11-04
+> Última atualização: Fase 6 (polimento) — 2026-11-04
 
 ## 1. Visão geral
 
@@ -231,7 +231,23 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - **Staff:** detalhe do competidor → **Dieta** (`athlete/diet?membershipId=`): seletor de semana (anterior/próxima) com os 7 dias, refeições do dia (toque para editar/remover), "Adicionar refeição" fixo, "Copiar do dia anterior" no dia vazio e "Repetir este dia amanhã" (pede confirmação se o dia seguinte já tem refeições). Folha da refeição: atalhos (Café da manhã, Almoço…), nome, horário opcional `HH:MM`, "O que comer".
   - **Competidor:** "Dieta de hoje" na aba Competição + "Dieta da semana" (`/dieta`, só leitura, junta as academias em que compete). Sem widget (spec).
   - Ícones novos: `chevronLeft`, `copy`, `diet` (ForkKnife).
-- [ ] 6. Polimento: estados vazios, erros, acessibilidade, revisão dos TODO(motion)
+- [x] 6. Polimento (2026-11-04), feito sem o aparelho; o restante depende da validação no aparelho.
+  - **Haptic de erro** (DS seção 7): ligado UMA vez no `MutationCache` (`infra/query/queryClient.ts`); toda ação que falha vibra.
+  - **Erros de carregamento:** componente `LoadError` (ícone offline + "Tentar de novo"). Agora Ordenar faixas, Detalhe do membro (membro e aulas) e Detalhe do campeonato distinguem erro de rede de "não encontrado".
+  - **Acessibilidade:** todo `Pressable` tem `accessibilityLabel` (auditado); os seletores novos (dias da dieta, semana) usam `tab`/`selected`.
+  - **TODO(motion):** os pontos que a spec e o DS 8 pedem estão todos marcados (ver tabela abaixo).
+
+### Pontos de movimento (`TODO(motion)`)
+
+| Momento | Onde |
+| --- | --- |
+| Botão tátil afundando e voltando | `components/Button/Button.tsx`, `components/Card/Card.tsx` |
+| Anel de água enchendo | `components/WaterRing/WaterRing.tsx`, `targets/widgets/WaterWidget.swift`, `WaterWidget.kt` |
+| Badge pendente → confirmado | `components/StatusBadge/StatusBadge.tsx`, `screens/student/TodayClasses.tsx` |
+| Barra de faixa avançando | `components/ProgressBar/ProgressBar.tsx`, `screens/student/GraduationTrail.tsx` |
+| Número da contagem virando | `components/BigCounter/BigCounter.tsx`, `screens/app/CompetitionScreen.tsx` (dia do campeonato), `CountdownWidget.swift`, `CountdownWidget.kt` |
+| Folha de feedback entrando e saindo | `components/FeedbackSheet/FeedbackSheet.tsx`, `screens/app/HomeScreen.tsx`, `screens/water/WaterScreen.tsx` |
+| Outros | entrada da conquista (`AchievementScreen`), balão do mascote (`MascotBalloon`), código (`CodeField`), entrada (`StartScreen`, `EnterCodeScreen`), reordenar (`ReorderList`) |
 
 ## Backlog (depois da Fase 6)
 

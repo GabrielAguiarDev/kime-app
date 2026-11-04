@@ -12,6 +12,7 @@ import {
   Card,
   ChoiceRow,
   EmptyState,
+  LoadError,
   ProgressBar,
   Screen,
   SelectionCard,
@@ -54,6 +55,14 @@ export function MemberDetailScreen() {
   if (!active || !membershipId) return null;
 
   const member = members.data?.find((m) => m.id === membershipId);
+
+  if (members.isError && !member) {
+    return (
+      <Screen nativeHeader title="Membro" onBack={() => router.back()}>
+        <LoadError title="Não foi possível carregar o membro" onRetry={() => void members.refetch()} />
+      </Screen>
+    );
+  }
 
   if (!members.isLoading && !member) {
     return (
@@ -119,6 +128,7 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const loading = stats.isLoading || modalityStats.isLoading || modalities.isLoading || belts.isLoading;
+  const failed = [stats, modalityStats, modalities, belts].filter((q) => q.isError);
   const total = stats.data?.find((s) => s.membershipId === member.id)?.confirmedTotal ?? 0;
   const own = (modalityStats.data ?? []).filter((s) => s.membershipId === member.id);
   const allModalities = modalities.data ?? [];
@@ -136,6 +146,9 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
       <Box gap="s24">
         <MemberHeader member={member} />
         {loading ? <ActivityIndicator /> : null}
+        {failed.length > 0 ? (
+          <LoadError title="Não foi possível carregar as aulas" onRetry={() => failed.forEach((q) => void q.refetch())} />
+        ) : null}
 
         <Card>
           <BigCounter value={total} label="Aulas confirmadas · todas as modalidades" />
