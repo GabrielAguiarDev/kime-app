@@ -1,6 +1,6 @@
 // GENERATED FROM tokens.json BY scripts/tokens/generate.mjs. DO NOT EDIT.
 
-package br.com.kimi.app.widget
+package br.com.kimi.widget
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -115,6 +115,9 @@ object KimiTokens {
     val progressShine = 3.dp
     val waterRingStroke = 14.dp
     val waterRing = 180.dp
+    val widgetRing = 56.dp
+    val widgetRingMedium = 104.dp
+    val widgetRingStroke = 8.dp
     val beltChipWidth = 28.dp
     val beltChipHeight = 10.dp
     val badgeIcon = 14.dp

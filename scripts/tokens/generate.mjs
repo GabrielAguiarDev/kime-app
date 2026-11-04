@@ -7,8 +7,8 @@
  *
  * Outputs:
  *   src/theme/tokens.ts                 React Native app
- *   widgets/ios/KimiTokens.swift        iOS widget (SwiftUI / WidgetKit)
- *   widgets/android/KimiTokens.kt       Android widget (Jetpack Glance)
+ *   targets/widgets/KimiTokens.swift                                     iOS widget extension (SwiftUI / WidgetKit)
+ *   modules/kimi-widget/android/src/main/java/br/com/kimi/widget/KimiTokens.kt  Android widget (Jetpack Glance)
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -116,7 +116,7 @@ function kotlin() {
   const lines = [
     `// ${HEADER}`,
     '',
-    'package br.com.kimi.app.widget',
+    'package br.com.kimi.widget',
     '',
     'import androidx.compose.ui.graphics.Color',
     'import androidx.compose.ui.unit.dp',
@@ -165,8 +165,8 @@ assertIdentifiers(data, 'tokens');
 
 const outputs = {
   'src/theme/tokens.ts': typescript(),
-  'widgets/ios/KimiTokens.swift': swift(),
-  'widgets/android/KimiTokens.kt': kotlin(),
+  'targets/widgets/KimiTokens.swift': swift(),
+  'modules/kimi-widget/android/src/main/java/br/com/kimi/widget/KimiTokens.kt': kotlin(),
 };
 
 const check = process.argv.includes('--check');
