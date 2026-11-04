@@ -1,7 +1,7 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: Fase 4 (competidores + widget de contagem) — 2026-11-04
+> Última atualização: Fase 5 (dieta) — 2026-11-04
 
 ## 1. Visão geral
 
@@ -225,7 +225,12 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
     - Competidor (aba Competição): contagem do próximo campeonato (BigCounter; "HOJE" no dia), próximos, plano de água da semana (hoje em destaque, automática nos dias sem plano), peso (último, variação, histórico; "Registrar" e toque para corrigir/apagar), anteriores e "Sair da equipe".
   - **Widget de contagem** (iOS `targets/widgets/CountdownWidget.swift`, Android `CountdownWidget.kt` + receiver no manifest): pequeno e médio; número, "DIAS", nome e data (médio: + local). Timeline iOS com uma entrada por dia (7 dias); Android com alarme à meia-noite. Toque abre `kimi://competition` (liberado no `normalizeExternalPath`). Chave `competition.championships`, publicada por `useCountdownWidget` (raiz) e apagada para quem não compete.
   - **Em aberto (baixo):** o professor de uma academia vê o plano de outra academia só no cálculo da meta (não edita); a água do atleta para o professor mostra só o que já sincronizou; o seed não tem competidor (teste o convite com `aluno@kimi.dev`).
-- [ ] 5. Dieta: cadastro e visualização do plano diário
+- [x] 5. Dieta. **CONCLUÍDA no código** (2026-11-04), aguardando `db push` e validação no aparelho.
+  - **Banco:** as tabelas `diet_plans` (um por atleta, academia e dia) e `diet_plan_meals` já existiam com RLS desde a fundação. Migration `20261105000200_diet_rpcs`: `save_diet_meal` (cria o dia se preciso; refeição nova vai para o fim; editar só no próprio dia) e `copy_diet_day` (substitui as refeições do dia de destino; copiar um dia vazio limpa o destino), ambas INVOKER (as policies decidem). 17 testes em `diet.test.sql` (433 no total).
+  - **Domínio `src/domain/Diet`:** api/service/rules/useCases. Ordem do dia: por horário, refeições sem horário no fim, depois a ordem de cadastro (`mealsOn`).
+  - **Staff:** detalhe do competidor → **Dieta** (`athlete/diet?membershipId=`): seletor de semana (anterior/próxima) com os 7 dias, refeições do dia (toque para editar/remover), "Adicionar refeição" fixo, "Copiar do dia anterior" no dia vazio e "Repetir este dia amanhã" (pede confirmação se o dia seguinte já tem refeições). Folha da refeição: atalhos (Café da manhã, Almoço…), nome, horário opcional `HH:MM`, "O que comer".
+  - **Competidor:** "Dieta de hoje" na aba Competição + "Dieta da semana" (`/dieta`, só leitura, junta as academias em que compete). Sem widget (spec).
+  - Ícones novos: `chevronLeft`, `copy`, `diet` (ForkKnife).
 - [ ] 6. Polimento: estados vazios, erros, acessibilidade, revisão dos TODO(motion)
 
 ## Backlog (depois da Fase 6)
@@ -301,7 +306,7 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 - **Migrations `20261104220000` (logo obrigatória), `20261104230000` (faixas por chave de cor + ponta) e `20261104240000` (variações de cor)** aplicadas no remoto em 2026-11-04 (373 testes pgTAP passando lá; tipos regenerados).
 - **Correções pré-Fase 3 (2026-11-04):** migrations `20261104180000`–`180004` aplicadas no LOCAL e no remoto (`db push` em 2026-11-04; 337 testes pgTAP passando no remoto; `types/database.ts` regenerado do remoto). Build novo necessário por causa da permissão de câmera (`app.json` → `expo-image-picker.cameraPermission`).
 
-- **Fase 4 — competidores + contagem:** código pronto e testado no banco LOCAL. Falta: `npx supabase db push` (migrations `20261105000000` e `20261105000100`), `npm run db:types` (o `types/database.ts` foi editado à mão com as colunas e RPCs novas) e build novo (widget de contagem nos dois sistemas).
+- **Fases 4 e 5 — competidores, contagem e dieta:** código pronto e testado no banco LOCAL. Falta: `npx supabase db push` (migrations `20261105000000`, `20261105000100` e `20261105000200`), `npm run db:types` (o `types/database.ts` foi editado à mão com as colunas e RPCs novas) e build novo (widget de contagem nos dois sistemas).
 - **Fase 3 — água + widget:** código pronto; falta o build do usuário (`npx expo prebuild --clean` + `run:ios` / `run:android`) e testar no aparelho. O `db push` das migrations de 2026-11-04 ainda depende do `npx supabase login`.
 - **Validação do usuário no aparelho:** fluxo de entrada, papéis e ícones novos (precisa de build novo; quem roda é o usuário).
 

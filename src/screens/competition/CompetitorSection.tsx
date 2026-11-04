@@ -51,6 +51,12 @@ export function CompetitorSection({ member }: { member: GymMember }) {
           icon="barbell"
           onPress={() => router.push({ pathname: '/athlete/progress', params })}
         />
+        <LinkRow
+          title="Dieta"
+          description="Refeições de cada dia"
+          icon="diet"
+          onPress={() => router.push({ pathname: '/athlete/diet', params })}
+        />
         <TextButton title="Tirar da equipe" color="danger" disabled={remove.isPending} onPress={takeOff} />
       </Section>
     );

@@ -23,6 +23,7 @@ export type AppErrorCode =
   | 'competitor_invite_missing'
   | 'water_plan_invalid'
   | 'weight_day_taken'
+  | 'diet_copy_same_day'
   | 'modality_in_use'
   | 'belt_in_use'
   | 'modality_has_history'
@@ -59,6 +60,7 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'already_competitor',
   'competitor_invite_missing',
   'water_plan_invalid',
+  'diet_copy_same_day',
 ];
 
 export class AppError extends Error {
@@ -149,6 +151,7 @@ const MESSAGES: Record<AppErrorCode, string> = {
   already_competitor: 'Este aluno já está na equipe de competição.',
   competitor_invite_missing: 'Este convite não está mais disponível.',
   water_plan_invalid: 'O plano de água precisa ter os 7 dias da semana.',
+  diet_copy_same_day: 'Escolha outro dia para copiar.',
   weight_day_taken: 'Já existe um peso registrado neste dia.',
   modality_in_use: 'Esta modalidade tem horários cadastrados. Remova os horários dela antes.',
   belt_in_use: 'Esta faixa já foi entregue a alunos e fica no histórico deles. Ela não pode ser removida.',

@@ -986,6 +986,15 @@ export type Database = {
     }
     Functions: {
       academy_today: { Args: { p_academy_id: string }; Returns: string }
+      copy_diet_day: {
+        Args: {
+          p_academy_id: string
+          p_athlete_id: string
+          p_from_date: string
+          p_to_date: string
+        }
+        Returns: number
+      }
       create_academy: {
         Args: { p_modalities: string[]; p_name: string }
         Returns: string
@@ -1045,6 +1054,18 @@ export type Database = {
       respond_competitor_invite: {
         Args: { p_accept: boolean; p_membership_id: string }
         Returns: undefined
+      }
+      save_diet_meal: {
+        Args: {
+          p_academy_id: string
+          p_athlete_id: string
+          p_description: string
+          p_meal_id: string
+          p_meal_time: string
+          p_name: string
+          p_plan_date: string
+        }
+        Returns: string
       }
       set_championship_entries: {
         Args: { p_athlete_ids: string[]; p_championship_id: string }
