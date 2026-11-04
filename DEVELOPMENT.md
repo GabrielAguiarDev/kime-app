@@ -189,17 +189,19 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 
 ## 6. Pendências & próximos passos
 
-0. **Antes de produção (revisão de segurança, 2026-11-04):**
-   - `lookup_invite_code` é anônimo e sem limite de tentativas. Precisa de rate limit no gateway (ou CAPTCHA) antes de abrir o app ao público.
-   - Apagar a conta de um owner falha (a academia ficaria sem owner). O fluxo de exclusão de conta vai precisar exigir a transferência antes, ou apagar a academia.
-   - Rejeitado pode pedir de novo sem limite: considerar um intervalo mínimo.
-1. **Validação do usuário** da Fase 1 e da paleta/tipografia no aparelho. Já conferido no simulador iPhone 17 Pro: login e deep link de convite (preview anônimo) em claro e escuro. As telas autenticadas (tabs) NÃO foram conferidas visualmente; o fluxo delas foi validado via API e pelos testes pgTAP.
-2. **Decisões de produto pendentes:**
-   - rejeitado pode pedir de novo sem limite (hoje: pode)?
-   - (resolvidas em 2026-11-04: só o owner aprova professores; código de professor é de uso único e vale 7 dias.)
-3. **Google Sign-In:** precisa dos client IDs do Google Cloud. Apple precisa de time de assinatura + `[auth.external.apple]` no `config.toml`.
-4. **Produção:** ligar a confirmação de e-mail (`enable_confirmations`) e Universal/App Links (precisa de domínio).
-5. **Fase 2:** `belt_goals`, `class_schedules`, `checkins` (ligados a `memberships`), faixa atual no vínculo, sequência semanal (regra pura + teste).
+### Antes do lançamento (produção) — resolver todas
+
+1. **Exclusão de conta:** apagar a conta de um owner falha hoje (o trigger `memberships_keep_owner` impede a academia de ficar sem owner). O fluxo de exclusão precisa exigir a transferência antes, ou apagar a academia quando o owner for o único membro ativo. Fazer uma RPC explícita, nunca depender do cascade.
+2. **Limite de tentativas no código:** `lookup_invite_code` é anônima e sem limite (31^8 ≈ 8,5e11 códigos; até 20 códigos de professor vivos por academia). Precisa de rate limit no gateway ou CAPTCHA antes de abrir ao público. Opcional: códigos de professor mais longos.
+3. **Pedido recusado:** quem foi recusado pode pedir de novo sem limite (o `request_join` reabre a linha como `pending`). Decidir um intervalo mínimo (ex.: 24 h desde `decided_at`) ou um limite de tentativas.
+4. **Universal Links / App Links:** hoje o deep link é `kimi://entrar?codigo=…`, que só abre com o app instalado. Precisa de domínio + `apple-app-site-association` / `assetlinks.json` e `ios.associatedDomains` / `android.intentFilters` no `app.json`. Junto: ligar a confirmação de e-mail (`enable_confirmations`) no projeto hospedado.
+5. **Google Sign-In:** pendente. Precisa dos client IDs (iOS, Android, Web) do Google Cloud e do provedor no Supabase.
+6. **Apple Sign-In:** o código já existe (`signInWithIdToken` com nonce). Falta habilitar o provedor Apple no Supabase hospedado (e `[auth.external.apple]` no `config.toml` local) com o bundle id `br.com.kimi.app`, e o capability no time de assinatura.
+
+### Em andamento
+
+- **Fase 3 — água + widget** (ver seção 4).
+- **Validação do usuário no aparelho:** fluxo de entrada, papéis e ícones novos (precisa de build novo; quem roda é o usuário).
 
 ## 7. Notas / armadilhas
 
@@ -215,9 +217,9 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 - **Rotas:** NENHUM grupo protegido pode ter `index`. Com o "/" só dentro de um grupo protegido, o cold start deslogado dava "Unmatched Route". O "/" é o `src/app/index.tsx`, sem guard, que redireciona. A aba Início é `(tabs)/home`.
 - **Metro em `CI=1` NÃO observa arquivos** (o bundle fica velho). Para desenvolver, `npm start` sem CI.
 - **React Query no RN:** `focusManager` ligado ao `AppState` em `infra/query/queryClient.ts`, para refazer queries ao voltar para o app.
-- **Código pendente (`pendingCode`):** só é apagado em sucesso ou erro definitivo. Em erro de rede, fica guardado para tentar de novo. Sobrevive ao logout de propósito.
+- **Código pendente (`pendingCode`):** só é apagado em sucesso ou erro definitivo. Em erro de rede, fica guardado para tentar de novo. Expira em 24 h e é apagado no logout.
 - **Tipos do banco:** em 2026-11-04 o `types/database.ts` foi gerado do banco LOCAL (as migrations novas ainda não estavam no remoto). Depois do `db push`, rode `npm run db:types` de novo.
-- **Dev client do simulador desatualizado:** em 2026-11-04 o build instalado não tinha o `ExpoSecureStore`. Antes de testar, rode `npx expo run:ios`.
+- **Builds:** quem roda é o usuário (`expo run:*`, Xcode, Gradle, EAS). O agente avisa com o comando quando uma mudança exige build novo (código nativo, widgets, plugins, ícones).
 - **Rotas tipadas:** se o `tsc` reclamar de rotas existentes, o `.expo/types/router.d.ts` está velho. Suba o Metro uma vez para regenerar.
 - **`Card`:** as margens vão para o contêiner externo (com a borda), e o resto estiliza a face. Margem na face esticava a borda cinza.
 - **Apple:** o nome só vem na PRIMEIRA autorização, e o `authService.signInWithApple` grava no perfil na hora.
