@@ -14,6 +14,10 @@ export interface Membership {
   status: MembershipStatus;
   /** Only students compete. */
   isCompetitor: boolean;
+  /** Pending invite to the competition team (the student accepts or declines). */
+  competitorInvitedAt: string | null;
+  /** When the student accepted the invite. */
+  competitorSince: string | null;
   /** When the request was approved/rejected (null while pending). */
   decidedAt: string | null;
 }
@@ -26,6 +30,8 @@ export interface GymMember {
   role: MembershipRole;
   status: MembershipStatus;
   isCompetitor: boolean;
+  competitorInvitedAt: string | null;
+  competitorSince: string | null;
   /** Profile photo in the private `avatars` bucket (read with a signed URL). */
   avatarPath: string | null;
   createdAt: string;

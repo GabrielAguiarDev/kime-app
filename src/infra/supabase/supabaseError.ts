@@ -18,6 +18,11 @@ export type AppErrorCode =
   | 'invalid_modalities'
   | 'instructor_invalid'
   | 'logo_required'
+  | 'competitor_target_invalid'
+  | 'already_competitor'
+  | 'competitor_invite_missing'
+  | 'water_plan_invalid'
+  | 'weight_day_taken'
   | 'modality_in_use'
   | 'belt_in_use'
   | 'modality_has_history'
@@ -50,6 +55,10 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'invalid_modalities',
   'instructor_invalid',
   'logo_required',
+  'competitor_target_invalid',
+  'already_competitor',
+  'competitor_invite_missing',
+  'water_plan_invalid',
 ];
 
 export class AppError extends Error {
@@ -107,6 +116,7 @@ export function toAppError(error: unknown): AppError {
       break;
     // Only the name uniques get the "already exists" message; others stay generic.
     case '23505':
+      if (/weight_logs_one_per_day/.test(message)) return new AppError('weight_day_taken', error);
       if (/academy_modalities_academy_name_idx|modality_belts_name_idx/.test(message)) {
         return new AppError('duplicate_name', error);
       }
@@ -135,6 +145,11 @@ const MESSAGES: Record<AppErrorCode, string> = {
   invalid_modalities: 'Escolha pelo menos uma modalidade (até 20).',
   instructor_invalid: 'Escolha um professor ativo desta academia.',
   logo_required: 'A academia precisa ter uma logo. Troque por outra em vez de remover.',
+  competitor_target_invalid: 'Só alunos ativos podem entrar na equipe de competição.',
+  already_competitor: 'Este aluno já está na equipe de competição.',
+  competitor_invite_missing: 'Este convite não está mais disponível.',
+  water_plan_invalid: 'O plano de água precisa ter os 7 dias da semana.',
+  weight_day_taken: 'Já existe um peso registrado neste dia.',
   modality_in_use: 'Esta modalidade tem horários cadastrados. Remova os horários dela antes.',
   belt_in_use: 'Esta faixa já foi entregue a alunos e fica no histórico deles. Ela não pode ser removida.',
   modality_has_history: 'Alunos já foram graduados nesta modalidade. Ela fica no histórico deles e não pode ser removida.',

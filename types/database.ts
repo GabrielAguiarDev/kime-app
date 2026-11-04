@@ -537,6 +537,9 @@ export type Database = {
       memberships: {
         Row: {
           academy_id: string
+          competitor_invited_at: string | null
+          competitor_invited_by: string | null
+          competitor_since: string | null
           created_at: string
           decided_at: string | null
           decided_by: string | null
@@ -549,6 +552,9 @@ export type Database = {
         }
         Insert: {
           academy_id: string
+          competitor_invited_at?: string | null
+          competitor_invited_by?: string | null
+          competitor_since?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -561,6 +567,9 @@ export type Database = {
         }
         Update: {
           academy_id?: string
+          competitor_invited_at?: string | null
+          competitor_invited_by?: string | null
+          competitor_since?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -572,6 +581,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "memberships_competitor_invited_by_fkey"
+            columns: ["competitor_invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "memberships_academy_id_fkey"
             columns: ["academy_id"]
@@ -982,6 +998,10 @@ export type Database = {
           id: string
         }[]
       }
+      invite_competitor: {
+        Args: { p_membership_id: string }
+        Returns: undefined
+      }
       join_with_code: {
         Args: { p_code: string }
         Returns: {
@@ -1014,9 +1034,25 @@ export type Database = {
         Args: { p_academy_id: string }
         Returns: string
       }
+      remove_competitor: {
+        Args: { p_membership_id: string }
+        Returns: undefined
+      }
       reorder_modality_belts: {
         Args: { p_belt_ids: string[]; p_modality_id: string }
         Returns: undefined
+      }
+      respond_competitor_invite: {
+        Args: { p_accept: boolean; p_membership_id: string }
+        Returns: undefined
+      }
+      set_championship_entries: {
+        Args: { p_athlete_ids: string[]; p_championship_id: string }
+        Returns: undefined
+      }
+      set_water_plan: {
+        Args: { p_academy_id: string; p_athlete_id: string; p_targets: number[] }
+        Returns: string
       }
       transfer_ownership: {
         Args: { p_academy_id: string; p_membership_id: string }

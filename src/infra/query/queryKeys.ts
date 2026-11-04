@@ -20,4 +20,9 @@ export enum QueryKeys {
   AcademyCheckins = 'AcademyCheckins',
   MemberStats = 'MemberStats',
   BeltHistory = 'BeltHistory',
+  Championships = 'Championships',
+  MyChampionships = 'MyChampionships',
+  ChampionshipEntries = 'ChampionshipEntries',
+  WeightLogs = 'WeightLogs',
+  WaterPlans = 'WaterPlans',
 }
