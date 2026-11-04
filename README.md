@@ -107,13 +107,13 @@ Widgets nativos, que compartilham dados com o app por um armazenamento local. O 
 | Armazenamento compartilhado | App Group `group.br.com.kimi.app` | SharedPreferences `kimi_widget` |
 | Botão "+ ml" | `Button(intent:)` + `AddWaterIntent` (iOS 17+) | `actionRunCallback<AddWaterAction>` |
 | Virada do dia | entrada da timeline à meia-noite (fuso do perfil) | alarme (inexato) à meia-noite |
-| Adicionar pelo app | não existe API: o app mostra os passos (`/agua/widget`) | `requestPinGlanceAppWidget` quando o launcher suporta |
+| Adicionar | pela galeria de widgets do sistema | pela lista de widgets do launcher |
 
 **Contrato dos dados** (o mesmo nas duas plataformas e no app, em `src/domain/Water/waterLocalStore.ts`):
 - `water.config`: JSON `{userId, bottleMl, goalMl, timeZone}`, gravado pelo app a partir do perfil. Ele é apagado no logout.
 - `water.log.<id>`: um registro por chave, com `{id, userId, amountMl, loggedAt, source, synced, deleted}`. O widget grava com `synced: false`, e o app envia ao Supabase (upsert pelo `id`) quando abre ou volta para o primeiro plano.
 
-O módulo nativo local `modules/kimi-widget` faz a ponte do app com esse armazenamento: lê e grava, recarrega os widgets e fixa o widget no Android. Num build sem o módulo, o app cai num armazenamento só dele: a água continua funcionando, mas os widgets não veem os registros.
+O módulo nativo local `modules/kimi-widget` faz a ponte do app com esse armazenamento: lê e grava e recarrega os widgets. Num build sem o módulo, o app cai num armazenamento só dele: a água continua funcionando, mas os widgets não veem os registros.
 
 ### Rodando com os widgets
 

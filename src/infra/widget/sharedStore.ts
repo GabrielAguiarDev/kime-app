@@ -15,8 +15,6 @@ interface KimiWidgetNativeModule {
   removeItem(key: string): void;
   getItems(prefix: string): Record<string, string>;
   reloadWidgets(): void;
-  isPinSupported(): boolean;
-  requestPin(): Promise<boolean>;
 }
 
 const native = requireOptionalNativeModule<KimiWidgetNativeModule>('KimiWidget');
@@ -46,10 +44,4 @@ export const sharedStore = {
   getItems: (prefix: string): Record<string, string> => (native ?? fallback).getItems(prefix),
   /** Re-renders the widgets after the app changes their data. */
   reloadWidgets: (): void => native?.reloadWidgets(),
-};
-
-/** "Adicionar widget": Android pins it from the app; iOS has no such API. */
-export const widgetPinning = {
-  isSupported: (): boolean => native?.isPinSupported() ?? false,
-  request: (): Promise<boolean> => native?.requestPin() ?? Promise.resolve(false),
 };

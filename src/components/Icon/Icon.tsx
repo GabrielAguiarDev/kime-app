@@ -15,6 +15,7 @@ import { CloudSlash } from 'phosphor-react-native/src/icons/CloudSlash';
 import { DeviceMobile } from 'phosphor-react-native/src/icons/DeviceMobile';
 import { Drop } from 'phosphor-react-native/src/icons/Drop';
 import { Fire } from 'phosphor-react-native/src/icons/Fire';
+import { GearSix } from 'phosphor-react-native/src/icons/GearSix';
 import { House } from 'phosphor-react-native/src/icons/House';
 import { LinkBreak } from 'phosphor-react-native/src/icons/LinkBreak';
 import { ListChecks } from 'phosphor-react-native/src/icons/ListChecks';
@@ -69,6 +70,7 @@ const ICONS = {
   professor: Medal,
   refresh: ArrowClockwise,
   rejected: XCircle,
+  settings: GearSix,
   share: ShareNetwork,
   trophy: Trophy,
   user: User,
