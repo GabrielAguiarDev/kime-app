@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
-import { BeltSwatch, Box, Button, EmptyState, ReorderList, Screen, Text } from '@components';
+import { BeltSwatch, Box, Button, EmptyState, LoadError, ReorderList, Screen, Text } from '@components';
 import { beltName, beltsOf, useBeltMutations, useBelts, useModalities, type ModalityBelt } from '@domain/Classes';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
@@ -23,7 +23,16 @@ export function BeltOrderScreen() {
   return (
     <Screen nativeHeader title="Ordenar faixas" onBack={() => router.back()}>
       {loading ? <ActivityIndicator /> : null}
-      {!loading && (!modality || list.length < 2) ? (
+      {modalities.isError || belts.isError ? (
+        <LoadError
+          title="Não foi possível carregar as faixas"
+          onRetry={() => {
+            void modalities.refetch();
+            void belts.refetch();
+          }}
+        />
+      ) : null}
+      {!loading && !modalities.isError && !belts.isError && (!modality || list.length < 2) ? (
         <EmptyState
           visual="icon"
           icon="belt"

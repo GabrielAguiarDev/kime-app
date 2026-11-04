@@ -32,3 +32,4 @@ export { Avatar, nameInitials } from './Avatar/Avatar';
 export { HeaderButton, useNativeHeaderOptions } from './NativeHeader/NativeHeader';
 export { EditBadge } from './EditBadge/EditBadge';
 export { ReorderList } from './ReorderList/ReorderList';
+export { LoadError } from './LoadError/LoadError';
