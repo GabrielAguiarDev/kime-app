@@ -40,3 +40,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# npm is the package manager (package-lock.json); expo lint may create this one.
+yarn.lock

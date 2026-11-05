@@ -12,6 +12,8 @@ import { Platform } from 'react-native';
  * added, Jest) do not load the library at all: reminders are just unavailable.
  */
 const CHANNEL_ID = 'class-reminders';
+/** Round timer fallback on Android (bells while the app is in the background). */
+const TIMER_CHANNEL_ID = 'round-timer';
 
 const available = !!requireOptionalNativeModule('ExpoNotificationScheduler');
 
@@ -44,6 +46,11 @@ export async function configureNotifications(): Promise<void> {
       name: 'Lembretes de aula',
       description: 'Aviso 1 hora antes das aulas.',
       importance: N.AndroidImportance.DEFAULT,
+    });
+    await N.setNotificationChannelAsync(TIMER_CHANNEL_ID, {
+      name: 'Timer de rounds',
+      description: 'Início e fim dos rounds com o app em segundo plano.',
+      importance: N.AndroidImportance.HIGH,
     });
   }
 }
@@ -99,4 +106,22 @@ export async function replaceScheduledNotifications(items: LocalNotification[]):
 
 export async function cancelScheduledNotifications(): Promise<void> {
   await lib()?.cancelAllScheduledNotificationsAsync();
+}
+
+/** Schedules one notification on the timer channel; null when unavailable. */
+export async function scheduleTimerNotification(item: LocalNotification): Promise<string | null> {
+  const N = lib();
+  if (!N || !(await hasNotificationPermission())) return null;
+  await configureNotifications();
+  return N.scheduleNotificationAsync({
+    content: { title: item.title, body: item.body, data: item.data ?? {}, sound: true },
+    trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: item.at, channelId: TIMER_CHANNEL_ID },
+  });
+}
+
+/** Cancels the given scheduled notifications (leaves the others, e.g. class reminders). */
+export async function cancelNotifications(ids: string[]): Promise<void> {
+  const N = lib();
+  if (!N) return;
+  await Promise.all(ids.map((id) => N.cancelScheduledNotificationAsync(id)));
 }

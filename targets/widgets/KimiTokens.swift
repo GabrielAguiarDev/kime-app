@@ -90,6 +90,7 @@ enum KimiTokens {
     static let button = Font.custom("Inter-Bold", fixedSize: 15).monospacedDigit() // line height 20, tracking 0.6, uppercase
     static let navLargeTitle = Font.custom("BarlowCondensed-Bold", fixedSize: 34).monospacedDigit() // line height 41
     static let navTitle = Font.custom("Inter-SemiBold", fixedSize: 17).monospacedDigit() // line height 22
+    static let timer = Font.custom("BarlowCondensed-ExtraBold", fixedSize: 168).monospacedDigit() // line height 168
   }
 
   enum Space {

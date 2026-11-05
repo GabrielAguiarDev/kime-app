@@ -34,6 +34,11 @@ import { Moon } from 'phosphor-react-native/src/icons/Moon';
 import { PencilSimple } from 'phosphor-react-native/src/icons/PencilSimple';
 import { Plus } from 'phosphor-react-native/src/icons/Plus';
 import { Prohibit } from 'phosphor-react-native/src/icons/Prohibit';
+import { PauseIcon as Pause } from 'phosphor-react-native/src/icons/Pause';
+import { PlayIcon as Play } from 'phosphor-react-native/src/icons/Play';
+import { SkipBackIcon as SkipBack } from 'phosphor-react-native/src/icons/SkipBack';
+import { SkipForwardIcon as SkipForward } from 'phosphor-react-native/src/icons/SkipForward';
+import { TimerIcon as Timer } from 'phosphor-react-native/src/icons/Timer';
 import { ShareNetwork } from 'phosphor-react-native/src/icons/ShareNetwork';
 import { Snowflake } from 'phosphor-react-native/src/icons/Snowflake';
 import { Sun } from 'phosphor-react-native/src/icons/Sun';
@@ -63,6 +68,11 @@ const ICONS = {
   done: Check,
   edit: PencilSimple,
   flame: Fire,
+  pause: Pause,
+  play: Play,
+  skipBack: SkipBack,
+  skipForward: SkipForward,
+  timer: Timer,
   freeze: Snowflake,
   missed: X,
   open: Circle,
