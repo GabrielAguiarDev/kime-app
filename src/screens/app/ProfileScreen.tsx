@@ -126,7 +126,7 @@ export function ProfileScreen() {
 
         {isStaff ? (
           <Section title="Água">
-            <ManageCard title="Garrafa, peso e altura" icon="drop" onPress={() => router.push('/agua/configurar')} />
+            <ManageCard title="Garrafa e peso" icon="drop" onPress={() => router.push('/agua/configurar')} />
           </Section>
         ) : null}
 

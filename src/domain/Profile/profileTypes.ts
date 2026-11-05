@@ -28,9 +28,8 @@ export interface PersonalData {
   heightCm: number | null;
 }
 
-/** Water setup (Perfil → Água). */
+/** Water setup (Sua garrafa): weight and bottle. Height lives in Meus dados only. */
 export interface BodyAndBottle {
   weightKg: number | null;
-  heightCm: number | null;
   bottleMl: number | null;
 }
