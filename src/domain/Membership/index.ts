@@ -10,3 +10,8 @@ export {
   useTransferOwnership,
 } from './useCases/useDecideMembership';
 export { usePendingRequests } from './useCases/usePendingRequests';
+export {
+  useApproveStudent,
+  useSetStudentModalities,
+  useSetStudentWeeklyGoal,
+} from './useCases/useStudentModalities';

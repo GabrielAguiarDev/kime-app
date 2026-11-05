@@ -37,8 +37,6 @@ import {
 } from '@domain/Classes';
 import { membershipLabel, useGymMembers, useRemoveMembership, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
-import { StudentModalityEnrollments } from '@screens/ranking/StudentModalityEnrollments';
-import { StudentClassEnrollments } from '@screens/ranking/StudentClassEnrollments';
 import { CompetitorSection } from '@screens/competition/CompetitorSection';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
@@ -47,6 +45,7 @@ import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
 import { formatDate, SheetForm } from './shared';
+import { StudentModalitiesSection } from './StudentModalitiesSection';
 
 /**
  * Staff: one member of the academy.
@@ -178,11 +177,9 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
           />
         ) : null}
 
-        <StudentModalityEnrollments academyId={academyId} membershipId={member.id} />
+        <StudentModalitiesSection member={member} modalities={allModalities} />
 
-        <StudentClassEnrollments academyId={academyId} membershipId={member.id} />
-
-        <CompetitorSection member={member} />
+        <CompetitorSection member={member} modalities={allModalities} />
 
         <Box gap="s12">
           <Text variant="captionCaps">Histórico de faixas</Text>

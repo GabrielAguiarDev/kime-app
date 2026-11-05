@@ -67,7 +67,7 @@ export function SignUpScreen() {
         <Text variant="body" color="textMuted">
           {academy
             ? 'Crie sua conta para pedir entrada na academia.'
-            : 'Crie sua conta. Depois você cadastra sua academia ou entra com um código de professor.'}
+            : 'Crie sua conta. Depois você entra numa academia com o código de convite ou cadastra a sua.'}
         </Text>
         <TextField
           label="Nome"

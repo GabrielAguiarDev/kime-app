@@ -1,94 +1,54 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView } from 'react-native';
 
-import {
-  BottomSheet,
-  Box,
-  Button,
-  Card,
-  ChoiceRow,
-  Icon,
-  Screen,
-  SelectionCard,
-  Text,
-  TextButton,
-  TextField,
-} from '@components';
+import { BottomSheet, Box, Button, Card, Icon, RoundButton, Screen, Text } from '@components';
 import { useModalities } from '@domain/Classes';
 import {
-  BUILT_IN_PRESETS,
   builtInFor,
   builtInsForAcademy,
-  describeConfig,
   formatClock,
-  isValidConfig,
-  LIMITS,
-  parseDuration,
-  useTimerPresetMutations,
+  sameConfig,
+  summaryLine,
   useTimerPresets,
   type TimerConfig,
   type TimerPreset,
 } from '@domain/Timer';
-import { errorMessage, keyValueStorage } from '@infra';
-import { SheetForm } from '@screens/professor/shared';
+import { keyValueStorage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
 import { startTimer, timerSoundsAvailable, useTimerSession } from '@services/timer';
+import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
-interface Fields {
-  rounds: string;
-  round: string;
-  rest: string;
-  warning: string;
-}
+import { AdjustSheet, PresetForm } from './TimerSheets';
 
-const toFields = (c: TimerConfig): Fields => ({
-  rounds: String(c.rounds),
-  round: formatClock(c.roundSeconds * 1000),
-  rest: formatClock(c.restSeconds * 1000),
-  warning: String(c.warningSeconds),
+const toConfig = (p: TimerConfig): TimerConfig => ({
+  rounds: p.rounds,
+  roundSeconds: p.roundSeconds,
+  restSeconds: p.restSeconds,
+  warningSeconds: p.warningSeconds,
 });
 
-function toConfig(f: Fields): TimerConfig | null {
-  const rounds = Number(f.rounds);
-  const roundSeconds = parseDuration(f.round);
-  const restSeconds = parseDuration(f.rest);
-  const warningSeconds = f.warning.trim() === '' ? 0 : Number(f.warning);
-  if (!Number.isInteger(rounds) || roundSeconds === null || restSeconds === null || !Number.isInteger(warningSeconds)) {
-    return null;
-  }
-  const config = { rounds, roundSeconds, restSeconds, warningSeconds };
-  return isValidConfig(config) ? config : null;
-}
-
-const sameConfig = (a: TimerConfig, b: TimerConfig) =>
-  a.rounds === b.rounds &&
-  a.roundSeconds === b.roundSeconds &&
-  a.restSeconds === b.restSeconds &&
-  a.warningSeconds === b.warningSeconds;
-
-interface LastUsed {
-  presetId: string;
-  config: TimerConfig;
-}
-
-function readLast(scope: string): LastUsed | null {
+/** Last preset started (adjustments are for one session, so only the id counts). */
+function readLastPresetId(scope: string): string | null {
   try {
     const raw = keyValueStorage.getScoped('timerLast', scope);
-    return raw ? (JSON.parse(raw) as LastUsed) : null;
+    return raw ? ((JSON.parse(raw) as { presetId?: string }).presetId ?? null) : null;
   } catch {
     return null;
   }
 }
 
+type Sheet = { kind: 'adjust' } | { kind: 'create' } | { kind: 'edit'; preset: TimerPreset };
+
 /**
- * Timer (tab for staff; students open it from Aulas). Opens on the last preset
- * used — or the modality's preset when coming from a class ("Timer") — with
- * "Iniciar" in focus. Presets switch with one tap; adjustments are for this
- * session. The owner saves the academy's presets (optionally for a modality).
+ * Timer (tab for staff; students open it from Aulas). Check and start in a
+ * few seconds: preset chips on top (the last one used is selected), the
+ * round length in the middle, "Ajustar" for this session, and a big round
+ * start button within thumb reach. The owner creates presets with "+" and
+ * edits / deletes them with a long press on the chip.
  */
 export function TimerSetupScreen() {
   const { modality: modalityParam } = useLocalSearchParams<{ modality?: string }>();
@@ -106,17 +66,18 @@ export function TimerSetupScreen() {
   const all = [...(presets.data ?? []), ...builtIns];
   const loading = presets.isLoading || modalities.isLoading;
   const [picked, setPicked] = useState<TimerPreset | null>(null);
-  const [fields, setFields] = useState<Fields | null>(null);
+  const [config, setConfig] = useState<TimerConfig | null>(null);
   const [appliedModality, setAppliedModality] = useState<string | undefined>(undefined);
-  const [saving, setSaving] = useState(false);
+  const [sheet, setSheet] = useState<Sheet | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // Adjusted while rendering (React's "adjust state on prop change" pattern), not in effects.
-  // First open: the last preset used (with its adjustments), else the first one.
+  // First open: the last preset used, else the first one.
   if (!picked && !loading) {
-    const last = readLast(scope);
-    const preset = (last && all.find((p) => p.id === last.presetId)) ?? all[0]!;
+    const lastId = readLastPresetId(scope);
+    const preset = all.find((p) => p.id === lastId) ?? all[0]!;
     setPicked(preset);
-    setFields(toFields(last && last.presetId === preset.id ? last.config : preset));
+    setConfig(toConfig(preset));
   }
   // Coming from a class: that modality's preset, when the academy has one.
   if (modalityParam && modalityParam !== appliedModality && presets.data && modalities.data) {
@@ -126,11 +87,11 @@ export function TimerSetupScreen() {
     const preset = presets.data.find((p) => p.modalityId === modalityParam) ?? (name ? builtInFor(name) : undefined);
     if (preset) {
       setPicked(preset);
-      setFields(toFields(preset));
+      setConfig(toConfig(preset));
     }
   }
 
-  if (!picked || !fields) {
+  if (!picked || !config) {
     return (
       <Screen nativeHeader title="Timer" bottomInset={false}>
         <ActivityIndicator accessibilityLabel="Carregando" />
@@ -140,17 +101,19 @@ export function TimerSetupScreen() {
 
   // Just saved: the academy list brings it back with its real id.
   const selected = picked.id.startsWith('new:') ? (presets.data?.find((p) => p.name === picked.name) ?? picked) : picked;
-  const config = toConfig(fields);
-  const adjusted = !!config && !sameConfig(config, selected);
+  const adjusted = !sameConfig(config, selected);
+  const canManage = isOwner && !!academyId && !!userId;
 
   const pick = (p: TimerPreset) => {
     setPicked(p);
-    setFields(toFields(p));
+    setConfig(toConfig(p));
   };
-  const set = (key: keyof Fields) => (text: string) => setFields((f) => (f ? { ...f, [key]: text } : f));
+  const openSheet = (next: Sheet) => {
+    setSheet(next);
+    setSheetOpen(true);
+  };
 
   const start = async () => {
-    if (!config) return;
     if (running && running.state.phase !== 'done') {
       const ok = await confirm({
         title: 'Trocar o timer?',
@@ -159,32 +122,32 @@ export function TimerSetupScreen() {
       });
       if (!ok) return;
     }
-    haptics.tap();
-    keyValueStorage.setScoped('timerLast', scope, JSON.stringify({ presetId: selected.id, config } satisfies LastUsed));
+    keyValueStorage.setScoped('timerLast', scope, JSON.stringify({ presetId: selected.id }));
     await startTimer(selected.name, config);
     router.push('/timer/run');
   };
-
-  const roundsError =
-    fields.rounds && !(Number(fields.rounds) >= LIMITS.rounds.min && Number(fields.rounds) <= LIMITS.rounds.max)
-      ? `De ${LIMITS.rounds.min} a ${LIMITS.rounds.max}.`
-      : undefined;
-  const roundError = fields.round && parseDuration(fields.round) === null ? 'Use M:SS (ex.: 3:00).' : undefined;
-  const restError = fields.rest && parseDuration(fields.rest) === null ? 'Use M:SS (ex.: 1:00).' : undefined;
-  const warningError =
-    fields.warning && config === null && !roundsError && !roundError && !restError
-      ? 'O aviso precisa ser menor que o round (até 60 s).'
-      : undefined;
 
   return (
     <Screen
       nativeHeader
       title="Timer"
       bottomInset={false}
-      footer={<Button title={`Iniciar · ${selected.name}`} icon="play" disabled={!config} onPress={() => void start()} />}
+      footer={
+        <Box alignItems="center">
+          <RoundButton icon="play" accessibilityLabel={`Iniciar ${selected.name}`} onPress={() => void start()} />
+        </Box>
+      }
     >
       <Box gap="s24">
-        {running ? (
+        <PresetChips
+          presets={all}
+          selectedId={selected.id}
+          onPick={pick}
+          onLongPress={canManage ? (p) => openSheet({ kind: 'edit', preset: p }) : undefined}
+          onCreate={canManage ? () => openSheet({ kind: 'create' }) : undefined}
+        />
+
+        {running && running.state.phase !== 'done' ? (
           <Card
             selected
             onPress={() => router.push('/timer/run')}
@@ -197,123 +160,66 @@ export function TimerSetupScreen() {
             <Box flex={1} gap="s4">
               <Text variant="bodyStrong">Timer em andamento</Text>
               <Text variant="caption">
-                {running.title} ·{' '}
-                {running.state.phase === 'done' ? 'terminado' : `round ${running.state.round} de ${running.state.rounds}`}
+                {running.title} · round {running.state.round} de {running.state.rounds}
               </Text>
             </Box>
             <Icon name="chevronRight" color="textMuted" />
           </Card>
         ) : null}
 
-        {/* The configuration about to start. */}
-        <Card gap="s4">
-          <Text variant="captionCaps">{adjusted ? 'Ajustado para esta sessão' : 'Pronto para iniciar'}</Text>
-          <Text variant="title">{selected.name}</Text>
-          <Text variant="body" color="textMuted">
-            {config
-              ? `${describeConfig(config)}${config.warningSeconds ? ` · aviso ${config.warningSeconds} s` : ''}`
-              : 'Configuração inválida'}
+        {/* What is about to start. */}
+        <Box alignItems="center" gap="s4" paddingVertical="s48">
+          <Text variant="displayXl" accessibilityLabel={`Round de ${formatClock(config.roundSeconds * 1000)}`}>
+            {formatClock(config.roundSeconds * 1000)}
           </Text>
-        </Card>
+          <Text variant="body" color="textMuted">
+            {summaryLine(config)}
+          </Text>
+          {adjusted ? <Text variant="caption">Ajustado para esta sessão</Text> : null}
+          <Box marginTop="s16">
+            <Button title="Ajustar" variant="ghost" fullWidth={false} onPress={() => openSheet({ kind: 'adjust' })} />
+          </Box>
+        </Box>
 
         {!timerSoundsAvailable ? (
-          <Text variant="caption" color="warning">
+          <Text variant="caption" color="warning" textAlign="center">
             Os sinos e o timer em segundo plano chegam com a próxima atualização do app.
           </Text>
         ) : null}
-
-        <Box gap="s12">
-          <Text variant="captionCaps">Predefinições</Text>
-          {loading ? <ActivityIndicator /> : null}
-          {all.map((p) => (
-            <SelectionCard
-              key={p.id}
-              label={p.name}
-              description={`${describeConfig(p)}${p.warningSeconds ? ` · aviso ${p.warningSeconds} s` : ''}${p.builtIn ? '' : ' · da academia'}`}
-              selected={selected.id === p.id}
-              onPress={() => pick(p)}
-            />
-          ))}
-        </Box>
-
-        <Box gap="s12">
-          <Text variant="captionCaps">{isOwner ? 'Configuração' : 'Ajustar só nesta sessão'}</Text>
-          <Box flexDirection="row" gap="s12">
-            <Box flex={1}>
-              <TextField
-                label="Rounds"
-                value={fields.rounds}
-                onChangeText={set('rounds')}
-                keyboardType="number-pad"
-                maxLength={2}
-                errorMessage={roundsError}
-              />
-            </Box>
-            <Box flex={1}>
-              <TextField
-                label="Aviso antes do fim"
-                value={fields.warning}
-                onChangeText={set('warning')}
-                keyboardType="number-pad"
-                maxLength={2}
-                unit="s"
-                errorMessage={warningError}
-              />
-            </Box>
-          </Box>
-          <Box flexDirection="row" gap="s12">
-            <Box flex={1}>
-              <TextField
-                label="Round"
-                value={fields.round}
-                onChangeText={set('round')}
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-                placeholder="3:00"
-                errorMessage={roundError}
-              />
-            </Box>
-            <Box flex={1}>
-              <TextField
-                label="Descanso"
-                value={fields.rest}
-                onChangeText={set('rest')}
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-                placeholder="1:00"
-                errorMessage={restError}
-              />
-            </Box>
-          </Box>
-          <Text variant="caption">
-            Antes do primeiro round há 10 s para se preparar. Sino no início do round, três sinos no fim e batidas de madeira no
-            aviso. O timer continua com o app fechado ou a tela bloqueada.
-          </Text>
-        </Box>
-
-        {isOwner && academyId && userId && config ? (
-          <PresetActions
-            academyId={academyId}
-            userId={userId}
-            selected={selected}
-            config={config}
-            changed={adjusted}
-            onOpenSave={() => setSaving(true)}
-            onDeleted={() => pick(all.find((p) => p.builtIn) ?? BUILT_IN_PRESETS[0]!)}
-          />
-        ) : null}
       </Box>
 
-      <BottomSheet visible={saving} onRequestClose={() => setSaving(false)}>
-        {saving && academyId && userId && config ? (
-          <SavePresetForm
+      <BottomSheet visible={sheetOpen} onRequestClose={() => setSheetOpen(false)} onClosed={() => setSheet(null)}>
+        {sheet?.kind === 'adjust' ? (
+          <AdjustSheet
+            config={config}
+            onChange={setConfig}
+            onSaveAsPreset={canManage ? () => setSheet({ kind: 'create' }) : undefined}
+          />
+        ) : null}
+        {(sheet?.kind === 'create' || sheet?.kind === 'edit') && academyId && userId ? (
+          <PresetForm
+            key={sheet.kind === 'edit' ? sheet.preset.id : 'create'}
             academyId={academyId}
             userId={userId}
-            config={config}
+            initial={sheet.kind === 'edit' ? toConfig(sheet.preset) : config}
+            editing={sheet.kind === 'edit' ? sheet.preset : undefined}
             taken={new Set((presets.data ?? []).map((p) => p.modalityId).filter((m): m is string => !!m))}
-            onSaved={(name) => {
-              setSaving(false);
-              setPicked({ id: `new:${name}`, name, builtIn: false, ...config });
+            onSaved={(name, saved) => {
+              setSheetOpen(false);
+              if (sheet.kind === 'create') {
+                setPicked({ id: `new:${name}`, name, builtIn: false, ...saved });
+                setConfig(saved);
+              } else if (sheet.preset.id === selected.id) {
+                setPicked({ ...sheet.preset, name, ...saved });
+                setConfig(saved);
+              }
+            }}
+            onDeleted={() => {
+              setSheetOpen(false);
+              if (sheet.kind === 'edit' && sheet.preset.id === selected.id) {
+                const next = all.find((p) => p.id !== sheet.preset.id);
+                if (next) pick(next);
+              }
             }}
           />
         ) : null}
@@ -322,121 +228,110 @@ export function TimerSetupScreen() {
   );
 }
 
-function PresetActions({
-  academyId,
-  userId,
-  selected,
-  config,
-  changed,
-  onOpenSave,
-  onDeleted,
+/**
+ * One horizontal line of compact selection chips (name only), scrolling
+ * sideways without a bar. Selected: accent border + accent at 8%. Owner:
+ * "+" at the end creates; a long press on an academy preset edits it.
+ */
+function PresetChips({
+  presets,
+  selectedId,
+  onPick,
+  onLongPress,
+  onCreate,
 }: {
-  academyId: string;
-  userId: string;
-  selected: TimerPreset;
-  config: TimerConfig;
-  changed: boolean;
-  onOpenSave: () => void;
-  onDeleted: () => void;
+  presets: TimerPreset[];
+  selectedId: string;
+  onPick: (p: TimerPreset) => void;
+  onLongPress?: (p: TimerPreset) => void;
+  onCreate?: () => void;
 }) {
-  const { update, remove } = useTimerPresetMutations(academyId, userId);
-  const confirm = useConfirm();
-  const own = !selected.builtIn && !selected.id.startsWith('new:');
-  const onError = (e: unknown) => Alert.alert('Predefinições', errorMessage(e));
+  const { spacing } = useAppTheme();
   return (
-    <Box gap="s8">
-      <TextButton title="Salvar como predefinição da academia" icon="plus" onPress={onOpenSave} />
-      {own && changed ? (
-        <TextButton
-          title={`Atualizar "${selected.name}"`}
-          disabled={update.isPending}
-          onPress={() => update.mutate({ id: selected.id, config }, { onSuccess: () => haptics.success(), onError })}
-        />
-      ) : null}
-      {own ? (
-        <TextButton
-          title={`Apagar "${selected.name}"`}
-          color="danger"
-          disabled={remove.isPending}
-          onPress={async () => {
-            const ok = await confirm({
-              title: 'Apagar predefinição?',
-              message: `"${selected.name}" sai da lista da academia.`,
-              confirmLabel: 'Apagar',
-              tone: 'danger',
-            });
-            if (ok) remove.mutate(selected.id, { onSuccess: onDeleted, onError });
-          }}
-        />
-      ) : null}
-    </Box>
+    // Bleeds to the screen edges so chips scroll under the margins.
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ marginHorizontal: -spacing.screenMargin }}
+      contentContainerStyle={{ paddingHorizontal: spacing.screenMargin, gap: spacing.s8 }}
+      accessibilityLabel="Predefinições"
+    >
+      {presets.map((p) => {
+        const editable = !!onLongPress && !p.builtIn && !p.id.startsWith('new:');
+        return (
+          <Chip
+            key={p.id}
+            label={p.name}
+            selected={p.id === selectedId}
+            onPress={() => onPick(p)}
+            onLongPress={
+              editable
+                ? () => {
+                    haptics.tap();
+                    onLongPress(p);
+                  }
+                : undefined
+            }
+            accessibilityHint={editable ? 'Toque longo para editar ou apagar' : undefined}
+          />
+        );
+      })}
+      {onCreate ? <Chip icon="plus" label="Nova predefinição" selected={false} onPress={onCreate} /> : null}
+    </ScrollView>
   );
 }
 
-const NO_MODALITY = 'none';
-
-function SavePresetForm({
-  academyId,
-  userId,
-  config,
-  taken,
-  onSaved,
+function Chip({
+  label,
+  icon,
+  selected,
+  onPress,
+  onLongPress,
+  accessibilityHint,
 }: {
-  academyId: string;
-  userId: string;
-  config: TimerConfig;
-  /** Modalities that already have a preset (one per modality). */
-  taken: Set<string>;
-  onSaved: (name: string) => void;
+  label: string;
+  /** Icon-only chip ("+"); `label` becomes its accessibility label. */
+  icon?: 'plus';
+  selected: boolean;
+  onPress: () => void;
+  onLongPress?: () => void;
+  accessibilityHint?: string;
 }) {
-  const { create } = useTimerPresetMutations(academyId, userId);
-  const modalities = useModalities(academyId);
-  const [name, setName] = useState('');
-  const [modality, setModality] = useState<string>(NO_MODALITY);
-  const trimmed = name.trim();
-  const options = [
-    { value: NO_MODALITY, label: 'Nenhuma' },
-    ...(modalities.data ?? []).filter((m) => !taken.has(m.id)).map((m) => ({ value: m.id, label: m.name })),
-  ];
+  const { size, border } = useAppTheme();
   return (
-    <SheetForm
-      title="Nova predefinição"
-      actions={
-        <Button
-          title="Salvar"
-          disabled={trimmed.length === 0}
-          loading={create.isPending}
-          onPress={() =>
-            create.mutate(
-              { name: trimmed, config, modalityId: modality === NO_MODALITY ? null : modality },
-              {
-                onSuccess: () => {
-                  haptics.success();
-                  onSaved(trimmed);
-                },
-              },
-            )
-          }
-        />
-      }
+    <Pressable
+      onPress={() => {
+        haptics.tap();
+        onPress();
+      }}
+      onLongPress={onLongPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ selected }}
     >
-      <Text variant="body" color="textMuted">
-        {describeConfig(config)}
-        {config.warningSeconds ? ` · aviso ${config.warningSeconds} s` : ''}. Todos da academia veem esta predefinição.
-      </Text>
-      <TextField label="Nome" value={name} onChangeText={setName} maxLength={40} placeholder="Ex.: Sparring de quinta" autoFocus />
-      {options.length > 1 ? (
-        <Box gap="s8">
-          <Text variant="captionCaps">Usar nas aulas de</Text>
-          <ChoiceRow accessibilityLabel="Modalidade da predefinição" options={options} value={modality} onChange={setModality} />
-          <Text variant="caption">O botão Timer de uma aula dessa modalidade abre esta predefinição.</Text>
+      {({ pressed }) => (
+        // TODO(motion): chip selection changing (border / fill).
+        <Box
+          height={size.touchTarget}
+          minWidth={size.touchTarget}
+          paddingHorizontal={icon ? 's8' : 's16'}
+          alignItems="center"
+          justifyContent="center"
+          borderRadius="sm"
+          borderWidth={border.width}
+          borderColor={selected ? 'accent' : 'border'}
+          backgroundColor={selected ? 'accentSelected' : pressed ? 'surfaceRaised' : 'surface'}
+        >
+          {icon ? (
+            <Icon name={icon} color="accent" />
+          ) : (
+            <Text variant="bodyStrong" color={selected ? 'accent' : 'text'} numberOfLines={1}>
+              {label}
+            </Text>
+          )}
         </Box>
-      ) : null}
-      {create.error ? (
-        <Text variant="caption" color="danger">
-          {errorMessage(create.error)}
-        </Text>
-      ) : null}
-    </SheetForm>
+      )}
+    </Pressable>
   );
 }

@@ -18,15 +18,12 @@ import {
   TextField,
 } from '@components';
 import {
-  trainedModalities,
   useAcademyCheckins,
   useAcademyToday,
   useClassSessions,
   useConfirmAll,
   useDecideCheckin,
   useMarkAttendance,
-  useModalities,
-  useModalityStats,
   useSchedules,
   type AcademyCheckin,
   type ClassSchedule,
@@ -275,19 +272,20 @@ function MarkAttendanceForm({
   const { userId } = useSession();
   const mark = useMarkAttendance(academyId, userId ?? '');
   const decide = useDecideCheckin(academyId);
-  const modalities = useModalities(academyId);
-  const stats = useModalityStats(academyId);
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<GymMember | null>(null);
 
+  // Only students with an active link to the class modality (the database
+  // refuses the others), in the list and in the search.
   const listed = new Set(checkins.filter((c) => c.status !== 'rejected').map((c) => c.userId));
-  const students = members.filter((m) => m.role === 'student' && !listed.has(m.userId));
-  const trains = (m: GymMember) => {
-    const own = (stats.data ?? []).filter((s) => s.membershipId === m.id);
-    return trainedModalities(modalities.data ?? [], own).some((x) => x.id === schedule.modalityId);
-  };
+  const students = members.filter(
+    (m) =>
+      m.role === 'student' &&
+      !listed.has(m.userId) &&
+      m.modalities.some((l) => l.modalityId === schedule.modalityId),
+  );
   const q = query.trim().toLowerCase();
-  const shown = (q ? students.filter((m) => m.fullName.toLowerCase().includes(q)) : students.filter(trains)).sort((a, b) =>
+  const shown = (q ? students.filter((m) => m.fullName.toLowerCase().includes(q)) : students).sort((a, b) =>
     a.fullName.localeCompare(b.fullName),
   );
   const pending = mark.isPending || decide.isPending;
@@ -316,10 +314,9 @@ function MarkAttendanceForm({
       </Text>
       <TextField label="Buscar aluno" value={query} onChangeText={setQuery} placeholder="Nome" autoCorrect={false} />
       {!q ? <Text variant="captionCaps">Treinam {schedule.modality}</Text> : null}
-      {modalities.isLoading || stats.isLoading ? <ActivityIndicator /> : null}
-      {shown.length === 0 && !modalities.isLoading && !stats.isLoading ? (
+      {shown.length === 0 ? (
         <Text variant="body" color="textMuted">
-          {q ? 'Nenhum aluno com esse nome.' : 'Ninguém desta modalidade fora da lista. Busque pelo nome.'}
+          {q ? `Nenhum aluno de ${schedule.modality} com esse nome.` : 'Ninguém desta modalidade fora da lista.'}
         </Text>
       ) : null}
       {shown.map((m) => (

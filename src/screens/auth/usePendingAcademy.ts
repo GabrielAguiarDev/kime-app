@@ -5,7 +5,7 @@ import { pendingCode } from '@services/entry';
 
 /**
  * Academy of the code confirmed before signing in (shown on top of the auth
- * screens). A saved code that stopped working (revoked, used, expired) is
+ * screens). A saved code that stopped working (replaced by a new one) is
  * forgotten right away instead of failing after the sign-in.
  */
 export function usePendingAcademy(): CodeLookup | null {

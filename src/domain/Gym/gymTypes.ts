@@ -18,11 +18,13 @@ export interface JoinResult {
   isNew: boolean;
 }
 
-/** A live professor code (single use, 7 days), as the owner sees it. */
-export interface ProfessorCode {
-  id: string;
-  code: string;
-  expiresAt: string;
+/**
+ * The academy's two fixed, reusable invite codes (one active per kind).
+ * Instructors only see the student one (RLS), so `instructor` may be absent.
+ */
+export interface InviteCodes {
+  student?: string;
+  instructor?: string;
 }
 
 export interface GymSettings {

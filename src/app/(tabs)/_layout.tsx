@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@components';
 import { useActiveGym } from '@services/activeGym';
+import { useActiveModality } from '@services/activeModality';
 import { useAppTheme } from '@theme';
 
 function tabIcon(name: IconName) {
@@ -18,12 +19,14 @@ function tabIcon(name: IconName) {
  * Icon-only tab bar (DESIGN-SYSTEM.md, 3.9): 64 + safe area, surface, 2px top border.
  * Tabs per role:
  *  - student:    Início, Aulas, Perfil
- *  - competitor: Início, Aulas, Competição, Perfil
+ *  - competitor: Início, Aulas, Competição, Perfil (only while the modality picked
+ *    in the Início header is one the student competes in)
  *  - staff (owner or professor): Início, Aulas, Timer, Equipe, Perfil
  *    (check-ins are confirmed in each class's attendance list; join requests are notices).
  */
 export default function TabsLayout() {
-  const { isStaff, isCompetitor } = useActiveGym();
+  const { isStaff } = useActiveGym();
+  const { competesInSelected } = useActiveModality();
   const { colors, size, border } = useAppTheme();
   const { bottom } = useSafeAreaInsets();
 
@@ -67,7 +70,7 @@ export default function TabsLayout() {
         name="classes"
         options={{ title: 'Aulas', tabBarAccessibilityLabel: 'Aulas', tabBarIcon: tabIcon('calendar') }}
       />
-      <Tabs.Protected guard={isCompetitor && !isStaff}>
+      <Tabs.Protected guard={competesInSelected && !isStaff}>
         <Tabs.Screen
           name="competition"
           options={{ title: 'Competição', tabBarAccessibilityLabel: 'Competição', tabBarIcon: tabIcon('trophy') }}

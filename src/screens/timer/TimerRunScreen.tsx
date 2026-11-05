@@ -1,12 +1,13 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Box, Button, ConfirmSheet, Icon, Text, type IconName } from '@components';
-import { formatClock, type TimerState } from '@domain/Timer';
-import { pauseTimer, resumeTimer, skipTimer, stopTimer, useTimerSession, type TimerSession } from '@services/timer';
+import { BigCounter, Box, Button, ConfirmSheet, Icon, Mascot, Text, type IconName } from '@components';
+import { formatClock, roundsDone, type TimerState } from '@domain/Timer';
+import { pauseTimer, resumeTimer, skipTimer, stopTimer, useTimerSession } from '@services/timer';
 import { useAppTheme, type ColorToken } from '@theme';
 import { haptics } from '@utils/haptics';
 
@@ -15,41 +16,28 @@ interface Look {
   fg: ColorToken;
 }
 
-/** Colors by state, readable across the room (tokens only). */
+/**
+ * Colors by state, readable across the room (tokens only): round accent,
+ * rest water, final warning warning. Preparation and pause stay neutral.
+ */
 function lookOf(state: TimerState, paused: boolean): Look {
-  if (paused) return { bg: 'surfaceRaised', fg: 'text' };
-  if (state.phase === 'done') return { bg: 'bg', fg: 'text' };
-  if (state.warning) return { bg: 'danger', fg: 'onDanger' };
-  if (state.phase === 'prep') return { bg: 'warning', fg: 'onWarning' };
+  if (paused || state.phase === 'prep') return { bg: 'surfaceRaised', fg: 'text' };
+  if (state.warning) return { bg: 'warning', fg: 'onWarning' };
   if (state.phase === 'rest') return { bg: 'water', fg: 'onWater' };
-  return { bg: 'success', fg: 'onSuccess' };
+  return { bg: 'accent', fg: 'onAccent' };
 }
 
 function phaseLabel(state: TimerState, paused: boolean): string {
-  const base =
-    state.phase === 'prep'
-      ? 'Prepare-se'
-      : state.phase === 'rest'
-        ? 'Descanso'
-        : state.phase === 'done'
-          ? 'Fim do treino'
-          : `Round ${state.round} de ${state.rounds}`;
-  return paused ? `${base} · pausado` : base;
-}
-
-/** What comes after the current phase. */
-function nextLabel(session: TimerSession): string | null {
-  const i = session.state.segmentIndex;
-  if (i < 0) return null;
-  const next = session.segments[i + 1];
-  if (!next) return 'Último round';
-  const length = formatClock(next.endMs - next.startMs);
-  return next.phase === 'rest' ? `Depois: descanso ${length}` : `Depois: round ${next.round} (${length})`;
+  if (paused) return 'Pausado';
+  if (state.phase === 'prep') return 'Prepare-se';
+  if (state.phase === 'rest') return 'Descanso';
+  return 'Round';
 }
 
 /**
- * The running timer, full screen: state color, huge time left, round, what
- * comes next, and pause / previous / next / end. The screen stays on.
+ * The running timer, full screen (no tab bar, no header, screen always on):
+ * preset and round on top, state label and a huge time left in the middle,
+ * round segments under it, and end / pause / next at the bottom.
  */
 export function TimerRunScreen() {
   useKeepAwake();
@@ -60,13 +48,34 @@ export function TimerRunScreen() {
   const [confirmingEnd, setConfirmingEnd] = useState(false);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/timer'));
+  const finish = async () => {
+    setConfirmingEnd(false);
+    await stopTimer();
+    close();
+  };
 
-  if (!session) {
+  if (!session || session.state.phase === 'done') {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
-        <Box flex={1} alignItems="center" justifyContent="center" padding="screenMargin" gap="s16">
-          <Text variant="heading">Nenhum timer em andamento.</Text>
-          <Button title="Configurar timer" variant="secondary" fullWidth={false} onPress={() => router.replace('/timer')} />
+        <StatusBar style="light" />
+        <Box flex={1} padding="screenMargin" gap="s24">
+          <Box flex={1} alignItems="center" justifyContent="center" gap="s24">
+            {session ? (
+              <>
+                <Mascot expression="celebrating" size="empty" />
+                <Text variant="title" textAlign="center" accessibilityRole="header">
+                  Treino concluído
+                </Text>
+                <BigCounter value={session.config.rounds} label={session.config.rounds === 1 ? 'Round' : 'Rounds'} />
+                <Text variant="body" color="textMuted">
+                  {session.title}
+                </Text>
+              </>
+            ) : (
+              <Text variant="heading">Nenhum timer em andamento.</Text>
+            )}
+          </Box>
+          <Button title="Voltar" onPress={() => void finish()} />
         </Box>
       </SafeAreaView>
     );
@@ -75,31 +84,25 @@ export function TimerRunScreen() {
   const paused = session.clock.pausedAt !== null;
   const { state } = session;
   const look = lookOf(state, paused);
-  const done = state.phase === 'done';
-
-  const finish = async () => {
-    setConfirmingEnd(false);
-    await stopTimer();
-    close();
-  };
-  const end = () => {
-    if (done) void finish();
-    else setConfirmingEnd(true);
-  };
+  const done = roundsDone(state);
 
   return (
-    // TODO(motion): background color changing between phases.
+    // TODO(motion): background color changing between states (round / rest / warning / pause).
     <SafeAreaView style={{ flex: 1, backgroundColor: colors[look.bg] }}>
+      <StatusBar style={look.fg === 'onWarning' ? 'dark' : 'light'} />
       <Box flex={1} paddingHorizontal="screenMargin" paddingVertical="s16">
-        <Box flexDirection="row" alignItems="center" justifyContent="space-between">
-          <Text variant="heading" color={look.fg} flex={1} numberOfLines={1}>
+        <Box flexDirection="row" alignItems="center" gap="s12">
+          <Text variant="bodyStrong" color={look.fg} flex={1} numberOfLines={1}>
             {session.title}
           </Text>
-          <RoundButton icon="missed" label={done ? 'Fechar' : 'Encerrar timer'} color={look.fg} onPress={end} />
+          <Text variant="bodyStrong" color={look.fg}>
+            Round {state.round} de {state.rounds}
+          </Text>
         </Box>
 
-        <Box flex={1} alignItems="center" justifyContent="center" gap="s8">
-          <Text variant="title" color={look.fg} textTransform="uppercase" accessibilityRole="header">
+        <Box flex={1} alignItems="center" justifyContent="center" gap="s16">
+          {/* TODO(motion): state label switching (ROUND / DESCANSO). */}
+          <Text variant="captionCaps" color={look.fg} accessibilityRole="header">
             {phaseLabel(state, paused)}
           </Text>
           {/* TODO(motion): digits flipping every second. */}
@@ -110,34 +113,22 @@ export function TimerRunScreen() {
             adjustsFontSizeToFit
             accessibilityLabel={`${formatClock(state.remainingMs)} restantes`}
           >
-            {done ? '0:00' : formatClock(state.remainingMs)}
+            {formatClock(state.remainingMs)}
           </Text>
-          {!done ? (
-            <Text variant="heading" color={look.fg}>
-              {nextLabel(session)}
-            </Text>
-          ) : null}
+          <RoundSegments total={state.rounds} done={done} color={look.fg} />
         </Box>
 
-        {done ? (
-          <Button title="Fechar" variant="secondary" onPress={end} />
-        ) : (
-          <Box flexDirection="row" alignItems="center" justifyContent="space-evenly">
-            <RoundButton icon="skipBack" label="Fase anterior" color={look.fg} onPress={() => skipTimer(-1)} />
-            <RoundButton
-              big
-              icon={paused ? 'play' : 'pause'}
-              label={paused ? 'Continuar' : 'Pausar'}
-              color={look.fg}
-              onPress={() => {
-                haptics.tap();
-                if (paused) resumeTimer();
-                else pauseTimer();
-              }}
-            />
-            <RoundButton icon="skipForward" label="Próxima fase" color={look.fg} onPress={() => skipTimer(1)} />
-          </Box>
-        )}
+        <Box flexDirection="row" alignItems="center" justifyContent="space-evenly">
+          <ControlButton icon="missed" label="Encerrar timer" look={look} onPress={() => setConfirmingEnd(true)} />
+          <ControlButton
+            big
+            icon={paused ? 'play' : 'pause'}
+            label={paused ? 'Continuar' : 'Pausar'}
+            look={look}
+            onPress={() => (paused ? resumeTimer() : pauseTimer())}
+          />
+          <ControlButton icon="skipForward" label="Pular para a próxima fase" look={look} onPress={() => skipTimer(1)} />
+        </Box>
       </Box>
       <ConfirmSheet
         visible={confirmingEnd}
@@ -152,38 +143,70 @@ export function TimerRunScreen() {
   );
 }
 
-function RoundButton({
+/** One segment per round: finished ones filled, the rest outlined. */
+function RoundSegments({ total, done, color }: { total: number; done: number; color: ColorToken }) {
+  const { border, size } = useAppTheme();
+  return (
+    <Box
+      flexDirection="row"
+      gap="s4"
+      alignSelf="stretch"
+      accessible
+      accessibilityLabel={`${done} de ${total} rounds concluídos`}
+    >
+      {Array.from({ length: total }, (_, i) => (
+        // TODO(motion): segment filling when a round ends.
+        <Box
+          key={i}
+          flex={1}
+          height={size.progressBar}
+          borderRadius="sm"
+          borderWidth={border.width}
+          borderColor={color}
+          backgroundColor={i < done ? color : 'transparent'}
+        />
+      ))}
+    </Box>
+  );
+}
+
+/** Side controls outlined in the text color; the main one filled with it, icon in the screen color. */
+function ControlButton({
   icon,
   label,
-  color,
+  look,
   onPress,
   big = false,
 }: {
   icon: IconName;
   label: string;
-  color: ColorToken;
+  look: Look;
   onPress: () => void;
   big?: boolean;
 }) {
   const { size, border, colors } = useAppTheme();
-  const diameter = big ? size.touchTarget * 2 : size.touchTarget * 1.25;
+  const diameter = big ? size.touchTarget * 2.25 : size.touchTarget * 1.5;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        haptics.tap();
+        onPress();
+      }}
       accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => ({
         width: diameter,
         height: diameter,
         borderRadius: diameter / 2,
+        backgroundColor: big ? colors[look.fg] : 'transparent',
         // Pressed: thicker ring (no animation; see TODO(motion) on the tactile button).
         borderWidth: pressed ? border.width * 2 : border.width,
-        borderColor: colors[color],
+        borderColor: colors[look.fg],
         alignItems: 'center',
         justifyContent: 'center',
       })}
     >
-      <Icon name={icon} color={color} active={big} size={big ? size.icon * 2 : size.icon} />
+      <Icon name={icon} color={big ? look.bg : look.fg} active size={big ? size.icon * 2 : size.icon * 1.5} />
     </Pressable>
   );
 }

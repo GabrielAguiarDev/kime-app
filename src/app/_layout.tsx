@@ -12,11 +12,13 @@ import { useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { queryClient } from "@infra";
+import { useRefreshOnNavigation } from "@infra/query";
 import { useNativeHeaderOptions } from "@components";
 import { useRouteAccess } from "@services/access";
 import { useCountdownWidget } from "@services/competition";
 import { useClassReminders } from "@services/reminders";
 import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
+import { ActiveModalityProvider } from "@services/activeModality";
 import { ConfirmProvider } from "@services/confirm";
 import { useConsumePendingCode } from "@services/entry";
 import { useRecordWaterGoal, useWaterSync, useWidgetConfig } from "@services/water";
@@ -50,10 +52,12 @@ export default function RootLayout() {
           <NavigationThemeProvider value={navigationTheme}>
             <SessionProvider>
               <ActiveGymProvider>
-                <ConfirmProvider>
-                  <StatusBar style="light" />
-                  <RootNavigator fontsReady={fontsLoaded || !!fontError} />
-                </ConfirmProvider>
+                <ActiveModalityProvider>
+                  <ConfirmProvider>
+                    <StatusBar style="light" />
+                    <RootNavigator fontsReady={fontsLoaded || !!fontError} />
+                  </ConfirmProvider>
+                </ActiveModalityProvider>
               </ActiveGymProvider>
             </SessionProvider>
           </NavigationThemeProvider>
@@ -67,9 +71,10 @@ export default function RootLayout() {
  * Route access lives in ONE place: services/access (routeAccess). Every guard
  * below reads it and, when a screen is not allowed (in-app navigation, deep
  * link, widget, notification), redirects to the user's home for their state:
- *  - signed out                         → /start   (entry flow)
- *  - signed in, no approved membership  → /welcome (waiting screen)
- *  - approved membership                → /home    (staff/owner screens also check the role)
+ *  - signed out                                → /start      (entry flow)
+ *  - signed in, no approved membership/request → /academia   (code / create academy)
+ *  - signed in, a pending request              → /aguardando (waiting screen)
+ *  - approved membership                       → /home       (staff/owner screens also check the role)
  * "/" (src/app/index.tsx) redirects to that same home. `entrar` is part of the
  * entry flow (code → academy confirmation) and stays reachable in every state.
  */
@@ -80,6 +85,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   // Inner screens (pushed over the tabs) use the native header; flows (entry, onboarding) do not.
   const header = useNativeHeaderOptions();
   useConsumePendingCode();
+  useRefreshOnNavigation();
   useWaterSync();
   useWidgetConfig();
   useCountdownWidget();

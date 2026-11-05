@@ -10,9 +10,10 @@ const period = { from: '2026-11-01', to: '2026-11-28' };
 const request = (modalityId: string): RankingRequest => ({ academyId: 'academy', modalityId, startDate: period.from, endDate: period.to });
 const row = (modalityId: string, done = true) => ({
   user_id: 'student', full_name: 'Student', avatar_path: null, modality_id: modalityId,
-  today: '2026-11-29', period_from: period.from, period_to: period.to,
-  attendance: [{ id: `${modalityId}:class`, day: '2026-11-01', done }],
-  hydration: [{ day: '2026-11-01', known: true, eligible: true, done: true }],
+  today: '2026-11-29', period_from: period.from, period_to: period.to, weekly_goal: 2,
+  // One eligible day in the last week (prorated goal 2/7): one class = 100 %.
+  attendance: [{ day: '2026-11-28', classes: done ? 1 : 0 }],
+  hydration: [{ day: '2026-11-28', known: true, eligible: true, done: true }],
 });
 
 beforeEach(() => rpc.mockReset());
@@ -32,8 +33,8 @@ it('uses different cache entries and different calculations on modality changes'
     const mt = await cache.fetchQuery({ queryKey: rankingQueryKey('academy', 'mt', period), queryFn: () => fetchRanking(request('mt')) });
     const bjj = await cache.fetchQuery({ queryKey: rankingQueryKey('academy', 'bjj', period), queryFn: () => fetchRanking(request('bjj')) });
     expect(rpc).toHaveBeenCalledTimes(2);
-    expect(mt[0]).toMatchObject({ modalityId: 'mt', attendanceRate: 1, penaltyPoints: 0, rankingScore: 100 });
-    expect(bjj[0]).toMatchObject({ modalityId: 'bjj', attendanceRate: 0, penaltyPoints: 5, rankingScore: 35 });
+    expect(mt[0]).toMatchObject({ modalityId: 'mt', attendanceRate: 1, rankingScore: 100 });
+    expect(bjj[0]).toMatchObject({ modalityId: 'bjj', attendanceRate: 0, rankingScore: 30 });
     expect(cache.getQueryData(rankingQueryKey('academy', 'mt', period))).toEqual(mt);
   } finally { cache.clear(); }
 });

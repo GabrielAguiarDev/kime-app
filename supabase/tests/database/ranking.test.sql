@@ -42,8 +42,9 @@ create function pg_temp.facts() returns jsonb language sql as $$
 select to_jsonb(r) from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-1,private.academy_local_date(pg_temp.id('academy'))-1) r where r.user_id=pg_temp.id('student')$$;
 grant execute on function pg_temp.facts() to public;
 select pg_temp.login(pg_temp.id('student'));
-select is(jsonb_array_length(pg_temp.facts()->'attendance'),1,'only the explicitly required class is eligible');
-select is(pg_temp.facts()->'attendance'->0->>'done','false','a required absence is an uncompleted obligation');
+select is(jsonb_array_length(pg_temp.facts()->'attendance'),1,'attendance has one entry per eligible day');
+select is(pg_temp.facts()->'attendance'->0->>'classes','0','an eligible day without a confirmed check-in has zero classes');
+select is(pg_temp.facts()->>'weekly_goal','2','the weekly goal defaults to the modality goal');
 select throws_ok($$select public.set_student_class_enrollment(pg_temp.id('membership'),pg_temp.id('optional'),true)$$,'42501','forbidden','student cannot assign their own obligations');
 select throws_ok($$update public.student_class_enrollments set ends_on=current_date$$,'42501',null,'student cannot remove past obligations');
 select throws_ok($$insert into public.water_goal_days(user_id,day,goal_ml) values(pg_temp.id('student'),current_date,1)$$,'42501',null,'client cannot forge a hydration goal');
@@ -51,18 +52,15 @@ select throws_ok($$update public.water_goal_days set goal_ml=1$$,'42501',null,'c
 select pg_temp.logout();
 insert into public.checkins(user_id,academy_id,schedule_id,class_date,status)
 values(pg_temp.id('student'),pg_temp.id('academy'),pg_temp.id('required'),private.academy_local_date(pg_temp.id('academy'))-1,'confirmed');
-select is(pg_temp.facts()->'attendance'->0->>'done','true','confirmed check-in completes the required class');
+select is(pg_temp.facts()->'attendance'->0->>'classes','1','a confirmed check-in counts as one class that day');
 select throws_ok($$insert into public.checkins(user_id,academy_id,schedule_id,class_date,status) values(pg_temp.id('student'),pg_temp.id('academy'),pg_temp.id('required'),private.academy_local_date(pg_temp.id('academy'))-1,'confirmed')$$,'23505',null,'duplicate check-in is rejected');
 insert into public.checkins(user_id,academy_id,schedule_id,class_date,status)
 values(pg_temp.id('student'),pg_temp.id('academy'),pg_temp.id('optional'),private.academy_local_date(pg_temp.id('academy'))-1,'confirmed');
-select is(jsonb_array_length(pg_temp.facts()->'attendance'),1,'optional attendance supplies no unfair extra points or obligations');
+select is(jsonb_array_length(pg_temp.facts()->'attendance'),1,'a second class on the same day does not add a day');
+select is(pg_temp.facts()->'attendance'->0->>'classes','2','every confirmed check-in of the modality counts, with or without a fixed commitment');
 insert into public.class_attendance_exceptions(academy_id,schedule_id,class_date,reason)
 values(pg_temp.id('academy'),pg_temp.id('required'),private.academy_local_date(pg_temp.id('academy'))-1,'Cancelled');
-select is(jsonb_array_length(pg_temp.facts()->'attendance'),0,'cancelled class is excluded');
-delete from public.class_attendance_exceptions;
-insert into public.class_attendance_exceptions(academy_id,schedule_id,membership_id,class_date,reason)
-values(pg_temp.id('academy'),pg_temp.id('required'),pg_temp.id('membership'),private.academy_local_date(pg_temp.id('academy'))-1,'Justified absence');
-select is(jsonb_array_length(pg_temp.facts()->'attendance'),0,'justified absence is excluded');
+select is(jsonb_array_length(pg_temp.facts()->'attendance'),1,'class exceptions no longer remove the day (no mandatory classes)');
 delete from public.class_attendance_exceptions;
 update private.membership_active_periods set starts_at=now() where membership_id=pg_temp.id('membership');
 select is(jsonb_array_length(pg_temp.facts()->'attendance'),0,'no obligation before membership activation');
@@ -107,7 +105,7 @@ select is(pg_temp.facts(),pg_temp.facts(),'repeated queries are deterministic');
 select pg_temp.logout();
 delete from public.class_schedules where id=pg_temp.id('required');
 select pg_temp.login(pg_temp.id('student'));
-select is(jsonb_array_length(pg_temp.facts()->'attendance'),1,'schedule deletion preserves past expected occurrence');
-select is(pg_temp.facts()->'attendance'->0->>'done','true','schedule deletion preserves its confirmed attendance');
+select is(jsonb_array_length(pg_temp.facts()->'attendance'),1,'schedule deletion keeps the eligible day');
+select is(pg_temp.facts()->'attendance'->0->>'classes','2','schedule deletion preserves the confirmed attendance of the day');
 select * from finish();
 rollback;

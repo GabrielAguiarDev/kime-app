@@ -26,6 +26,7 @@ import { LinkRow, Section, WaterPlanWeek, WeightRow, WeightSummary } from '@scre
 import { MealCard } from '@screens/diet/MealCard';
 import { WeightSheet } from '@screens/competition/WeightSheet';
 import { useActiveGym } from '@services/activeGym';
+import { useActiveModality, type LinkedModality } from '@services/activeModality';
 import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
 
@@ -33,13 +34,15 @@ import { useSession } from '@services/session';
 const WEIGHTS_SHOWN = 8;
 
 /**
- * Competição (competitors): countdown to the next championship, the other
- * championships, the professor's water plan of the week, weight log, and
- * "Sair da equipe".
+ * Competição (competitors of the selected modality): countdown to the next
+ * championship of that modality, its other championships, the professor's
+ * water plan of the week, weight log (per athlete, every modality), and
+ * "Sair da equipe" of the selected modality.
  */
 export function CompetitionScreen() {
   const { userId } = useSession();
   const { active } = useActiveGym();
+  const { selected, modalities } = useActiveModality();
   const profile = useMyProfile(userId);
   const championships = useMyChampionships(userId);
   const plans = useWaterPlans(userId);
@@ -54,7 +57,7 @@ export function CompetitionScreen() {
       </Screen>
     );
   }
-  if (queries.some((q) => q.isError) || !profile.data || !userId || !active) {
+  if (queries.some((q) => q.isError) || !profile.data || !userId || !active || !selected) {
     return (
       <Screen nativeHeader title="Competição" bottomInset={false}>
         <EmptyState
@@ -68,7 +71,7 @@ export function CompetitionScreen() {
   }
 
   const today = localDate(new Date(), profile.data.timeZone);
-  const list = championships.data ?? [];
+  const list = (championships.data ?? []).filter((c) => c.modalityId === selected.id);
   const [next, ...upcoming] = upcomingChampionships(list, today);
   const past = pastChampionships(list, today);
   const weightLogs = sortWeights(weights.data ?? []);
@@ -129,7 +132,12 @@ export function CompetitionScreen() {
           </Section>
         ) : null}
 
-        <LeaveTeam membershipId={active.id} gymName={active.gymName} />
+        <LeaveTeam
+          membershipId={active.id}
+          gymName={active.gymName}
+          modality={selected}
+          lastTeam={modalities.filter((m) => m.link.isCompetitor).length <= 1}
+        />
       </Box>
 
       <BottomSheet visible={!!sheet} onRequestClose={() => setSheet(null)}>
@@ -212,18 +220,31 @@ function ChampionshipRow({ championship, today }: { championship: Championship; 
   );
 }
 
-function LeaveTeam({ membershipId, gymName }: { membershipId: string; gymName: string }) {
+/** Leaves the team of the selected modality; plans and weight go only with the last team. */
+function LeaveTeam({
+  membershipId,
+  gymName,
+  modality,
+  lastTeam,
+}: {
+  membershipId: string;
+  gymName: string;
+  modality: LinkedModality;
+  lastTeam: boolean;
+}) {
   const leave = useRemoveCompetitor();
   const confirm = useConfirm();
   const ask = async () => {
     const ok = await confirm({
-      title: 'Sair da equipe de competição?',
-      message: `Você deixa de ver campeonatos e planos da ${gymName}, e o professor deixa de ver seu peso e sua água. Suas inscrições em campeonatos futuros são removidas.`,
+      title: `Sair da equipe de ${modality.name}?`,
+      message: lastTeam
+        ? `Você deixa de ver campeonatos e planos da ${gymName}, e o professor deixa de ver seu peso e sua água. Suas inscrições em campeonatos futuros de ${modality.name} são removidas.`
+        : `Você deixa de ver os campeonatos de ${modality.name} da ${gymName}. Suas inscrições em campeonatos futuros de ${modality.name} são removidas. Os planos e o peso continuam pelas outras equipes.`,
       confirmLabel: 'Sair da equipe',
       tone: 'danger',
     });
     if (!ok) return;
-    leave.mutate(membershipId, {
+    leave.mutate({ membershipId, modalityId: modality.id }, {
       onSuccess: () => router.replace('/home'),
       onError: (e) => Alert.alert('Equipe de competição', errorMessage(e)),
     });

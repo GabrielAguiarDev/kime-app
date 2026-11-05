@@ -1,6 +1,8 @@
+import { useReducedMotion } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
 import { useAppTheme } from '@theme';
+import { useTweened } from '@utils/useTweened';
 
 import { Box } from '../Box/Box';
 import { Text } from '../Text/Text';
@@ -17,9 +19,14 @@ interface WaterRingProps {
 
 const formatMl = (ml: number) => ml.toLocaleString('pt-BR');
 
+// Motion (user decision: the ring filling is an exception to "no animations", see 8).
+const FILL_MS = 700;
+
 /**
  * Water ring (DESIGN-SYSTEM.md, 3.4): stroke 14, track `border`, fill `water`, butt caps.
  * Visual states: in progress (water) and goal reached (success).
+ * The fill grows / shrinks smoothly when the amount changes (instant with
+ * "Reduce motion"); it opens already at the current value.
  */
 export function WaterRing({ consumedMl, goalMl, size, hideLabel = false }: WaterRingProps) {
   const theme = useAppTheme();
@@ -31,6 +38,8 @@ export function WaterRing({ consumedMl, goalMl, size, hideLabel = false }: Water
   const goalReached = !!goalMl && goalMl > 0 && consumedMl >= goalMl;
   const fill = goalReached ? theme.colors.success : theme.colors.water;
   const center = diameter / 2;
+
+  const shown = useTweened(ratio, useReducedMotion(), FILL_MS);
 
   return (
     <Box
@@ -49,8 +58,7 @@ export function WaterRing({ consumedMl, goalMl, size, hideLabel = false }: Water
     >
       <Svg width={diameter} height={diameter} style={{ position: 'absolute' }}>
         <Circle cx={center} cy={center} r={radius} stroke={theme.colors.border} strokeWidth={stroke} fill="none" />
-        {/* TODO(motion): ring filling up after water is logged. */}
-        {ratio > 0 ? (
+        {shown > 0 ? (
           <Circle
             cx={center}
             cy={center}
@@ -60,7 +68,7 @@ export function WaterRing({ consumedMl, goalMl, size, hideLabel = false }: Water
             strokeLinecap="butt"
             fill="none"
             strokeDasharray={`${circumference} ${circumference}`}
-            strokeDashoffset={circumference * (1 - ratio)}
+            strokeDashoffset={circumference * (1 - shown)}
             transform={`rotate(-90 ${center} ${center})`}
           />
         ) : null}

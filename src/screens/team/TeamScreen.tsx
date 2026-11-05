@@ -9,18 +9,15 @@ import {
   Box,
   Card,
   EmptyState,
-  FilterChips,
   HeaderButton,
   Icon,
   LoadError,
   Screen,
-  SelectionCard,
   Text,
   TextField,
 } from '@components';
 import {
   latestBelt,
-  trainedModalities,
   useBelts,
   useModalities,
   useModalityStats,
@@ -29,7 +26,7 @@ import {
   type ModalityStats,
 } from '@domain/Classes';
 import { membershipLabel, splitMembers, useGymMembers, usePendingRequests, type GymMember } from '@domain/Membership';
-import { SheetForm } from '@screens/professor/shared';
+import { ModalityFilter } from '@screens/staff/ModalityFilter';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 
@@ -125,7 +122,7 @@ export function TeamScreen() {
 
       <BottomSheet visible={inviting} onRequestClose={() => setInviting(false)}>
         {inviting ? (
-          <InviteSheet gymId={academyId} gymName={active.gymName} isOwner={isOwner} onClose={() => setInviting(false)} />
+          <InviteSheet gymId={academyId} gymName={active.gymName} isOwner={isOwner} />
         ) : null}
       </BottomSheet>
     </Screen>
@@ -171,32 +168,22 @@ function MembersSection({
   isOwner: boolean;
 }) {
   const { staff, students } = splitMembers(members);
-  const trains = (m: GymMember) =>
-    !modality ||
-    trainedModalities(ctx.modalities, ctx.stats.filter((s) => s.membershipId === m.id)).some((x) => x.id === modality);
-  const shownStudents = students.filter((m) => (!onlyCompetitors || m.isCompetitor) && trains(m));
+  // The student's active links decide the modality filter; "Só competidores"
+  // means competing in the filtered modality (any modality with "Todas").
+  const link = (m: GymMember) => (modality ? m.modalities.find((l) => l.modalityId === modality) : null);
+  const trains = (m: GymMember) => !modality || !!link(m);
+  const competes = (m: GymMember) => (modality ? !!link(m)?.isCompetitor : m.isCompetitor);
+  const shownStudents = students.filter((m) => (!onlyCompetitors || competes(m)) && trains(m));
   const filtering = !!modality || onlyCompetitors;
-  const selectedModality = ctx.modalities.find((m) => m.id === modality) ?? null;
-  const [picking, setPicking] = useState(false);
 
   return (
     <Box gap="s24">
       {/* Always two chips, however many modalities: the list opens in a sheet. */}
-      <FilterChips
-        accessibilityLabel="Filtros"
-        chips={[
-          ...(ctx.modalities.length > 1
-            ? [
-                {
-                  key: 'modality',
-                  label: selectedModality?.name ?? 'Todas as modalidades',
-                  selected: !!selectedModality,
-                  icon: 'chevronDown' as const,
-                  accessibilityLabel: `Modalidade: ${selectedModality?.name ?? 'todas'}. Trocar`,
-                  onPress: () => setPicking(true),
-                },
-              ]
-            : []),
+      <ModalityFilter
+        modalities={ctx.modalities}
+        value={modality}
+        onChange={onModality}
+        extraChips={[
           {
             key: 'competitors',
             label: 'Só competidores',
@@ -205,22 +192,6 @@ function MembersSection({
           },
         ]}
       />
-
-      <BottomSheet visible={picking} onRequestClose={() => setPicking(false)}>
-        <SheetForm title="Modalidade" tall>
-          {[{ id: null, name: 'Todas as modalidades' }, ...ctx.modalities].map((m) => (
-            <SelectionCard
-              key={m.id ?? 'all'}
-              label={m.name}
-              selected={modality === m.id}
-              onPress={() => {
-                onModality(m.id);
-                setPicking(false);
-              }}
-            />
-          ))}
-        </SheetForm>
-      </BottomSheet>
 
       {!filtering ? (
         <Box gap="s8">
@@ -263,7 +234,8 @@ function MemberRow({ member, ctx, modalityId }: { member: GymMember; ctx: RowCon
       : modalityId
         ? (ctx.belts.find((b) => b.id === own.find((s) => s.modalityId === modalityId)?.beltId) ?? null)
         : latestBelt(own, ctx.belts);
-  const role = `${membershipLabel(member)}${member.competitorInvitedAt ? ' · convidado para a equipe' : ''}`;
+  const invited = member.modalities.some((l) => l.competitorInvitedAt);
+  const role = `${membershipLabel(member)}${invited ? ' · convidado para a equipe' : ''}`;
 
   return (
     <Card

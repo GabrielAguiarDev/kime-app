@@ -9,6 +9,7 @@ import {
   classesOn,
   useAcademyCheckins,
   useAcademyToday,
+  useModalities,
   useSchedules,
   weekStart,
   type ClassSchedule,
@@ -18,16 +19,21 @@ import { formatLocalDate } from '@domain/Competition';
 import { DietWeekPicker } from '@screens/diet/DietWeekPicker';
 import { useActiveGym } from '@services/activeGym';
 
+import { ModalityFilter } from './ModalityFilter';
+
 /**
  * Aulas (staff): days of the week on top (today selected), the classes of the
- * chosen day with confirmed / pending counts; a class opens its attendance
- * list. The owner manages the schedules from the header.
+ * chosen day with confirmed / pending counts, filtered by modality ("Todas"
+ * by default); a class opens its attendance list. The owner manages the
+ * schedules from the header.
  */
 export function StaffClassesScreen() {
   const { active, isOwner } = useActiveGym();
   const academyId = active?.gymId;
   const today = useAcademyToday(academyId);
   const schedules = useSchedules(academyId);
+  const modalities = useModalities(academyId);
+  const [modality, setModality] = useState<string | null>(null);
   const [picked, setPicked] = useState<LocalDate | null>(null);
   const [monday, setMonday] = useState<LocalDate | null>(null);
 
@@ -61,7 +67,7 @@ export function StaffClassesScreen() {
     );
   }
 
-  const all = schedules.data;
+  const all = modality ? schedules.data.filter((s) => s.modalityId === modality) : schedules.data;
   const classes = classesOn(all, date);
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const withClasses = new Set(days.filter((d) => classesOn(all, d).length > 0));
@@ -69,6 +75,8 @@ export function StaffClassesScreen() {
   return (
     <Screen nativeHeader title="Aulas" bottomInset={false} headerRight={headerRight}>
       <Box gap="s24">
+        <ModalityFilter modalities={modalities.data ?? []} value={modality} onChange={setModality} />
+
         <DietWeekPicker
           monday={week}
           selected={date}
@@ -84,7 +92,7 @@ export function StaffClassesScreen() {
 
         <Box gap="s12">
           <Text variant="captionCaps">{date === today.data ? 'Hoje' : formatLocalDate(date)}</Text>
-          {all.length === 0 ? (
+          {schedules.data.length === 0 ? (
             <EmptyState
               visual="icon"
               icon="calendar"
@@ -93,7 +101,7 @@ export function StaffClassesScreen() {
             />
           ) : classes.length === 0 ? (
             <Text variant="body" color="textMuted">
-              Nenhuma aula neste dia.
+              {modality ? 'Nenhuma aula desta modalidade neste dia.' : 'Nenhuma aula neste dia.'}
             </Text>
           ) : null}
           {checkins.isLoading ? <ActivityIndicator /> : null}

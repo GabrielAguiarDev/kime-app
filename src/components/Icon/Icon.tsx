@@ -31,6 +31,7 @@ import { LinkBreak } from 'phosphor-react-native/src/icons/LinkBreak';
 import { ListChecks } from 'phosphor-react-native/src/icons/ListChecks';
 import { Lock } from 'phosphor-react-native/src/icons/Lock';
 import { Medal } from 'phosphor-react-native/src/icons/Medal';
+import { Minus } from 'phosphor-react-native/src/icons/Minus';
 import { Moon } from 'phosphor-react-native/src/icons/Moon';
 import { PencilSimple } from 'phosphor-react-native/src/icons/PencilSimple';
 import { Plus } from 'phosphor-react-native/src/icons/Plus';
@@ -80,6 +81,7 @@ const ICONS = {
   open: Circle,
   locked: Lock,
   plus: Plus,
+  minus: Minus,
   deactivate: Prohibit,
   trash: Trash,
   apple: AppleLogo,

@@ -2,22 +2,53 @@ import { router } from 'expo-router';
 
 import { useWindowDimensions } from 'react-native';
 
-import { AcademyLogo, Box, FeedbackSheet, HeaderButton, Screen, Text } from '@components';
+import { AcademyLogo, Box, FeedbackSheet, HeaderButton, HeaderMenu, Icon, Screen, Text } from '@components';
 import { useWaterDay } from '@domain/Water';
 import { StaffHome } from '@screens/staff/StaffHome';
 import { StudentHome } from '@screens/student/StudentHome';
 import { WaterCounter } from '@screens/water/WaterCounter';
 import { formatMl } from '@screens/water/format';
 import { useActiveGym } from '@services/activeGym';
+import { useActiveModality } from '@services/activeModality';
 import { useSession } from '@services/session';
 import { useJoinRequestNotices } from '@services/joinRequests';
 import { useStreakRecords } from '@services/streaks';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
+import { useAppTheme } from '@theme';
+
+const openProfile = () => router.navigate('/(tabs)/profile');
+
+/** Header item of Início: academy logo + a title (academy or modality), caret when it opens a menu. */
+function HeaderTitle({
+  logoName,
+  logoUrl,
+  title,
+  maxWidth,
+  caret = false,
+}: {
+  logoName: string;
+  logoUrl: string | null;
+  title: string;
+  maxWidth: number;
+  caret?: boolean;
+}) {
+  const { size } = useAppTheme();
+  return (
+    <Box flexDirection="row" alignItems="center" gap="s8" paddingRight="s8" style={{ maxWidth }}>
+      <AcademyLogo name={logoName} url={logoUrl} size="header" />
+      <Text variant="navTitle" numberOfLines={1} flexShrink={1}>
+        {title}
+      </Text>
+      {caret ? <Icon name="chevronDown" color="textMuted" size={size.iconInline} /> : null}
+    </Box>
+  );
+}
 
 export function HomeScreen() {
   const { width } = useWindowDimensions();
   const { userId } = useSession();
   const { active, isStaff, memberships } = useActiveGym();
+  const { modalities, selected, select } = useActiveModality();
   const rejection = useJoinRequestNotices(userId, memberships);
 
   // The widget may have met the goal while the app was closed: celebrate it here once.
@@ -29,19 +60,41 @@ export function HomeScreen() {
   return (
     <Screen
       nativeHeader
-      // No title: the academy (logo + name) sits on the left, water on the right.
+      // No title: logo + name on the left (staff: the academy; student: the selected
+      // modality, with a native menu to switch when there is more than one), water on the right.
       largeTitle={false}
       headerLeft={
-        active ? (
-          <HeaderButton accessibilityLabel={`${active.gymName}. Abrir perfil e academias`} onPress={() => router.navigate('/(tabs)/profile')}>
-            <Box flexDirection="row" alignItems="center" gap="s8" paddingRight="s8" style={{ maxWidth: width * 0.6 }}>
-              <AcademyLogo name={active.gymName} url={active.gymLogoUrl} size="header" />
-              <Text variant="navTitle" numberOfLines={1} flexShrink={1}>
-                {active.gymName}
-              </Text>
-            </Box>
+        !active ? undefined : isStaff || !selected ? (
+          <HeaderButton accessibilityLabel={`${active.gymName}. Abrir perfil e academias`} onPress={openProfile}>
+            <HeaderTitle logoName={active.gymName} logoUrl={active.gymLogoUrl} title={active.gymName} maxWidth={width * 0.6} />
           </HeaderButton>
-        ) : undefined
+        ) : modalities.length > 1 ? (
+          <HeaderMenu
+            accessibilityLabel={`${selected.name}, ${active.gymName}. Trocar modalidade`}
+            label={
+              <HeaderTitle
+                logoName={active.gymName}
+                logoUrl={active.gymLogoUrl}
+                title={selected.name}
+                maxWidth={width * 0.6}
+                caret
+              />
+            }
+            options={modalities.map((m) => ({ id: m.id, title: m.name }))}
+            selectedId={selected.id}
+            onSelect={select}
+            extraAction={
+              memberships.filter((m) => m.status === 'active').length > 1
+                ? { title: 'Trocar academia', onPress: openProfile }
+                : undefined
+            }
+            onFallbackPress={openProfile}
+          />
+        ) : (
+          <HeaderButton accessibilityLabel={`${selected.name}, ${active.gymName}. Abrir perfil e academias`} onPress={openProfile}>
+            <HeaderTitle logoName={active.gymName} logoUrl={active.gymLogoUrl} title={selected.name} maxWidth={width * 0.6} />
+          </HeaderButton>
+        )
       }
       // Today's water at the top right for everyone (students and staff).
       headerRight={<WaterCounter inHeader />}

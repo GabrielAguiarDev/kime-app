@@ -9,7 +9,7 @@ create extension if not exists pgtap with schema extensions;
 select set_config('search_path', concat_ws(',',
   (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
   'public', 'extensions'), true);
-select plan(201);
+select plan(195);
 
 -- ---------------------------------------------------------------- helpers ---
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$
@@ -39,6 +39,18 @@ create function pg_temp.id(p_key text) returns uuid language sql as $$
   select val from t_ids where key = p_key
 $$;
 grant execute on function pg_temp.id(text) to public;
+
+-- Approves every pending student of an academy, linking them to all its modalities
+-- (an active student needs at least one modality). Runs as the logged-in staff.
+create function pg_temp.approve_pending(p_academy uuid) returns void language sql as $$
+  select public.approve_student(m.id, (select array_agg(mo.id) from public.academy_modalities mo where mo.academy_id = p_academy))
+  from public.memberships m where m.academy_id = p_academy and m.role = 'student' and m.status = 'pending'
+$$;
+grant execute on function pg_temp.approve_pending(uuid) to public;
+create function pg_temp.jj(p_academy uuid) returns uuid language sql as $$
+  select id from public.academy_modalities where academy_id = p_academy and name = 'Jiu-Jitsu'
+$$;
+grant execute on function pg_temp.jj(uuid) to public;
 
 -- ------------------------------------------------------------------ users ---
 -- P1 professor of A1; S1 competitor of A1; T1 student of A1
@@ -85,8 +97,8 @@ select ok(not has_function_privilege('anon', 'public.create_academy(text, text[]
   'anon cannot execute create_academy');
 select ok(has_table_privilege('authenticated', 'public.academies', 'select')
   and has_table_privilege('authenticated', 'public.memberships', 'select')
-  and has_table_privilege('authenticated', 'public.professor_codes', 'select'),
-  'authenticated can read academies, memberships and professor codes');
+  and has_table_privilege('authenticated', 'public.academy_invite_codes', 'select'),
+  'authenticated can read academies, memberships and invite codes');
 
 select pg_temp.login(pg_temp.id('p1'));
 insert into t_ids values ('a1', public.create_academy('  Kimi Jiu-Jitsu  ', array[' Jiu-Jitsu ', 'Muay Thai', 'jiu-jitsu', '']));
@@ -96,13 +108,15 @@ insert into t_ids values ('a2', public.create_academy('Outra Academia', array['J
 select pg_temp.login(pg_temp.id('p1'));
 select is((select name from public.academies where id = pg_temp.id('a1')),
   'Kimi Jiu-Jitsu', 'creator sees academy, name trimmed');
-select matches((select invite_code from public.academies where id = pg_temp.id('a1')),
+select matches((select code from public.academy_invite_codes
+                where academy_id = pg_temp.id('a1') and code_type = 'student' and status = 'active'),
   '^[A-HJKMNP-Z2-9]{8}$', 'student code generated: 8 chars, no 0/O/1/I/L');
 select is((select role::text || '/' || status::text from public.memberships
            where academy_id = pg_temp.id('a1')),
   'owner/active', 'creator is the active owner');
-select is((select count(*)::int from public.professor_codes where academy_id = pg_temp.id('a1')),
-  0, 'a new academy has no professor code');
+select is((select array_agg(code_type::text order by code_type::text) from public.academy_invite_codes
+           where academy_id = pg_temp.id('a1') and status = 'active'),
+  array['instructor', 'student'], 'a new academy gets one active student and one active professor code');
 select is(
   (select m.role::text || '/' || m.status::text || '/' || a.name
    from public.memberships m join public.academies a on a.id = m.academy_id
@@ -122,7 +136,8 @@ select throws_ok($$ select public.create_academy(' a ', array['Judô']) $$, '220
 -- Students join with the code (pending), the professor approves.
 select pg_temp.logout();
 create temp table t_codes on commit drop as
-  select id, invite_code from public.academies;
+  select academy_id as id, code as invite_code from public.academy_invite_codes
+  where code_type = 'student' and status = 'active';
 grant select on t_codes to authenticated, anon;
 
 select pg_temp.login(pg_temp.id('s1'));
@@ -157,13 +172,12 @@ select is((select email from public.list_pending_requests(pg_temp.id('a1')) wher
   's1@kimi.test', 'pending request shows e-mail');
 select throws_ok($$ select * from public.list_pending_requests(pg_temp.id('a2')) $$,
   '42501', 'forbidden', 'professor cannot list requests of another academy');
-update public.memberships set status = 'active'
-  where academy_id = pg_temp.id('a1') and status = 'pending';
+select pg_temp.approve_pending(pg_temp.id('a1'));
 select is((select decided_by from public.memberships where user_id = pg_temp.id('s1')),
   pg_temp.id('p1'), 'decision stamped with the professor');
-select public.invite_competitor((select id from public.memberships where user_id = pg_temp.id('s1') and academy_id = pg_temp.id('a1')));
+select public.invite_competitor((select id from public.memberships where user_id = pg_temp.id('s1') and academy_id = pg_temp.id('a1')), pg_temp.jj(pg_temp.id('a1')));
 select pg_temp.login(pg_temp.id('s1'));
-select public.respond_competitor_invite((select id from public.memberships where user_id = pg_temp.id('s1') and academy_id = pg_temp.id('a1')), true);
+select public.respond_competitor_invite((select id from public.memberships where user_id = pg_temp.id('s1') and academy_id = pg_temp.id('a1')), pg_temp.jj(pg_temp.id('a1')), true);
 select pg_temp.login(pg_temp.id('p1'));
 select is((select is_competitor from public.memberships where user_id = pg_temp.id('s1')),
   true, 'student accepts the invite and becomes a competitor');
@@ -172,8 +186,7 @@ select throws_ok(
   '22023', 'membership_not_pending', 'decision cannot be reverted');
 
 select pg_temp.login(pg_temp.id('p2'));
-update public.memberships set status = 'active'
-  where academy_id = pg_temp.id('a2') and status = 'pending';
+select pg_temp.approve_pending(pg_temp.id('a2'));
 -- Professor 2 cannot touch academy 1 memberships.
 update public.memberships set status = 'rejected' where user_id = pg_temp.id('t1');
 
@@ -419,9 +432,9 @@ select throws_ok($$ select * from public.water_logs $$, '42501', null, 'anon can
 
 -- ---------------------------------------------------------- championships ---
 select pg_temp.login(pg_temp.id('p1'));
-insert into public.championships (id, academy_id, name, event_date)
-  values ('00000000-0000-0000-00dd-000000000001', pg_temp.id('a1'), 'Open Kimi', '2026-12-01'),
-         ('00000000-0000-0000-00dd-000000000002', pg_temp.id('a1'), 'Outro Open', '2026-12-08');
+insert into public.championships (id, academy_id, name, event_date, modality_id)
+  values ('00000000-0000-0000-00dd-000000000001', pg_temp.id('a1'), 'Open Kimi', '2026-12-01', pg_temp.jj(pg_temp.id('a1'))),
+         ('00000000-0000-0000-00dd-000000000002', pg_temp.id('a1'), 'Outro Open', '2026-12-08', pg_temp.jj(pg_temp.id('a1')));
 insert into public.championship_entries (championship_id, academy_id, athlete_id)
   values ('00000000-0000-0000-00dd-000000000001', pg_temp.id('a1'), pg_temp.id('s1'));
 select throws_ok(
@@ -637,7 +650,7 @@ select is((select array_agg(role::text) from public.list_pending_requests(pg_tem
 select is((select count(*)::int from public.memberships where user_id = pg_temp.id('r1'))
         + (select count(*)::int from public.profiles where id = pg_temp.id('r1')),
   0, 'professor cannot read a pending professor request (row or profile) through the API');
-update public.memberships set status = 'active' where user_id = pg_temp.id('u1');
+select pg_temp.approve_pending(pg_temp.id('a1'));
 select is((select status::text from public.memberships where user_id = pg_temp.id('u1')),
   'active', 'professor approves a student');
 select lives_ok(
@@ -648,15 +661,15 @@ select lives_ok(
   $$ insert into public.belt_history (membership_id, belt_id)
      select id, '00000000-0000-0000-00ee-000000000001' from public.memberships where user_id = pg_temp.id('u1') $$,
   'professor sets a student''s belt');
-select public.invite_competitor((select id from public.memberships where user_id = pg_temp.id('u1') and academy_id = pg_temp.id('a1')));
+select public.invite_competitor((select id from public.memberships where user_id = pg_temp.id('u1') and academy_id = pg_temp.id('a1')), pg_temp.jj(pg_temp.id('a1')));
 select pg_temp.login(pg_temp.id('u1'));
-select public.respond_competitor_invite((select id from public.memberships where user_id = pg_temp.id('u1') and academy_id = pg_temp.id('a1')), true);
+select public.respond_competitor_invite((select id from public.memberships where user_id = pg_temp.id('u1') and academy_id = pg_temp.id('a1')), pg_temp.jj(pg_temp.id('a1')), true);
 select pg_temp.login(pg_temp.id('q1'));
 select is((select is_competitor from public.memberships where user_id = pg_temp.id('u1')),
   true, 'invited student accepts and becomes a competitor');
 select lives_ok(
-  $$ insert into public.championships (academy_id, name, event_date)
-     values (pg_temp.id('a1'), 'Copa Auxiliar', '2026-12-15') $$,
+  $$ insert into public.championships (academy_id, name, event_date, modality_id)
+     values (pg_temp.id('a1'), 'Copa Auxiliar', '2026-12-15', pg_temp.jj(pg_temp.id('a1'))) $$,
   'professor creates a championship');
 select lives_ok(
   $$ insert into public.water_plans (athlete_id, academy_id, week_start)
@@ -710,7 +723,8 @@ select pg_temp.login(pg_temp.id('q1'));
 select throws_ok(
   $$ insert into public.academy_modalities (academy_id, name) values (pg_temp.id('a1'), 'Boxe') $$,
   '42501', null, 'professor cannot change modalities');
-select is((select count(*)::int from public.professor_codes), 0, 'professor does not see professor codes');
+select is((select count(*)::int from public.academy_invite_codes where code_type = 'instructor'), 0,
+  'professor does not see the professor code');
 select throws_ok($$ select public.transfer_ownership(pg_temp.id('a1'), (select id from public.memberships where user_id = pg_temp.id('q1'))) $$,
   '42501', 'forbidden', 'professor cannot take the academy over');
 
@@ -733,97 +747,71 @@ select is((select count(*)::int from public.memberships where user_id = pg_temp.
   1, 'owner cannot leave the academy');
 
 -- ---------------------------------------------------------------- codes ---
--- N1, N2: new users joining with codes.
+-- N1, N2: new professors joining with the (reusable) professor code.
+-- N3: new student, joins before and after a student code regeneration.
 select pg_temp.logout();
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-0000000000a9', 'n1@kimi.test', '{"full_name":"Novo Um"}'),
-  ('00000000-0000-0000-0000-0000000000b9', 'n2@kimi.test', '{"full_name":"Novo Dois"}');
-insert into t_ids values ('n1', '00000000-0000-0000-0000-0000000000a9'), ('n2', '00000000-0000-0000-0000-0000000000b9');
+  ('00000000-0000-0000-0000-0000000000b9', 'n2@kimi.test', '{"full_name":"Novo Dois"}'),
+  ('00000000-0000-0000-0000-0000000000c9', 'n3@kimi.test', '{"full_name":"Novo Tres"}');
+insert into t_ids values ('n1', '00000000-0000-0000-0000-0000000000a9'), ('n2', '00000000-0000-0000-0000-0000000000b9'),
+  ('n3', '00000000-0000-0000-0000-0000000000c9');
 create temp table t_pcodes (key text primary key, id uuid, code text) on commit drop;
 grant all on t_pcodes to authenticated, anon;
 create function pg_temp.pcode(p_key text) returns text language sql as $$ select code from t_pcodes where key = p_key $$;
-create function pg_temp.pcode_id(p_key text) returns uuid language sql as $$ select id from t_pcodes where key = p_key $$;
-grant execute on function pg_temp.pcode(text), pg_temp.pcode_id(text) to public;
+grant execute on function pg_temp.pcode(text) to public;
 
 select pg_temp.login(pg_temp.id('q1'));
-select throws_ok($$ select * from public.create_professor_code(pg_temp.id('a1')) $$,
-  '42501', 'forbidden', 'professor cannot generate a professor code');
-select throws_ok($$ select public.regenerate_student_code(pg_temp.id('a1')) $$,
+select throws_ok($$ select public.regenerate_invite_code(pg_temp.id('a1'), 'instructor') $$,
+  '42501', 'forbidden', 'professor cannot regenerate the professor code');
+select throws_ok($$ select public.regenerate_invite_code(pg_temp.id('a1'), 'student') $$,
   '42501', 'forbidden', 'professor cannot regenerate the student code');
 
 select pg_temp.login(pg_temp.id('p1'));
-insert into t_pcodes select 'used', id, code from public.create_professor_code(pg_temp.id('a1'));
-insert into t_pcodes select 'revoked', id, code from public.create_professor_code(pg_temp.id('a1'));
-insert into t_pcodes select 'expired', id, code from public.create_professor_code(pg_temp.id('a1'));
-insert into t_pcodes select 'spare', id, code from public.create_professor_code(pg_temp.id('a1'));
-select is((select count(*)::int from public.professor_codes where academy_id = pg_temp.id('a1')),
-  4, 'owner generates and lists professor codes');
-select is((select expires_at - created_at from public.professor_codes where id = pg_temp.pcode_id('used')),
-  interval '7 days', 'a professor code is valid for 7 days');
-select matches(pg_temp.pcode('used'), '^[A-HJKMNP-Z2-9]{8}$', 'professor code: 8 chars, no 0/O/1/I/L');
-update public.professor_codes set revoked_at = now() where id = pg_temp.pcode_id('revoked');
-select isnt((select revoked_at from public.professor_codes where id = pg_temp.pcode_id('revoked')), null,
-  'owner revokes a professor code');
-
-select throws_ok(format($$ update public.professor_codes set revoked_at = null where id = %L $$, pg_temp.pcode_id('revoked')),
-  '22023', 'code_not_revocable', 'a revoked professor code cannot be brought back');
-
-select pg_temp.login(pg_temp.id('q1'));
-update public.professor_codes set revoked_at = now() where id = pg_temp.pcode_id('spare');
+insert into t_pcodes select 'instructor', id, code from public.academy_invite_codes
+  where academy_id = pg_temp.id('a1') and code_type = 'instructor' and status = 'active';
+select is((select count(*)::int from public.academy_invite_codes where academy_id = pg_temp.id('a1') and status = 'active'),
+  2, 'owner reads both active codes');
+select matches(pg_temp.pcode('instructor'), '^[A-HJKMNP-Z2-9]{8}$', 'professor code: 8 chars, no 0/O/1/I/L');
 select pg_temp.login(pg_temp.id('p2'));
-select is((select count(*)::int from public.professor_codes), 0, 'another academy''s owner sees no professor codes');
-update public.professor_codes set revoked_at = now() where id = pg_temp.pcode_id('spare');
-select pg_temp.logout();
-select is((select revoked_at from public.professor_codes where id = pg_temp.pcode_id('spare')), null,
-  'professor and other owners cannot revoke a professor code');
--- 7 days later.
-update public.professor_codes
-  set created_at = now() - interval '7 days 1 second', expires_at = now() - interval '1 second'
-  where id = pg_temp.pcode_id('expired');
+select is((select count(*)::int from public.academy_invite_codes where academy_id = pg_temp.id('a1')), 0,
+  'another academy''s owner sees no codes of this academy');
 
 -- Lookup before sign-in.
 select pg_temp.as_anon();
 select is((select academy_name || '/' || code_type from public.lookup_invite_code(
     ' ' || lower((select invite_code from t_codes where id = pg_temp.id('a1'))))),
   'Kimi Jiu-Jitsu/student', 'anon looks up a student code (any case, spaces)');
-select is((select academy_name || '/' || code_type || '/' || logo_path from public.lookup_invite_code(pg_temp.pcode('used'))),
-  'Kimi Jiu-Jitsu/instructor/' || pg_temp.id('a1')::text || '/logo-1.png', 'anon looks up a live professor code (name, logo, kind)');
-select is((select count(*)::int from public.lookup_invite_code(pg_temp.pcode('revoked')))
-        + (select count(*)::int from public.lookup_invite_code(pg_temp.pcode('expired')))
-        + (select count(*)::int from public.lookup_invite_code('ABC'))
+select is((select academy_name || '/' || code_type || '/' || logo_path from public.lookup_invite_code(pg_temp.pcode('instructor'))),
+  'Kimi Jiu-Jitsu/instructor/' || pg_temp.id('a1')::text || '/logo-1.png', 'anon looks up the professor code (name, logo, kind)');
+select is((select count(*)::int from public.lookup_invite_code('ABC'))
         + (select count(*)::int from public.lookup_invite_code('ZZZZZZZZ'))
         + (select count(*)::int from public.lookup_invite_code(null)),
-  0, 'revoked, expired, malformed and unknown codes all return nothing');
+  0, 'malformed and unknown codes all return nothing');
 select throws_ok($$ select * from public.academies $$, '42501', null, 'anon cannot list academies');
-select throws_ok($$ select * from public.professor_codes $$, '42501', null, 'anon cannot read professor codes');
+select throws_ok($$ select * from public.academy_invite_codes $$, '42501', null, 'anon cannot read invite codes');
 select throws_ok($$ select * from public.memberships $$, '42501', null, 'anon cannot read memberships');
 select throws_ok($$ select public.join_with_code('ZZZZZZZZ') $$, '42501', null, 'anon cannot join');
 
--- Joining with a professor code: pending professor, code spent.
+-- Joining with the professor code: pending professor; the code is reusable.
 select pg_temp.login(pg_temp.id('n1'));
-select is((select status::text || '/' || is_new::text from public.join_with_code(lower(pg_temp.pcode('used')))),
+select is((select status::text || '/' || is_new::text from public.join_with_code(lower(pg_temp.pcode('instructor')))),
   'pending/true', 'professor code creates a new pending request');
 select is((select role::text from public.memberships where user_id = pg_temp.id('n1')),
   'instructor', 'the request carries the professor role');
-select is((select count(*)::int from public.join_with_code(pg_temp.pcode('spare'))
+select is((select count(*)::int from public.join_with_code(pg_temp.pcode('instructor'))
            where membership_id = (select id from public.memberships where user_id = pg_temp.id('n1'))
              and not is_new and status = 'pending'),
   1, 'already pending: the same membership comes back with is_new = false, no duplicate');
 select pg_temp.login(pg_temp.id('n2'));
-select throws_ok(format($$ select public.join_with_code(%L) $$, pg_temp.pcode('used')),
-  'P0002', 'invite_invalid', 'a used professor code behaves like an unknown code');
-select throws_ok(format($$ select public.join_with_code(%L) $$, pg_temp.pcode('revoked')),
-  'P0002', 'invite_invalid', 'a revoked professor code behaves like an unknown code');
-select throws_ok(format($$ select public.join_with_code(%L) $$, pg_temp.pcode('expired')),
-  'P0002', 'invite_invalid', 'a professor code older than 7 days behaves like an unknown code');
+select is((select status::text || '/' || is_new::text from public.join_with_code(pg_temp.pcode('instructor'))),
+  'pending/true', 'the professor code is reusable: a second user also gets a new pending request');
+select is((select role::text from public.memberships where user_id = pg_temp.id('n2')),
+  'instructor', 'and also as a professor');
 select pg_temp.as_anon();
-select is((select count(*)::int from public.lookup_invite_code(pg_temp.pcode('used'))), 0,
-  'a used professor code is no longer found');
+select is((select count(*)::int from public.lookup_invite_code(pg_temp.pcode('instructor'))), 1,
+  'the professor code is still found after being used');
 select pg_temp.logout();
-select is((select used_by from public.professor_codes where id = pg_temp.pcode_id('used')), pg_temp.id('n1'),
-  'the code records who used it');
-select is((select used_at from public.professor_codes where id = pg_temp.pcode_id('spare')), null,
-  'a code sent by someone already in the academy is not spent');
 
 -- Already a member: no second membership, straight to the app.
 select pg_temp.login(pg_temp.id('t1'));
@@ -833,10 +821,10 @@ select is((select count(*)::int from public.memberships where user_id = pg_temp.
   1, 'no duplicate membership');
 
 -- New student code: requests sent with the old one stay valid.
-select pg_temp.login(pg_temp.id('n2'));
+select pg_temp.login(pg_temp.id('n3'));
 select public.join_with_code((select invite_code from t_codes where id = pg_temp.id('a1')));
 select pg_temp.login(pg_temp.id('p1'));
-create temp table t_newcode on commit drop as select public.regenerate_student_code(pg_temp.id('a1')) as code;
+create temp table t_newcode on commit drop as select public.regenerate_invite_code(pg_temp.id('a1'), 'student') as code;
 grant select on t_newcode to authenticated, anon;
 select isnt((select code from t_newcode), (select invite_code from t_codes where id = pg_temp.id('a1')),
   'owner generates a new student code');
@@ -845,12 +833,14 @@ select is((select count(*)::int from public.lookup_invite_code((select invite_co
   0, 'the old student code stops working');
 select is((select code_type::text from public.lookup_invite_code((select code from t_newcode))), 'student',
   'the new student code works');
+select is((select count(*)::int from public.lookup_invite_code(pg_temp.pcode('instructor'))), 1,
+  'the professor code is untouched');
 select pg_temp.login(pg_temp.id('p1'));
-update public.memberships set status = 'active' where user_id = pg_temp.id('n2');
-select is((select status::text from public.memberships where user_id = pg_temp.id('n2')),
+select pg_temp.approve_pending(pg_temp.id('a1'));
+select is((select status::text from public.memberships where user_id = pg_temp.id('n3')),
   'active', 'a request sent with the old code is still approved');
 
--- Only the owner approves the professor who used a code.
+-- Only the owner approves a professor who used the code.
 select pg_temp.login(pg_temp.id('q1'));
 update public.memberships set status = 'active' where user_id = pg_temp.id('n1');
 select pg_temp.login(pg_temp.id('p1'));
@@ -885,8 +875,8 @@ select throws_ok(
 select lives_ok(
   $$ select public.transfer_ownership(pg_temp.id('a1'), (select id from public.memberships where user_id = pg_temp.id('q1'))) $$,
   'owner transfers the academy to a professor');
-select lives_ok($$ set constraints all immediate $$, 'one owner at the end of the transfer (deferred check passes)');
-set constraints all deferred;
+select lives_ok($$ set constraints memberships_keep_owner immediate $$, 'one owner at the end of the transfer (deferred check passes)');
+set constraints memberships_keep_owner deferred;
 select is(
   (select string_agg(role::text, ',' order by role) from public.memberships
    where academy_id = pg_temp.id('a1') and user_id in (pg_temp.id('p1'), pg_temp.id('q1'))),

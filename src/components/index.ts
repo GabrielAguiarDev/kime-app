@@ -9,6 +9,7 @@ export {
   type GhostColor,
 } from './Button/Button';
 export { TextButton } from './Button/TextButton';
+export { RoundButton } from './Button/RoundButton';
 export { TextField } from './TextField/TextField';
 export { CodeField } from './CodeField/CodeField';
 export { Screen } from './Screen/Screen';
@@ -30,7 +31,10 @@ export { MascotBalloon } from './MascotBalloon/MascotBalloon';
 export { ChoiceRow } from './ChoiceRow/ChoiceRow';
 export { Avatar, nameInitials } from './Avatar/Avatar';
 export { HeaderButton, useNativeHeaderOptions } from './NativeHeader/NativeHeader';
+export { HeaderMenu } from './ModalityMenu/HeaderMenu';
+export type { HeaderMenuOption, HeaderMenuProps } from './ModalityMenu/types';
 export { EditBadge } from './EditBadge/EditBadge';
 export { ReorderList } from './ReorderList/ReorderList';
 export { LoadError } from './LoadError/LoadError';
 export { FilterChips, type FilterChip } from './FilterChips/FilterChips';
+export { Toast, TOAST_MS, useToast } from './Toast/Toast';

@@ -1,48 +1,106 @@
 import { ACCESS_HOME, accessLevel, normalizeExternalPath, routeAccess } from '../routeAccess';
 
 describe('accessLevel', () => {
-  it('maps sign-in and approval to a level', () => {
-    expect(accessLevel(false, false)).toBe('signedOut');
-    expect(accessLevel(false, true)).toBe('signedOut');
-    expect(accessLevel(true, false)).toBe('awaitingApproval');
-    expect(accessLevel(true, true)).toBe('member');
+  it('maps session, approval and pending request to a level', () => {
+    expect(accessLevel(false, false, false)).toBe('signedOut');
+    expect(accessLevel(false, true, true)).toBe('signedOut');
+    expect(accessLevel(true, false, false)).toBe('noAcademy');
+    expect(accessLevel(true, false, true)).toBe('pendingApproval');
+    expect(accessLevel(true, true, false)).toBe('member');
+    // An approved membership wins over another academy's pending request.
+    expect(accessLevel(true, true, true)).toBe('member');
   });
 });
 
-describe('routeAccess', () => {
-  const input = (over = {}) => ({ signedIn: true, hasApprovedMembership: true, isStaff: false, isOwner: false, ...over });
+describe('routeAccess (guard)', () => {
+  const input = (over = {}) => ({
+    signedIn: true,
+    hasApprovedMembership: true,
+    hasPendingRequest: false,
+    isStaff: false,
+    isOwner: false,
+    ...over,
+  });
+  const closed = { app: false, staff: false, owner: false };
 
-  it('signed out only reaches the auth flow', () => {
-    expect(routeAccess(input({ signedIn: false }))).toEqual({
-      level: 'signedOut', home: '/start', auth: true, onboarding: false, app: false, staff: false, owner: false,
+  it('1. no session: only the entry flow, home is the first screen', () => {
+    expect(routeAccess(input({ signedIn: false, hasApprovedMembership: false }))).toEqual({
+      level: 'signedOut',
+      home: '/start',
+      auth: true,
+      onboarding: false,
+      noAcademy: false,
+      pendingApproval: false,
+      createAcademy: false,
+      ...closed,
     });
   });
 
-  it('awaiting approval only reaches onboarding', () => {
+  it('2. session, no approved membership, no pending request: academy code signed in', () => {
     expect(routeAccess(input({ hasApprovedMembership: false }))).toEqual({
-      level: 'awaitingApproval', home: '/welcome', auth: false, onboarding: true, app: false, staff: false, owner: false,
+      level: 'noAcademy',
+      home: '/academia',
+      auth: false,
+      onboarding: true,
+      noAcademy: true,
+      pendingApproval: false,
+      createAcademy: true,
+      ...closed,
     });
+  });
+
+  it('3. session and a pending request, no approved membership: waiting screen', () => {
+    expect(routeAccess(input({ hasApprovedMembership: false, hasPendingRequest: true }))).toEqual({
+      level: 'pendingApproval',
+      home: '/aguardando',
+      auth: false,
+      onboarding: true,
+      noAcademy: false,
+      pendingApproval: true,
+      createAcademy: false,
+      ...closed,
+    });
+  });
+
+  it('the signed-in states never reach the entry flow (sign-in, sign-up)', () => {
+    for (const hasPendingRequest of [false, true]) {
+      expect(routeAccess(input({ hasApprovedMembership: false, hasPendingRequest })).auth).toBe(false);
+    }
+  });
+
+  it('cancelled or rejected request (pending gone) goes back to the academy code', () => {
+    const waiting = routeAccess(input({ hasApprovedMembership: false, hasPendingRequest: true }));
+    const after = routeAccess(input({ hasApprovedMembership: false, hasPendingRequest: false }));
+    expect([waiting.home, after.home]).toEqual(['/aguardando', '/academia']);
+  });
+
+  it('a finishing sign-up keeps /create-gym open after the new membership arrives', () => {
+    const owner = routeAccess(input({ isStaff: true, isOwner: true, finishingSignup: true }));
+    expect(owner).toMatchObject({ level: 'member', home: '/home', app: true, onboarding: true, createAcademy: true, noAcademy: false });
+    expect(routeAccess(input({ isStaff: true, isOwner: true }))).toMatchObject({ onboarding: false, createAcademy: false });
+    // Never without a session.
+    expect(routeAccess(input({ signedIn: false, finishingSignup: true }))).toMatchObject({ onboarding: false, createAcademy: false });
   });
 
   it('member reaches the app; staff and owner follow the role', () => {
-    expect(routeAccess(input())).toMatchObject({ level: 'member', home: '/home', app: true, staff: false, owner: false });
+    expect(routeAccess(input())).toMatchObject({ level: 'member', home: '/home', app: true, onboarding: false, staff: false, owner: false });
     expect(routeAccess(input({ isStaff: true }))).toMatchObject({ staff: true, owner: false });
     expect(routeAccess(input({ isStaff: true, isOwner: true }))).toMatchObject({ staff: true, owner: true });
   });
 
   it('staff and owner flags never leak without an approved membership', () => {
     for (const signedIn of [true, false]) {
-      const r = routeAccess({ signedIn, hasApprovedMembership: false, isStaff: true, isOwner: true });
-      expect(r.staff).toBe(false);
-      expect(r.owner).toBe(false);
+      for (const hasPendingRequest of [true, false]) {
+        const r = routeAccess({ signedIn, hasApprovedMembership: false, hasPendingRequest, isStaff: true, isOwner: true });
+        expect(r).toMatchObject(closed);
+      }
     }
-    // approved membership flag without a session is still signed out
-    const r = routeAccess({ signedIn: false, hasApprovedMembership: true, isStaff: true, isOwner: true });
-    expect(r).toMatchObject({ level: 'signedOut', app: false, staff: false, owner: false });
+    const r = routeAccess({ signedIn: false, hasApprovedMembership: true, hasPendingRequest: false, isStaff: true, isOwner: true });
+    expect(r).toMatchObject({ level: 'signedOut', ...closed });
   });
 
   it('exposes the home of each level', () => {
-    expect(ACCESS_HOME).toEqual({ signedOut: '/start', awaitingApproval: '/welcome', member: '/home' });
+    expect(ACCESS_HOME).toEqual({ signedOut: '/start', noAcademy: '/academia', pendingApproval: '/aguardando', member: '/home' });
   });
 });
 

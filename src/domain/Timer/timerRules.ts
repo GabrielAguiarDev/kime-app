@@ -274,3 +274,48 @@ export function nativePlan(
     sounds: paused ? [] : allEvents.filter((e) => e.atMs >= elapsedMs).map((e) => ({ atMs: abs(e.atMs), sound: e.sound })),
   };
 }
+
+/** Stepper steps of the "Ajustar" sheet. */
+export const STEPS = { rounds: 1, roundSeconds: 30, restSeconds: 30, warningSeconds: 5 } as const;
+
+export type TimerField = keyof TimerConfig;
+
+/**
+ * One stepper step (`direction` +1 / −1), snapped to the step grid (3:10 → 3:30
+ * or 3:00). Shortening the round below the warning pulls the warning down.
+ * Returns null when the step would leave the limits.
+ */
+export function stepConfig(c: TimerConfig, field: TimerField, direction: 1 | -1): TimerConfig | null {
+  const step = STEPS[field];
+  const value = c[field];
+  const next = direction > 0 ? Math.floor(value / step) * step + step : Math.ceil(value / step) * step - step;
+  const out: TimerConfig = { ...c, [field]: next };
+  if (field === 'roundSeconds' && out.warningSeconds >= next) {
+    out.warningSeconds = Math.max(0, Math.ceil(next / STEPS.warningSeconds) * STEPS.warningSeconds - STEPS.warningSeconds);
+  }
+  return isValidConfig(out) ? out : null;
+}
+
+export function sameConfig(a: TimerConfig, b: TimerConfig): boolean {
+  return (
+    a.rounds === b.rounds &&
+    a.roundSeconds === b.roundSeconds &&
+    a.restSeconds === b.restSeconds &&
+    a.warningSeconds === b.warningSeconds
+  );
+}
+
+/** "5 rounds · descanso 2:00"; "1 round · sem descanso". */
+export function summaryLine(c: TimerConfig): string {
+  const rounds = `${c.rounds} ${c.rounds === 1 ? 'round' : 'rounds'}`;
+  const rest = c.restSeconds > 0 ? `descanso ${formatClock(c.restSeconds * 1000)}` : 'sem descanso';
+  return `${rounds} · ${rest}`;
+}
+
+/** Rounds already finished (the segmented progress of the running timer). */
+export function roundsDone(state: TimerState): number {
+  if (state.phase === 'done') return state.rounds;
+  if (state.phase === 'rest') return state.round;
+  if (state.phase === 'round') return state.round - 1;
+  return 0;
+}

@@ -1,14 +1,14 @@
 export * from './gymTypes';
 export * from './gymRules';
+export * from './plans';
+export * from './signupRules';
 export { gymService } from './gymService';
-export { useCreateGym } from './useCases/useCreateGym';
+export { useCreateGym, useCreateGymWithSetup } from './useCases/useCreateGym';
 export {
   useCodeLookup,
-  useCreateProfessorCode,
+  useInviteCodes,
   useJoinWithCode,
-  useProfessorCodes,
-  useRegenerateStudentCode,
-  useRevokeProfessorCode,
+  useRegenerateInviteCode,
   useStudentCode,
 } from './useCases/useCodes';
 export { useGymSettings, useGymSettingsMutations } from './useCases/useGymSettings';

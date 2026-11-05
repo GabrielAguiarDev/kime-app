@@ -12,7 +12,7 @@ create extension if not exists pgtap with schema extensions;
 select set_config('search_path', concat_ws(',',
   (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
   'public', 'extensions'), true);
-select plan(143);
+select plan(141);
 
 -- ---------------------------------------------------------------- helpers ---
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$
@@ -92,6 +92,11 @@ insert into public.memberships (academy_id, user_id, role, status) values
   (pg_temp.id('a1'), pg_temp.id('ps'), 'student', 'pending'),
   (pg_temp.id('a1'), pg_temp.id('pi'), 'instructor', 'pending'),
   (pg_temp.id('a2'), pg_temp.id('s3'), 'student', 'active');
+
+-- Active students are linked to every modality of their academy (an active student needs one).
+select private.activate_enrollment(m.id, mo.id)
+from public.memberships m join public.academy_modalities mo on mo.academy_id = m.academy_id
+where m.role = 'student' and m.status = 'active';
 
 insert into t_ids select 'a2m', id from public.academy_modalities where academy_id = pg_temp.id('a2');
 
@@ -587,7 +592,9 @@ select lives_ok($$ update public.profiles set avatar_path = null where id = pg_t
 select pg_temp.logout();
 
 -- ---------------------------------------------------------- join_with_code ---
-create temp table t_codes on commit drop as select id, invite_code from public.academies;
+create temp table t_codes on commit drop as
+  select academy_id as id, code as invite_code from public.academy_invite_codes
+  where code_type = 'student' and status = 'active';
 grant select on t_codes to authenticated;
 create temp table t_pcodes (key text primary key, id uuid, code text) on commit drop;
 grant all on t_pcodes to authenticated;
@@ -605,31 +612,25 @@ update public.memberships set status = 'active' where user_id = pg_temp.id('n');
 select pg_temp.login(pg_temp.id('n'));
 select is((select status::text || '/' || is_new::text from public.join_with_code((select invite_code from t_codes where id = pg_temp.id('a1')))),
   'active/false', 'an active member asking again: active, not new');
-
-select pg_temp.login(pg_temp.id('o'));
-insert into t_pcodes select 'first', id, code from public.create_professor_code(pg_temp.id('a1'));
-insert into t_pcodes select 'second', id, code from public.create_professor_code(pg_temp.id('a1'));
-insert into t_pcodes select 'third', id, code from public.create_professor_code(pg_temp.id('a1'));
+select pg_temp.logout();
+insert into t_pcodes select 'first', id, code from public.academy_invite_codes
+  where academy_id = pg_temp.id('a1') and code_type = 'instructor' and status = 'active';
 
 select pg_temp.login(pg_temp.id('n'));
-select is((select status::text || '/' || is_new::text from public.join_with_code((select code from t_pcodes where key = 'third'))),
-  'active/false', 'an active student using a professor code gets the existing membership (not new)');
+select is((select status::text || '/' || is_new::text from public.join_with_code((select code from t_pcodes where key = 'first'))),
+  'active/false', 'an active student using the professor code gets the existing membership (not new)');
 select pg_temp.logout();
 select is((select role::text from public.memberships where user_id = pg_temp.id('n')), 'student',
   'and stays a student');
-select is((select used_at from public.professor_codes where id = (select id from t_pcodes where key = 'third')), null,
+select is((select count(*)::int from public.academy_invite_codes where code = (select code from t_pcodes where key = 'first') and status = 'active'), 1,
   'and the professor code is not spent');
 
 select pg_temp.login(pg_temp.id('x'));
 select is((select status::text || '/' || is_new::text from public.join_with_code((select code from t_pcodes where key = 'first'))),
-  'pending/true', 'a professor code creates a new pending request');
-select is((select status::text || '/' || is_new::text from public.join_with_code((select code from t_pcodes where key = 'second'))),
-  'pending/false', 'a second code from the same pending user is not new');
+  'pending/true', 'the professor code creates a new pending request');
+select is((select status::text || '/' || is_new::text from public.join_with_code((select code from t_pcodes where key = 'first'))),
+  'pending/false', 'the same code again from the same pending user is not new');
 select pg_temp.logout();
-select is((select used_by from public.professor_codes where id = (select id from t_pcodes where key = 'first')), pg_temp.id('x'),
-  'the first code was spent by the requester');
-select is((select used_at from public.professor_codes where id = (select id from t_pcodes where key = 'second')), null,
-  'the second code was not spent');
 select is((select role::text from public.memberships where user_id = pg_temp.id('x')), 'instructor',
   'the professor code request is an instructor request');
 

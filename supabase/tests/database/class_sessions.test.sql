@@ -51,6 +51,11 @@ insert into public.memberships (academy_id, user_id, role, status) values
   (pg_temp.id('a1'), pg_temp.id('s'),  'student', 'active'),
   (pg_temp.id('a1'), pg_temp.id('s2'), 'student', 'active');
 
+-- Active students are linked to every modality of their academy (an active student needs one).
+select private.activate_enrollment(m.id, mo.id)
+from public.memberships m join public.academy_modalities mo on mo.academy_id = m.academy_id
+where m.role = 'student' and m.status = 'active';
+
 -- A class every day of the week, so "today" always has one.
 insert into public.class_schedules (id, academy_id, weekday, start_time, modality_id)
 select ('30000000-0000-0000-0000-00000000000' || d)::uuid, pg_temp.id('a1'), d, '19:00',

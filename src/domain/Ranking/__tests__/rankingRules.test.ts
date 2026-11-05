@@ -1,190 +1,159 @@
 import { addDays } from '@domain/Classes/classesRules';
 
 import { RANKING_CONFIG, type RankingConfig } from '../rankingConfig';
-import { calculateRanking as calculateModalityRanking, rankingPeriod, visibleRanking, type RankingFacts, type HydrationFact } from '../rankingRules';
+import {
+  calculateRanking as calculateModalityRanking,
+  rankingPeriod,
+  visibleRanking,
+  weeklyPresence,
+  type AttendanceFact,
+  type HydrationFact,
+  type RankingFacts,
+} from '../rankingRules';
 
+// Day 1 … 28 = the period; day 29 = today (open).
 const day = (n: number) => addDays('2026-11-01', n - 1);
-const water = (count: number, done = true, start = 1): HydrationFact[] => Array.from({ length: count }, (_, i) => ({ day: day(start + i), done, known: true, eligible: true }));
+const water = (count: number, done = true, start = 1): HydrationFact[] =>
+  Array.from({ length: count }, (_, i) => ({ day: day(start + i), done, known: true, eligible: true }));
+/** 28 eligible days; `classesOn` = days (1-based) with one confirmed class. */
+const days = (classesOn: number[] = [], count = 28, start = 1): AttendanceFact[] =>
+  Array.from({ length: count }, (_, i) => ({ day: day(start + i), classes: classesOn.includes(start + i) ? 1 : 0 }));
+/** Two classes in each of the four weeks (weeks counted back from day 28: 22–28, 15–21, 8–14, 1–7). */
+const FULL = [1, 3, 8, 10, 15, 17, 22, 24];
 const facts = (overrides: Partial<RankingFacts> = {}): RankingFacts => ({
   modalityId: 'mt', userId: 'a', fullName: 'Ana', avatarPath: null, today: day(29), periodFrom: day(1), periodTo: day(28),
-  attendance: Array.from({ length: 10 }, (_, i) => ({ id: `c${i}`, day: day(i + 1), done: true })),
-  hydration: water(10), ...overrides,
+  weeklyGoal: 2, attendance: days(FULL), hydration: water(28), ...overrides,
 });
 const calculateRanking = (rows: RankingFacts[], config?: RankingConfig) => calculateModalityRanking(rows, 'mt', config);
 const result = (overrides: Partial<RankingFacts> = {}) => calculateRanking([facts(overrides)])[0]!;
 
-describe('continuous competitive ranking', () => {
-  it('uses a moving interval, without resetting at the month boundary', () => {
+describe('ranking formula', () => {
+  it('uses the last 28 complete days', () => {
     expect(rankingPeriod('2026-11-04')).toEqual({ from: '2026-10-07', to: '2026-11-03' });
-    expect(rankingPeriod('2026-11-04', 7)).toEqual({ from: '2026-10-28', to: '2026-11-03' });
   });
-  it('awards 100 for all expected classes and hydration goals completed', () => expect(result().rankingScore).toBe(100));
-  it('reduces performance and adds five points of penalty for a required absence', () => {
-    const f = facts(); f.attendance[0]!.done = false;
-    const r = calculateRanking([f])[0]!;
-    expect(r.attendanceRate).toBe(0.9); expect(r.penaltyPoints).toBe(5); expect(r.rankingScore).toBe(89);
+
+  it('centralizes the weights: 70% presence, 30% water, no penalties', () => {
+    expect(RANKING_CONFIG.attendanceWeight).toBe(0.7);
+    expect(RANKING_CONFIG.hydrationWeight).toBe(0.3);
+    expect(RANKING_CONFIG).not.toHaveProperty('penalties');
   });
-  it('deduplicates class occurrences', () => {
-    const f = facts(); f.attendance.push({ ...f.attendance[0]! });
-    expect(calculateRanking([f])[0]!.eligibleClasses).toBe(10);
+
+  it('scores 100 with the weekly goal met every week and every water goal met', () => {
+    expect(result().rankingScore).toBe(100);
   });
-  it('does not fabricate attendance when the server has no expected classes', () => {
-    const r = result({ attendance: [] }); expect(r.attendanceRate).toBe(0); expect(r.unprotectedAttendanceFailures).toBe(0); expect(r.rankingScore).toBe(40);
+
+  it('presence = mean of the weeks, each capped at 100%', () => {
+    // Week 22–28: 4 classes (capped at 100%); 15–21: 1 (50%); 8–14: 0; 1–7: 2 (100%) → 62.5%.
+    const r = result({ attendance: days([1, 3, 15, 22, 23, 24, 25]), hydration: [] });
+    expect(r.attendanceRate).toBeCloseTo(0.625);
+    expect(r.rankingScore).toBeCloseTo(43.75);
   });
-  it('does not score classes outside the period, including before enrolment facts', () => {
-    const f = facts(); f.attendance.push({ id: 'old', day: '2026-10-01', done: false });
-    expect(calculateRanking([f])[0]!.penaltyPoints).toBe(0);
+
+  it('extra classes in one week do not make up for another week', () => {
+    expect(result({ attendance: days([22, 23, 24, 25, 26, 27]), hydration: [] }).attendanceRate).toBeCloseTo(0.25);
   });
-  it('does not count today or future classes', () => {
-    expect(result({ attendance: [{ id: 'open', day: day(29), done: false }, { id: 'future', day: day(30), done: true }] }).eligibleClasses).toBe(0);
+
+  it('uses the student weekly goal', () => {
+    expect(result({ weeklyGoal: 4 }).attendanceRate).toBeCloseTo(0.5);
+    expect(result({ weeklyGoal: 1 }).attendanceRate).toBe(1);
   });
-  it('has no litres or target size in score inputs; equal completion gives equal recognition', () => {
-    const entries = calculateRanking([facts({ userId: 'small-goal' }), facts({ userId: 'large-goal' })]);
-    expect(entries[0]!.rankingScore).toBe(entries[1]!.rankingScore);
+
+  it('prorates the goal of a week with fewer eligible days (linked mid-week)', () => {
+    // Only days 25–28 eligible (4 days of the last week): goal 2 × 4/7; one class = 87.5%.
+    expect(weeklyPresence(days([25], 4, 25), day(28), 2).rate).toBeCloseTo(0.875);
   });
-  it('does not give extra points for surplus water or duplicated daily facts', () => {
-    const f = facts(); f.hydration.push(...water(10)); expect(calculateRanking([f])[0]!.rankingScore).toBe(100);
-    expect(calculateRanking([f])[0]!.hydrationGoalsAchieved).toBe(10);
+
+  it('counts only eligible days inside the period', () => {
+    const f = facts({ attendance: [...days(FULL), { day: '2026-10-01', classes: 3 }, { day: day(29), classes: 1 }] });
+    expect(calculateRanking([f])[0]!.confirmedClasses).toBe(8);
   });
-  it('penalizes an unprotected water failure, without treating it as complete', () => {
-    const r = result({ hydration: [{ ...water(1)[0]!, done: false }] });
-    expect(r.unprotectedHydrationFailures).toBe(1); expect(r.hydrationGoalsAchieved).toBe(0); expect(r.penaltyPoints).toBe(5);
+
+  it('has no presence without eligible days', () => {
+    const r = result({ attendance: [] });
+    expect(r.attendanceRate).toBe(0);
+    expect(r.rankingScore).toBe(30);
   });
-  it('does not penalize the current hydration day', () => {
-    expect(result({ hydration: water(1, false, 29) }).eligibleHydrationDays).toBe(0);
+
+  it('water = days the student met their own goal, never the volume', () => {
+    // Alternate days: never 7 in a row, so no freeze.
+    const r = result({ hydration: water(28).map((d, i) => ({ ...d, done: i % 2 === 0 })) });
+    expect(r.hydrationRate).toBe(0.5);
+    expect(r.rankingScore).toBe(85);
   });
-  it('uses the historical completed outcome after a goal/weight change', () => {
-    const historical = water(2); expect(result({ hydration: historical }).hydrationRate).toBe(1);
+
+  it('ignores days without a known goal and days outside the period', () => {
+    const r = result({ hydration: [{ ...water(1)[0]!, known: false, done: false }, ...water(2, false, 29)] });
+    expect(r.eligibleHydrationDays).toBe(0);
   });
-  it('excludes days with no valid goal', () => {
-    expect(result({ hydration: [{ ...water(1)[0]!, known: false, done: false }] }).unprotectedHydrationFailures).toBe(0);
+
+  it('a frozen water day leaves the denominator: no points added nor taken', () => {
+    // 7 days met → one freeze → day 8 missed is covered.
+    const r = result({ hydration: [...water(7), ...water(1, false, 8), ...water(2, true, 9)] });
+    expect(r.protectedDays).toBe(1);
+    expect(r.eligibleHydrationDays).toBe(9);
+    expect(r.hydrationRate).toBe(1);
   });
-  it('excludes noneligible membership days from penalties and qualifying days', () => {
-    const r = result({ attendance: [], hydration: water(10, false).map((d) => ({ ...d, eligible: false })) });
-    expect(r.eligibleDays).toBe(0); expect(r.penaltyPoints).toBe(0);
+
+  it('a missed day with the freezes used up counts as not met', () => {
+    const r = result({ hydration: water(3, false) });
+    expect(r.protectedDays).toBe(0);
+    expect(r.hydrationRate).toBe(0);
   });
-  it('protects one missed water day after seven completed days', () => {
-    const r = result({ hydration: [...water(7), ...water(1, false, 8)] });
-    expect(r.protectedFailures).toBe(1); expect(r.penaltyPoints).toBe(0); expect(r.hydrationRate).toBe(7 / 8);
-  });
-  it('does not award completed activity points for a frozen day', () => {
-    const r = result({ hydration: [...water(7), ...water(1, false, 8)] });
-    expect(r.hydrationGoalsAchieved).toBe(7); expect(r.completedDays).toBe(10); expect(r.performanceScore).toBe(95);
-  });
-  it('does not consume a freeze twice for duplicated facts', () => {
-    const r = result({ hydration: [...water(7), ...water(1, false, 8), ...water(1, false, 8)] });
-    expect(r.protectedFailures).toBe(1);
-  });
-  it('penalizes the next failure when the water freeze is exhausted', () => {
-    const r = result({ hydration: [...water(7), ...water(2, false, 8)] });
-    expect(r.protectedFailures).toBe(1); expect(r.unprotectedHydrationFailures).toBe(1);
-  });
-  it('does not use a water freeze to protect a class absence on the same day', () => {
-    const r = result({ attendance: [{ id: 'a', day: day(8), done: false }], hydration: [...water(7), ...water(1, false, 8)] });
-    expect(r.protectedFailures).toBe(1); expect(r.unprotectedAttendanceFailures).toBe(1); expect(r.penaltyPoints).toBe(5);
-  });
-  it('does not invent individual attendance freezes from weekly training freezes', () => expect(result({ attendance: [{ id: 'a', day: day(1), done: false }] }).unprotectedAttendanceFailures).toBe(1));
-  it('calculates the requested 90/80 weighted performance as 86', () => {
-    const f = facts(); f.attendance[0]!.done = false; f.hydration[0]!.done = false; f.hydration[1]!.done = false;
-    expect(calculateRanking([f])[0]!.performanceScore).toBeCloseTo(86);
-  });
-  it('adds independent attendance and hydration penalties', () => {
-    const r = result({ attendance: [{ id: 'a', day: day(1), done: false }], hydration: water(1, false) });
-    expect(r.penaltyPoints).toBe(10);
-  });
-  it('clamps a deeply negative score to zero', () => expect(result({ hydration: water(28, false) }).rankingScore).toBe(0));
-  it('never exceeds 100', () => expect(result({ hydration: water(28) }).rankingScore).toBeLessThanOrEqual(100));
-  it('qualifies newcomers without assigning a competitive position', () => {
-    const r = result({ attendance: [], hydration: water(1) });
-    expect(r.status).toBe('qualifying'); expect(r.position).toBeNull(); expect(r.daysToQualify).toBe(6);
-  });
-  it('counts distinct eligible days, not a class and water twice', () => expect(result().eligibleDays).toBe(10));
-  it('allows competition at seven real eligible days', () => expect(result({ attendance: [], hydration: water(7) }).position).toBe(1));
-  it('sorts qualifying students after competitors even when their score is higher', () => {
-    const f = facts(); f.hydration = water(10, false);
-    const list = calculateRanking([f, facts({ userId: 'new', attendance: [{ id: 'a', day: day(1), done: true }], hydration: water(1) })]);
-    expect(list[0]!.userId).toBe('a'); expect(list[1]!.position).toBeNull();
-  });
-  it('breaks exact ties by stable identity', () => expect(calculateRanking([facts({ userId: 'b' }), facts({ userId: 'a' })]).map((r) => r.userId)).toEqual(['a', 'b']));
-  it('breaks score ties with attendance then hydration rates', () => {
-    const a = facts({ userId: 'a', attendance: [], hydration: water(10) });
-    const b = facts({ userId: 'b', hydration: water(10, false) });
-    // Different performance here demonstrates attendance ordering at zero final scores.
-    a.hydration = water(10, false); b.attendance[0]!.done = false;
-    expect(calculateRanking([a, b])[0]!.userId).toBe('b');
-  });
-  it('breaks equal scores/rates with completed days', () => {
-    expect(calculateRanking([facts({ userId: 'a' }), facts({ userId: 'b', hydration: water(11) })])[0]!.userId).toBe('b');
-  });
-  it('excludes old penalties but retains preperiod history for existing freezes', () => {
-    const r = result({ periodFrom: day(8), hydration: [...water(7), ...water(1, false, 8)] });
-    expect(r.protectedFailures).toBe(1); expect(r.penaltyPoints).toBe(0);
-  });
-  it('does not import penalties from another month into a custom interval', () => {
-    expect(result({ hydration: [{ day: '2026-10-01', known: true, eligible: true, done: false }, ...water(10)] }).penaltyPoints).toBe(0);
-  });
-  it('allows recovery through legitimate completion/correction', () => {
-    const f = facts(); f.attendance[0]!.done = false;
-    const before = calculateRanking([f])[0]!.rankingScore;
-    f.attendance[0]!.done = true; expect(calculateRanking([f])[0]!.rankingScore).toBeGreaterThan(before);
-  });
-  it('recalculates deterministically without mutating input or consuming freezes', () => {
-    const f = facts({ hydration: [...water(7), ...water(2, false, 8)] });
-    const original = JSON.stringify(f); const first = calculateRanking([f]);
-    for (let i = 0; i < 5; i++) expect(calculateRanking([f])).toEqual(first);
-    expect(JSON.stringify(f)).toBe(original);
-  });
-  it('breaks zero-score attendance ties by hydration rate', () => {
-    const list = calculateRanking([
-      facts({ userId: 'a', attendance: [], hydration: water(10, false) }),
-      facts({ userId: 'b', attendance: [], hydration: [...water(10, false), ...water(1, true, 11)] }),
-    ]);
-    expect(list.map((r) => r.rankingScore)).toEqual([0, 0]);
-    expect(list[0]!.userId).toBe('b');
-  });
-  it('uses configurable penalties and classification threshold', () => {
-    const f = facts({ attendance: [], hydration: [...water(1, false), ...water(2, true, 2)] });
-    const r = calculateRanking([f], {
-      ...RANKING_CONFIG,
-      penalties: { missedClass: 2, missedHydrationGoal: 3 },
-      eligibility: { minEligibleDays: 3 },
-    })[0]!;
-    expect(r.penaltyPoints).toBe(3);
-    expect(r.status).toBe('ranked');
-  });
-  it('shows the viewer even beyond the top twenty', () => {
-    const entries = calculateRanking(Array.from({ length: 30 }, (_, i) => facts({ userId: `u${String(i).padStart(2, '0')}` })));
-    expect(visibleRanking(entries, 'u25').own?.userId).toBe('u25');
-    expect(visibleRanking(entries, 'u01').own).toBeNull();
-  });
-  it('rejects facts from another modality rather than filtering a global score', () => {
-    expect(() => calculateModalityRanking([facts({ modalityId: 'bjj' })], 'mt')).toThrow('modalidade solicitada');
-    expect(() => calculateModalityRanking([], '')).toThrow('modalidade solicitada');
-  });
-  it('shares one frozen water day across modalities without mutating history', () => {
-    const history = [...water(7), ...water(1, false, 8)];
-    const before = JSON.stringify(history);
-    const mt = calculateModalityRanking([facts({ hydration: history })], 'mt')[0]!;
-    const bjj = calculateModalityRanking([facts({ modalityId: 'bjj', attendance: [], hydration: history })], 'bjj')[0]!;
-    expect(mt.protectedFailures).toBe(1); expect(bjj.protectedFailures).toBe(1);
+
+  it('the same water history gives the same water rate in every modality', () => {
+    const hydration = [...water(7), ...water(1, false, 8)];
+    const mt = calculateModalityRanking([facts({ hydration })], 'mt')[0]!;
+    const bjj = calculateModalityRanking([facts({ hydration, modalityId: 'bjj', attendance: days([1]) })], 'bjj')[0]!;
     expect(mt.hydrationRate).toBe(bjj.hydrationRate);
-    expect(JSON.stringify(history)).toBe(before);
+    expect(mt.attendanceRate).not.toBe(bjj.attendanceRate);
   });
-  it('keeps modality-specific eligibility separate from global freeze history', () => {
-    const history = [...water(7), ...water(1, false, 8)];
-    const mt = calculateModalityRanking([facts({ hydration: history })], 'mt')[0]!;
-    const bjj = calculateModalityRanking([facts({ modalityId: 'bjj', attendance: [], hydration: history.map((d) => ({ ...d, eligible: d.day >= day(8) })) })], 'bjj')[0]!;
-    expect(mt.hydrationRate).toBe(7 / 8); expect(bjj.hydrationRate).toBe(0);
-    expect(bjj.protectedFailures).toBe(1); expect(bjj.status).toBe('qualifying');
+
+  it('qualifies after 7 eligible days, without a position before', () => {
+    const newcomer = result({ attendance: days([28], 6, 23), hydration: [] });
+    expect(newcomer.status).toBe('qualifying');
+    expect(newcomer.daysToQualify).toBe(1);
+    expect(newcomer.position).toBeNull();
+    expect(result({ attendance: days([], 7, 22) }).status).toBe('ranked');
   });
-  it('a missed class in one modality has no effect on another ranking', () => {
-    const mt = facts(); mt.attendance[0]!.done = false;
-    const bjj = facts({ modalityId: 'bjj' });
-    expect(calculateModalityRanking([mt], 'mt')[0]!.penaltyPoints).toBe(5);
-    expect(calculateModalityRanking([bjj], 'bjj')[0]!.rankingScore).toBe(100);
+
+  it('qualifying students come after ranked ones even with a higher score', () => {
+    const entries = calculateRanking([
+      facts({ userId: 'new', attendance: days(FULL.filter((d) => d >= 23), 6, 23) }),
+      facts({ userId: 'old', hydration: [] }),
+    ]);
+    expect(entries.map((e) => e.userId)).toEqual(['old', 'new']);
+    expect(entries.map((e) => e.position)).toEqual([1, null]);
   });
-  it('centralizes weights and penalties', () => {
-    expect(RANKING_CONFIG.attendanceWeight + RANKING_CONFIG.hydrationWeight).toBe(1);
-    expect(RANKING_CONFIG.eligibility.minEligibleDays).toBe(7);
+
+  it('breaks ties by confirmed classes in the period, then water rate, then a stable id', () => {
+    const more = facts({ userId: 'z', attendance: days([...FULL, 2, 9]) });
+    const water75 = { hydration: [...water(21), ...water(7, false, 22)] };
+    const entries = calculateRanking([
+      facts({ userId: 'b' }),
+      facts({ userId: 'a' }),
+      more,
+      facts({ userId: 'w', weeklyGoal: 1, attendance: days([1, 8, 15, 22]), ...water75 }),
+    ]);
+    expect(entries.map((e) => e.userId)).toEqual(['z', 'a', 'b', 'w']);
+  });
+
+  it('rejects facts of another modality', () => {
+    expect(() => calculateModalityRanking([facts({ modalityId: 'bjj' })], 'mt')).toThrow('modalidade solicitada');
+  });
+
+  it('does not mutate its input', () => {
+    const f = facts();
+    const copy = JSON.parse(JSON.stringify(f));
+    calculateRanking([f]);
+    expect(f).toEqual(copy);
+  });
+
+  it('shows the viewer even beyond the top twenty', () => {
+    const entries = calculateRanking(
+      Array.from({ length: 25 }, (_, i) => facts({ userId: `u${String(i).padStart(2, '0')}`, weeklyGoal: i + 1 })),
+    );
+    const { rows, own } = visibleRanking(entries, 'u24');
+    expect(rows).toHaveLength(20);
+    expect(own?.userId).toBe('u24');
   });
 });

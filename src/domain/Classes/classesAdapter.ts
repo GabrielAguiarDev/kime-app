@@ -53,7 +53,7 @@ function toAcademyCheckin(row: AcademyCheckinRowApi): AcademyCheckin {
 }
 
 function toModality(row: ModalityRowApi): Modality {
-  return { id: row.id, name: row.name, position: row.position, usesBelts: row.uses_belts };
+  return { id: row.id, name: row.name, position: row.position, usesBelts: row.uses_belts, weeklyClassGoal: row.weekly_class_goal };
 }
 
 function toBelt(row: BeltRowApi): ModalityBelt {

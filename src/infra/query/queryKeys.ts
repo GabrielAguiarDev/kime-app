@@ -3,8 +3,7 @@ export enum QueryKeys {
   MyProfile = 'MyProfile',
   GymMembers = 'GymMembers',
   PendingRequests = 'PendingRequests',
-  StudentCode = 'StudentCode',
-  ProfessorCodes = 'ProfessorCodes',
+  InviteCodes = 'InviteCodes',
   GymSettings = 'GymSettings',
   CodeLookup = 'CodeLookup',
   WaterToday = 'WaterToday',
@@ -29,8 +28,6 @@ export enum QueryKeys {
   DietDays = 'DietDays',
   WaterDays = 'WaterDays',
   Ranking = 'Ranking',
-  ClassEnrollments = 'ClassEnrollments',
-  ModalityEnrollments = 'ModalityEnrollments',
   RankingModalities = 'RankingModalities',
   TimerPresets = 'TimerPresets',
 }

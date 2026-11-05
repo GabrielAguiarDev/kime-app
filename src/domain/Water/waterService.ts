@@ -85,6 +85,16 @@ function publishConfig(config: WaterWidgetConfig | null): void {
   sharedStore.reloadWidgets();
 }
 
+/**
+ * Sign-out: removes the user's synced water and the widget config from this
+ * device. Waits for a sync in flight first, so it cannot write logs back.
+ */
+async function clearDevice(userId: string): Promise<void> {
+  await inFlight.get(userId)?.catch(() => undefined);
+  waterLocalStore.clearUser(userId);
+  sharedStore.reloadWidgets();
+}
+
 // One sync at a time per user. A trigger during a run (a new log) asks for
 // one more pass, so nothing waits for the next foreground.
 const inFlight = new Map<string, Promise<void>>();
@@ -164,4 +174,4 @@ async function syncOnce(userId: string): Promise<void> {
   }
 }
 
-export const waterService = { day, localDayTotals, log, undoLast, readConfig, publishConfig, sync };
+export const waterService = { day, localDayTotals, log, undoLast, readConfig, publishConfig, sync, clearDevice };

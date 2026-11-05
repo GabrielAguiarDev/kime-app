@@ -1,6 +1,7 @@
 import {
   countdownLabel,
   daysBetween,
+  emptyWeekLimits,
   emptyWeekTargets,
   formatLocalDate,
   parseBrDate,
@@ -20,12 +21,14 @@ const plan = (weekStart: string, targets: Partial<WaterPlan['targets']>, extra: 
   weekStart,
   updatedAt: `${weekStart}T10:00:00Z`,
   targets: { ...emptyWeekTargets(), ...targets },
+  limits: emptyWeekLimits(),
   ...extra,
 });
 
 const champ = (name: string, eventDate: string): Championship => ({
   id: name,
   academyId: 'a1',
+  modalityId: 'mod-1',
   name,
   eventDate,
   location: '',

@@ -50,8 +50,11 @@ begin
   end loop;
   -- profiles are created by the on_auth_user_created trigger.
 
-  insert into public.academies (id, name, invite_code, created_by)
-  values (v_academy, 'Kimi Jiu-Jitsu (Teste)', 'KMJJ2526', v_owner);
+  -- Both invite codes are created by a trigger; fixed ones for testing.
+  insert into public.academies (id, name, created_by)
+  values (v_academy, 'Kimi Jiu-Jitsu (Teste)', v_owner);
+  update public.academy_invite_codes set code = 'KMJJ2526' where academy_id = v_academy and code_type = 'student';
+  update public.academy_invite_codes set code = 'PRF2526K' where academy_id = v_academy and code_type = 'instructor';
 
   insert into public.memberships (academy_id, user_id, role, status, decided_by, decided_at) values
     (v_academy, v_owner,     'owner',      'active', v_owner, now()),
@@ -65,9 +68,12 @@ begin
     (v_nogi, v_academy, 'No-Gi', 1, false),
     (v_openmat, v_academy, 'Open mat', 2, false);
 
-  -- Professor code valid for 7 days from the reset.
-  insert into public.professor_codes (academy_id, code, created_by)
-  values (v_academy, 'PRF2526K', v_owner);
+  -- The student is linked to Jiu-Jitsu and No-Gi (header menu with two modalities).
+  insert into public.student_modality_enrollments (membership_id, modality_id, status, started_at, created_at) values
+    (v_membership, v_bjj, 'active', now() - interval '6 weeks', now() - interval '6 weeks'),
+    (v_membership, v_nogi, 'active', now() - interval '6 weeks', now() - interval '6 weeks');
+  insert into private.modality_active_periods (enrollment_id, starts_at)
+  select id, started_at from public.student_modality_enrollments where membership_id = v_membership;
 
   -- White: classes without a belt; the rest count classes in the previous belt.
   insert into public.modality_belts (academy_id, modality_id, primary_color, tip_color, position, classes_required) values

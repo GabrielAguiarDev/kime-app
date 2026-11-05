@@ -70,9 +70,13 @@ export function useTimerPresetMutations(academyId: string, userId: string) {
       onSuccess,
     }),
     update: useMutation({
-      mutationFn: ({ id, config }: { id: string; config: TimerConfig }) =>
+      mutationFn: ({ id, name, config }: { id: string; name: string; config: TimerConfig }) =>
         call(async () => {
-          const { data, error } = await supabase.from('timer_presets').update(columns(config)).eq('id', id).select('id');
+          const { data, error } = await supabase
+            .from('timer_presets')
+            .update({ name: name.trim(), ...columns(config) })
+            .eq('id', id)
+            .select('id');
           if (error) throw error;
           if (data.length === 0) throw new Error('forbidden');
         }),

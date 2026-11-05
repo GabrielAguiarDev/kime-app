@@ -284,13 +284,12 @@ Direto, curto, como um professor no tatame. Frases afirmativas, no máximo uma e
 
 ## 8. Movimento
 
-Não implemente animações nem transições. O movimento será adicionado manualmente depois. Exceção decidida pelo produto: o bottom sheet (3.13).
+Não implemente animações nem transições. O movimento será adicionado manualmente depois. Exceções decididas pelo produto: o bottom sheet (3.13), o anel de água (3.4), que enche com uma transição suave (~700 ms, desacelerando) quando a quantidade muda, e a barra de progresso das etapas do cadastro da academia (~450 ms, desacelerando). Todas respeitam "Reduzir movimento" do sistema.
 
 - Defina cada estado como um estilo separado: repouso, pressionado, concluído, comemoração.
 - Mudanças de estado são instantâneas.
 - Marque cada ponto onde haverá movimento com `// TODO(motion): descrição`. Pontos esperados:
   - Botão tátil afundando e voltando
-  - Anel de água enchendo após um registro
   - Badge passando de pendente para confirmado
   - Barra de faixa avançando
   - Número da contagem regressiva virando

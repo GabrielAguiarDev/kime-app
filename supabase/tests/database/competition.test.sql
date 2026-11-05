@@ -56,6 +56,14 @@ insert into t_ids
   select 'ms2', id from public.memberships where user_id = pg_temp.id('s2');
 insert into t_ids
   select 'mi', id from public.memberships where user_id = pg_temp.id('i');
+-- Active students are linked to the academy's modality (an active student needs one).
+select private.activate_enrollment(m.id, mo.id)
+from public.memberships m join public.academy_modalities mo on mo.academy_id = m.academy_id
+where m.role = 'student' and m.status = 'active';
+create function pg_temp.mod() returns uuid language sql as $$
+  select id from public.academy_modalities where academy_id = (select val from t_ids where key = 'a1')
+$$;
+grant execute on function pg_temp.mod() to public;
 
 -- ---------------------------------------------------------------------------
 -- Invite
@@ -63,22 +71,23 @@ insert into t_ids
 select pg_temp.login(pg_temp.id('i'));
 select throws_ok($$ update public.memberships set is_competitor = true where id = pg_temp.id('ms') $$,
   '42501', null, 'is_competitor is not written directly');
-select throws_ok($$ select public.invite_competitor(pg_temp.id('mi')) $$,
+select throws_ok($$ select public.invite_competitor(pg_temp.id('mi'), pg_temp.mod()) $$,
   '22023', 'competitor_target_invalid', 'only students are invited');
 
 select pg_temp.login(pg_temp.id('o2'));
-select throws_ok($$ select public.invite_competitor(pg_temp.id('ms')) $$,
+select throws_ok($$ select public.invite_competitor(pg_temp.id('ms'), pg_temp.mod()) $$,
   '42501', 'forbidden', 'staff of another academy cannot invite');
 
 select pg_temp.login(pg_temp.id('s2'));
-select throws_ok($$ select public.invite_competitor(pg_temp.id('ms')) $$,
+select throws_ok($$ select public.invite_competitor(pg_temp.id('ms'), pg_temp.mod()) $$,
   '42501', 'forbidden', 'a student cannot invite');
 
 select pg_temp.login(pg_temp.id('i'));
-select lives_ok($$ select public.invite_competitor(pg_temp.id('ms')) $$, 'instructor invites a student');
-select lives_ok($$ select public.invite_competitor(pg_temp.id('ms')) $$, 'inviting again is a no-op');
-select is((select competitor_invited_by from public.memberships where id = pg_temp.id('ms')),
-  pg_temp.id('i'), 'invite stamped with who sent it');
+select lives_ok($$ select public.invite_competitor(pg_temp.id('ms'), pg_temp.mod()) $$, 'instructor invites a student');
+select lives_ok($$ select public.invite_competitor(pg_temp.id('ms'), pg_temp.mod()) $$, 'inviting again is a no-op');
+select is((select competitor_invited_by from public.student_modality_enrollments
+           where membership_id = pg_temp.id('ms') and modality_id = pg_temp.mod()),
+  pg_temp.id('i'), 'invite stamped with who sent it (on the modality link)');
 select is((select is_competitor from public.memberships where id = pg_temp.id('ms')),
   false, 'an invite alone does not make a competitor');
 
@@ -91,31 +100,33 @@ select is((select count(*)::int from public.water_logs where user_id = pg_temp.i
   0, 'staff do not read water logs of an invited student');
 
 select pg_temp.login(pg_temp.id('s2'));
-select throws_ok($$ select public.respond_competitor_invite(pg_temp.id('ms'), true) $$,
+select throws_ok($$ select public.respond_competitor_invite(pg_temp.id('ms'), pg_temp.mod(), true) $$,
   '42501', 'forbidden', 'nobody answers someone else''s invite');
-select throws_ok($$ select public.respond_competitor_invite(pg_temp.id('ms2'), true) $$,
+select throws_ok($$ select public.respond_competitor_invite(pg_temp.id('ms2'), pg_temp.mod(), true) $$,
   'P0002', 'competitor_invite_missing', 'cannot accept without an invite');
 
 select pg_temp.login(pg_temp.id('s'));
-select lives_ok($$ select public.respond_competitor_invite(pg_temp.id('ms'), true) $$, 'student accepts');
+select lives_ok($$ select public.respond_competitor_invite(pg_temp.id('ms'), pg_temp.mod(), true) $$, 'student accepts');
 select ok((select is_competitor and competitor_since is not null and competitor_invited_at is null
-           from public.memberships where id = pg_temp.id('ms')),
-  'accepting makes a competitor, stamps the date and clears the invite');
-select throws_ok($$ select public.invite_competitor(pg_temp.id('ms')) $$,
+           from public.student_modality_enrollments where membership_id = pg_temp.id('ms') and modality_id = pg_temp.mod())
+       and (select is_competitor and competitor_since is not null from public.memberships where id = pg_temp.id('ms')),
+  'accepting makes a competitor in the modality (and the membership cache), stamps the date and clears the invite');
+select throws_ok($$ select public.invite_competitor(pg_temp.id('ms'), pg_temp.mod()) $$,
   '42501', 'forbidden', 'the student cannot invite themselves');
 
 select pg_temp.login(pg_temp.id('i'));
-select throws_ok($$ select public.invite_competitor(pg_temp.id('ms')) $$,
+select throws_ok($$ select public.invite_competitor(pg_temp.id('ms'), pg_temp.mod()) $$,
   '22023', 'already_competitor', 'a competitor is not invited again');
 select is((select count(*)::int from public.water_logs where user_id = pg_temp.id('s')),
   1, 'staff read water logs once the student accepted');
 
 -- Decline.
-select public.invite_competitor(pg_temp.id('ms2'));
+select public.invite_competitor(pg_temp.id('ms2'), pg_temp.mod());
 select pg_temp.login(pg_temp.id('s2'));
-select lives_ok($$ select public.respond_competitor_invite(pg_temp.id('ms2'), false) $$, 'student declines');
-select ok((select not is_competitor and competitor_invited_at is null
-           from public.memberships where id = pg_temp.id('ms2')),
+select lives_ok($$ select public.respond_competitor_invite(pg_temp.id('ms2'), pg_temp.mod(), false) $$, 'student declines');
+select ok((select not e.is_competitor and e.competitor_invited_at is null and not m.is_competitor
+           from public.student_modality_enrollments e join public.memberships m on m.id = e.membership_id
+           where e.membership_id = pg_temp.id('ms2') and e.modality_id = pg_temp.mod()),
   'declining clears the invite');
 
 -- ---------------------------------------------------------------------------
@@ -190,9 +201,9 @@ select throws_ok(
 -- Championship entries
 -- ---------------------------------------------------------------------------
 select pg_temp.login(pg_temp.id('i'));
-insert into public.championships (id, academy_id, name, event_date) values
-  ('50000000-0000-0000-0000-000000000001', pg_temp.id('a1'), 'Copa Futura', current_date + 30),
-  ('50000000-0000-0000-0000-000000000002', pg_temp.id('a1'), 'Copa Passada', current_date - 30);
+insert into public.championships (id, academy_id, name, event_date, modality_id) values
+  ('50000000-0000-0000-0000-000000000001', pg_temp.id('a1'), 'Copa Futura', current_date + 30, pg_temp.mod()),
+  ('50000000-0000-0000-0000-000000000002', pg_temp.id('a1'), 'Copa Passada', current_date - 30, pg_temp.mod());
 select throws_ok(
   $$ select public.set_championship_entries('50000000-0000-0000-0000-000000000001', array[pg_temp.id('s'), pg_temp.id('s2')]) $$,
   '42501', null, 'only competitors are entered');
@@ -210,11 +221,11 @@ select throws_ok(
 -- Leaving the team
 -- ---------------------------------------------------------------------------
 select pg_temp.login(pg_temp.id('s2'));
-select throws_ok($$ select public.remove_competitor(pg_temp.id('ms')) $$,
+select throws_ok($$ select public.remove_competitor(pg_temp.id('ms'), pg_temp.mod()) $$,
   '42501', 'forbidden', 'another student cannot take someone off the team');
 
 select pg_temp.login(pg_temp.id('s'));
-select lives_ok($$ select public.remove_competitor(pg_temp.id('ms')) $$, 'the competitor leaves the team');
+select lives_ok($$ select public.remove_competitor(pg_temp.id('ms'), pg_temp.mod()) $$, 'the competitor leaves the team');
 select pg_temp.logout();
 select is((select array_agg(c.name) from public.championship_entries e
            join public.championships c on c.id = e.championship_id

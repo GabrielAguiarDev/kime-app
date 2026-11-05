@@ -3,6 +3,8 @@ import type { LocalDate, Weekday } from '@domain/Classes/classesTypes';
 export interface Championship {
   id: string;
   academyId: string;
+  /** Every championship belongs to one modality; only its competitors are entered. */
+  modalityId: string;
   name: string;
   /** Academy-local date of the event. */
   eventDate: LocalDate;
@@ -10,6 +12,7 @@ export interface Championship {
 }
 
 export interface ChampionshipInput {
+  modalityId: string;
   name: string;
   eventDate: LocalDate;
   location: string;
@@ -39,6 +42,9 @@ export interface WaterPlan {
   weekStart: LocalDate;
   updatedAt: string;
   targets: WeekTargets;
+  /** `limits[weekday]` true = the target is a limit (done between 90 % and 100 %), false = a goal. */
+  limits: WeekLimits;
 }
 
 export type WeekTargets = Record<Weekday, number | null>;
+export type WeekLimits = Record<Weekday, boolean>;

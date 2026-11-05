@@ -4,8 +4,9 @@ import { Box, Mascot, Screen, SelectionCard, Text } from '@components';
 import { entryPath, type EntryPath } from '@services/entry';
 
 /**
- * First screen, signed out. "Sou aluno" / "Sou professor" only picks the way
- * in and is remembered on this device; it is not a kind of account.
+ * First screen, signed out. "Sou aluno" / "Sou professor" both open the
+ * invite-code screen (the code decides the role); the choice is only
+ * remembered on this device, it is not a kind of account.
  */
 /**
  * Back from the first step of a path (login, sign-up, code): the previous
@@ -21,8 +22,8 @@ export function StartScreen() {
   const choose = (path: EntryPath) => {
     entryPath.set(path);
     // TODO(motion): transition from the choice into the chosen path.
-    if (path === 'student') router.push('/codigo');
-    else router.push('/sign-in');
+    // Both paths use the same invite-code screen: the code tells the role.
+    router.push('/codigo');
   };
 
   return (

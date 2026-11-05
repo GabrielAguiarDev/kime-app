@@ -4,6 +4,7 @@ import { Box, Button, Card, EmptyState, Icon, Screen, Text } from '@components';
 import { addDays, weekdayOf, WEEKDAY_LABELS } from '@domain/Classes';
 import {
   formatShortDate,
+  planInForce,
   plannedMlOn,
   sortWeights,
   useAthleteWater,
@@ -82,8 +83,13 @@ export function AthleteProgressScreen() {
           <Card gap="s12">
             {days.map((day) => {
               const total = totals.get(day) ?? 0;
-              const goal = dailyGoal({ weightKg: profile.data.weightKg, plannedMl: plannedMlOn(plans.data ?? [], day) });
-              const reached = goal.goalMl !== null && total >= goal.goalMl;
+              const planned = plannedMlOn(plans.data ?? [], day);
+              const goal = dailyGoal({ weightKg: profile.data.weightKg, plannedMl: planned });
+              // A planned limit is done between 90 % and 100 % of it (going over is not done).
+              const isLimit = planned !== null && !!planInForce(plans.data ?? [], day)?.limits[weekdayOf(day)];
+              const reached =
+                goal.goalMl !== null &&
+                (isLimit ? total >= Math.ceil(goal.goalMl * 0.9) && total <= goal.goalMl : total >= goal.goalMl);
               const label = day === today ? 'Hoje' : `${WEEKDAY_LABELS[weekdayOf(day)].short} ${formatShortDate(day)}`;
               return (
                 <Box
@@ -93,14 +99,18 @@ export function AthleteProgressScreen() {
                   gap="s12"
                   accessible
                   accessibilityLabel={`${label}: ${formatMl(total)} ml${
-                    goal.goalMl ? ` de ${formatMl(goal.goalMl)}${reached ? ', meta batida' : ''}` : ''
+                    goal.goalMl
+                      ? ` de ${formatMl(goal.goalMl)}${isLimit ? ' (limite)' : ''}${reached ? (isLimit ? ', dentro do limite' : ', meta batida') : ''}`
+                      : ''
                   }`}
                 >
                   <Text variant="body" flex={1}>
                     {label}
                   </Text>
                   <Text variant="bodyStrong">{formatMl(total)} ml</Text>
-                  <Text variant="caption">{goal.goalMl ? `/ ${formatMl(goal.goalMl)}` : ''}</Text>
+                  <Text variant="caption">
+                    {goal.goalMl ? `/ ${formatMl(goal.goalMl)}${isLimit ? ' limite' : ''}` : ''}
+                  </Text>
                   {reached ? <Icon name="check" color="success" /> : null}
                 </Box>
               );
