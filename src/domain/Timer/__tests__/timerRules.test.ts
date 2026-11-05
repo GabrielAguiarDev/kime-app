@@ -1,5 +1,7 @@
 import {
   BUILT_IN_PRESETS,
+  builtInFor,
+  builtInsForAcademy,
   elapsed,
   events,
   eventsBetween,
@@ -121,5 +123,19 @@ describe('native plan', () => {
   it('paused: nothing scheduled, the current state frozen', () => {
     const plan = nativePlan('Boxe', c, segs, evs, 10_000, 0, true);
     expect(plan).toMatchObject({ paused: true, phases: [], sounds: [], current: { phase: 'round', remainingSeconds: 55 } });
+  });
+});
+
+describe('built-in presets per modality', () => {
+  it('matches names ignoring case, accents and dashes', () => {
+    expect(builtInFor('jiu jitsu')?.id).toBe('builtin:rola');
+    expect(builtInFor('No-Gi')?.id).toBe('builtin:rola');
+    expect(builtInFor('MUAY THAI')?.id).toBe('builtin:muay-thai');
+    expect(builtInFor('Judô')).toBeUndefined();
+  });
+
+  it('offers only the academy modalities; none matching → all', () => {
+    expect(builtInsForAcademy(['Muay Thai', 'Jiu-Jitsu', 'No-Gi']).map((p) => p.name)).toEqual(['Muay Thai', 'Rola de jiu-jitsu']);
+    expect(builtInsForAcademy(['Judô'])).toHaveLength(4);
   });
 });
