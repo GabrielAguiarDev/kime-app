@@ -108,7 +108,7 @@ Widgets nativos, que compartilham dados com o app por um armazenamento local: á
 | Botão "+ ml" | `Button(intent:)` + `AddWaterIntent` (iOS 17+) | `actionRunCallback<AddWaterAction>` |
 | Virada do dia | entrada da timeline à meia-noite (fuso do perfil); contagem: uma entrada por dia | alarme (inexato) à meia-noite, um por widget |
 | Contagem regressiva | `CountdownWidget.swift` | `CountdownWidget.kt` (`CountdownWidgetReceiver`) |
-| Timer de rounds | Live Activity `RoundTimerActivity.swift` (tela bloqueada e Dynamic Island) | — (notificações locais em segundo plano) |
+| Timer de rounds | motor `RoundTimerEngine.swift` + Live Activity `RoundTimerActivity.swift` (tela bloqueada e Dynamic Island) | `RoundTimerService.kt`: foreground service com notificação fixa e contagem ao vivo |
 | Adicionar | pela galeria de widgets do sistema | pela lista de widgets do launcher |
 
 **Contrato dos dados** (o mesmo nas duas plataformas e no app, em `src/domain/Water/waterLocalStore.ts`):

@@ -16,12 +16,11 @@ import {
   type TimerPreset,
 } from '@domain/Timer';
 import { errorMessage } from '@infra';
-import { timerAudioAvailable } from '@infra/audio';
 import { SheetForm } from '@screens/professor/shared';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
-import { startTimer, useTimerSession } from '@services/timer';
+import { startTimer, timerSoundsAvailable, useTimerSession } from '@services/timer';
 import { haptics } from '@utils/haptics';
 
 interface Fields {
@@ -132,9 +131,9 @@ export function TimerSetupScreen() {
           </Card>
         ) : null}
 
-        {!timerAudioAvailable ? (
+        {!timerSoundsAvailable ? (
           <Text variant="caption" color="warning">
-            Os sons do timer chegam com a próxima atualização do app.
+            Os sinos e o timer em segundo plano chegam com a próxima atualização do app.
           </Text>
         ) : null}
 
@@ -172,7 +171,7 @@ export function TimerSetupScreen() {
           </Box>
           <Text variant="caption">
             Antes do primeiro round há 10 s para se preparar. Sino no início do round, três sinos no fim e batidas de madeira no
-            aviso.
+            aviso. O timer continua com o app fechado ou a tela bloqueada.
           </Text>
         </Box>
 

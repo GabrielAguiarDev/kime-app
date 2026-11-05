@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Round timer: foreground service (media playback: it plays the bells), awake while running. -->
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <application>
     <!-- Water widget (Jetpack Glance). Merged into the app manifest. -->
     <receiver
@@ -24,5 +29,10 @@
         android:name="android.appwidget.provider"
         android:resource="@xml/kimi_countdown_widget_info" />
     </receiver>
+    <!-- Round timer engine: fixed notification + bells in the background. -->
+    <service
+      android:name="br.com.kimi.widget.RoundTimerService"
+      android:exported="false"
+      android:foregroundServiceType="mediaPlayback" />
   </application>
 </manifest>

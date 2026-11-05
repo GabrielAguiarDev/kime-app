@@ -4,6 +4,7 @@ import {
   events,
   eventsBetween,
   formatClock,
+  nativePlan,
   isValidConfig,
   parseDuration,
   pause,
@@ -93,5 +94,32 @@ describe('formatting and validation', () => {
   it('built-in presets are valid; the warning must be shorter than the round', () => {
     expect(BUILT_IN_PRESETS.every(isValidConfig)).toBe(true);
     expect(isValidConfig({ ...boxe, warningSeconds: 180 })).toBe(false);
+  });
+});
+
+describe('native plan', () => {
+  const c: TimerConfig = { rounds: 2, roundSeconds: 60, restSeconds: 30, warningSeconds: 10 };
+  const segs = timeline(c, 5);
+  const evs = events(c, segs);
+
+  it('only what is ahead, as absolute instants', () => {
+    // 70 s in: inside the rest (65–95 s).
+    const plan = nativePlan('Boxe', c, segs, evs, 70_000, 1_000_000, false);
+    expect(plan.current).toEqual({ phase: 'rest', round: 1, remainingSeconds: 25, warning: false });
+    expect(plan.phases.map((p) => [p.phase, p.startAtMs, p.endAtMs, p.warningAtMs])).toEqual([
+      ['rest', 995_000, 1_025_000, 1_015_000],
+      ['round', 1_025_000, 1_085_000, 1_075_000],
+    ]);
+    expect(plan.sounds.map((s) => [s.atMs, s.sound])).toEqual([
+      [1_015_000, 'warning'],
+      [1_025_000, 'roundStart'],
+      [1_075_000, 'warning'],
+      [1_085_000, 'roundEnd'],
+    ]);
+  });
+
+  it('paused: nothing scheduled, the current state frozen', () => {
+    const plan = nativePlan('Boxe', c, segs, evs, 10_000, 0, true);
+    expect(plan).toMatchObject({ paused: true, phases: [], sounds: [], current: { phase: 'round', remainingSeconds: 55 } });
   });
 });

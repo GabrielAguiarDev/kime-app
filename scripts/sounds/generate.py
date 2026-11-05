@@ -16,7 +16,19 @@ import wave
 from pathlib import Path
 
 RATE = 44100
-OUT = Path(__file__).resolve().parents[2] / "assets" / "sounds"
+ROOT = Path(__file__).resolve().parents[2]
+OUT = ROOT / "assets" / "sounds"
+# The native timer engine plays them: copies for the iOS pod and Android res/raw
+# (Android resource names: lowercase, no dashes).
+NATIVE_COPIES = {
+    "bell.wav": ["modules/kimi-widget/ios/sounds/bell.wav", "modules/kimi-widget/android/src/main/res/raw/kimi_bell.wav"],
+    "bell-triple.wav": [
+        "modules/kimi-widget/ios/sounds/bell-triple.wav",
+        "modules/kimi-widget/android/src/main/res/raw/kimi_bell_triple.wav",
+    ],
+    "clapper.wav": ["modules/kimi-widget/ios/sounds/clapper.wav", "modules/kimi-widget/android/src/main/res/raw/kimi_clapper.wav"],
+    "silence.wav": ["modules/kimi-widget/ios/sounds/silence.wav"],
+}
 
 # Inharmonic partials of a struck metal bell: (frequency ratio, amplitude, decay seconds).
 BELL_F0 = 820.0
@@ -80,3 +92,9 @@ if __name__ == "__main__":
         w.setframerate(RATE)
         w.writeframes(b"\x00\x00" * RATE)
     print("wrote", OUT / "silence.wav")
+    for name, targets in NATIVE_COPIES.items():
+        for target in targets:
+            path = ROOT / target
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes((OUT / name).read_bytes())
+            print("copied", path)

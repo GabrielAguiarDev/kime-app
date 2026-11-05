@@ -1,6 +1,6 @@
 # Sons do timer de rounds
 
-Todos os arquivos desta pasta foram **sintetizados** por `scripts/sounds/generate.py`
+Todos os arquivos desta pasta (e as cópias em `modules/kimi-widget/ios/sounds/` e `modules/kimi-widget/android/src/main/res/raw/kimi_*.wav`) foram **sintetizados** por `scripts/sounds/generate.py`
 (senoides e ruído gerados por código; nenhuma gravação de terceiros).
 
 Licença: **CC0 1.0 (domínio público)** — https://creativecommons.org/publicdomain/zero/1.0/
