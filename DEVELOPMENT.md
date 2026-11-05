@@ -322,7 +322,7 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 - **Migrations `20261104220000` (logo obrigatória), `20261104230000` (faixas por chave de cor + ponta) e `20261104240000` (variações de cor)** aplicadas no remoto em 2026-11-04 (373 testes pgTAP passando lá; tipos regenerados).
 - **Correções pré-Fase 3 (2026-11-04):** migrations `20261104180000`–`180004` aplicadas no LOCAL e no remoto (`db push` em 2026-11-04; 337 testes pgTAP passando no remoto; `types/database.ts` regenerado do remoto). Build novo necessário por causa da permissão de câmera (`app.json` → `expo-image-picker.cameraPermission`).
 
-- **Fases 4 e 5 — competidores, contagem e dieta:** código pronto e testado no banco LOCAL. Falta: `npx supabase db push` (migrations `20261105000000`, `20261105000100` e `20261105000200`), `npm run db:types` (o `types/database.ts` foi editado à mão com as colunas e RPCs novas) e build novo (widget de contagem nos dois sistemas).
+- **Fases 4 e 5 — competidores, contagem e dieta:** migrations `20261105000000`, `20261105000100` e `20261105000200` aplicadas no remoto em 2026-11-04 (`types/database.ts` regenerado do remoto). Falta o build novo (widget de contagem nos dois sistemas) e a validação no aparelho.
 - **Fase 3 — água + widget:** código pronto; falta o build do usuário (`npx expo prebuild --clean` + `run:ios` / `run:android`) e testar no aparelho. O `db push` das migrations de 2026-11-04 ainda depende do `npx supabase login`.
 - **Validação do usuário no aparelho:** fluxo de entrada, papéis e ícones novos (precisa de build novo; quem roda é o usuário).
 

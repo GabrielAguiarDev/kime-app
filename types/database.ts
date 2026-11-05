@@ -582,17 +582,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "memberships_competitor_invited_by_fkey"
-            columns: ["competitor_invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "memberships_academy_id_fkey"
             columns: ["academy_id"]
             isOneToOne: false
             referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_competitor_invited_by_fkey"
+            columns: ["competitor_invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1072,7 +1072,11 @@ export type Database = {
         Returns: undefined
       }
       set_water_plan: {
-        Args: { p_academy_id: string; p_athlete_id: string; p_targets: number[] }
+        Args: {
+          p_academy_id: string
+          p_athlete_id: string
+          p_targets: number[]
+        }
         Returns: string
       }
       transfer_ownership: {
