@@ -278,7 +278,7 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 
 ## Backlog (depois da Fase 6)
 
-Ideias registradas pelo usuário em 2026-11-04. **Não implementar agora**: seguimos com as fases planejadas (4 → 6).
+Ideias registradas pelo usuário em 2026-11-04. **Implementadas em 2026-11-04** (itens 8 a 10 do mapa acima); a lista fica como referência.
 
 - **Ofensivas e recompensas (inspirado no Duolingo):**
   - ofensiva de água (diária) e de treinos (semanal);
