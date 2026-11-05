@@ -255,8 +255,10 @@ function NativeHeaderScreen({
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
+        // No flexGrow: with automatic insets (header on top, tab bar below) a
+        // content stretched to the frame height ends up taller than the
+        // visible area by the insets, so short/empty screens would scroll.
         contentContainerStyle={{
-          flexGrow: 1,
           paddingHorizontal: spacing.screenMargin,
           paddingBottom: bottomContent ? bottomHeight + spacing.s16 : safeBottom,
         }}
