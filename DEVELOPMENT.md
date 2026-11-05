@@ -278,7 +278,7 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 
 ## Backlog (depois da Fase 6)
 
-Ideias registradas pelo usuário em 2026-11-04. **Implementadas em 2026-11-04** (itens 8 a 10 do mapa acima); a lista fica como referência.
+Ideias registradas pelo usuário em 2026-11-04. Ofensivas e ranking foram **implementados em 2026-11-04** (itens 8 a 10 do mapa acima); a lista fica como referência. O timer de rounds está **pendente: não implementar agora**.
 
 - **Ofensivas e recompensas (inspirado no Duolingo):**
   - ofensiva de água (diária) e de treinos (semanal);
@@ -292,6 +292,14 @@ Ideias registradas pelo usuário em 2026-11-04. **Implementadas em 2026-11-04** 
   - geral e por modalidade;
   - opção no Perfil para o aluno não aparecer no ranking;
   - visual seguindo o DESIGN-SYSTEM.md.
+- **Timer de rounds com gongo** (registrado em 2026-11-04, **não implementar agora**):
+  - configuração de rounds, duração, descanso e aviso antes do fim;
+  - predefinições prontas (Boxe, Muay Thai, MMA, rola de jiu-jitsu) e predefinições salvas pela academia;
+  - tela grande legível de longe, com cores por estado e tela sempre acesa;
+  - funciona em segundo plano e com a tela bloqueada, toca no modo silencioso e abaixa a música em vez de interromper;
+  - tempo calculado pelo relógio;
+  - Live Activity no iOS com round e tempo restante;
+  - sons com licença livre.
 
 ## 5. Domínios & features implementados
 
