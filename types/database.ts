@@ -761,6 +761,60 @@ export type Database = {
         }
         Relationships: []
       }
+      timer_presets: {
+        Row: {
+          academy_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          rest_seconds: number
+          round_seconds: number
+          rounds: number
+          updated_at: string
+          warning_seconds: number
+        }
+        Insert: {
+          academy_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          rest_seconds: number
+          round_seconds: number
+          rounds: number
+          updated_at?: string
+          warning_seconds: number
+        }
+        Update: {
+          academy_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          rest_seconds?: number
+          round_seconds?: number
+          rounds?: number
+          updated_at?: string
+          warning_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timer_presets_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timer_presets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       water_goal_days: {
         Row: {
           created_at: string

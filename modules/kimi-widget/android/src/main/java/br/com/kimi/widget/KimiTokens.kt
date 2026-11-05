@@ -82,6 +82,7 @@ object KimiTokens {
     val button = 15.sp // textBold 700, line height 20, uppercase
     val navLargeTitle = 34.sp // displayBold 700, line height 41
     val navTitle = 17.sp // textSemiBold 600, line height 22
+    val timer = 168.sp // displayExtraBold 800, line height 168
   }
 
   object Space {

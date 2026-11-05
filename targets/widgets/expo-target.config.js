@@ -10,7 +10,7 @@ module.exports = (config) => ({
   bundleIdentifier: '.widgets',
   // Button(intent:) in widgets needs iOS 17.
   deploymentTarget: '17.0',
-  frameworks: ['SwiftUI', 'WidgetKit', 'AppIntents'],
+  frameworks: ['SwiftUI', 'WidgetKit', 'AppIntents', 'ActivityKit'],
   colors: {
     $accent: { color: tokens.color.light.accent, darkColor: tokens.color.dark.accent },
     $widgetBackground: { color: tokens.color.light.surface, darkColor: tokens.color.dark.surface },

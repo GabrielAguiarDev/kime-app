@@ -69,7 +69,7 @@ export function routeAccess({ signedIn, hasApprovedMembership, isStaff, isOwner 
  * Anything else falls back to "/", which redirects to the right home.
  * Access itself is still decided by the guards above.
  */
-const EXTERNAL_PATHS = new Set(['/', '/entrar', '/agua', '/agua/configurar', '/competition']);
+const EXTERNAL_PATHS = new Set(['/', '/entrar', '/agua', '/agua/configurar', '/competition', '/timer']);
 
 export function normalizeExternalPath(raw: string): string {
   // Parsed by hand: React Native's URL polyfill does not implement pathname/search.

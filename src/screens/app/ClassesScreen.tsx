@@ -88,6 +88,7 @@ export function ClassesScreen() {
             </Card>
           )}
 
+          <LinkRow title="Timer de rounds" description="Rounds, descanso e sino" icon="timer" onPress={() => router.push('/timer')} />
           <LinkRow
             title="Ranking da academia"
             description="Quem mais treinou no mês"

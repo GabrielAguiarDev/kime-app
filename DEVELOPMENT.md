@@ -276,9 +276,20 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - Tela `/ranking`: mês (anterior/próximo, até o atual), Geral + modalidades, top 20 e a linha do próprio aluno abaixo de "…" quando estiver mais para baixo, troféu no 1º, pódio em destaque, aviso se o aluno saiu do ranking, e "Campeões" por mês. Entradas: aba Aulas ("Ranking da academia") e Alunos (botão "Ranking", staff).
   - Perfil: a seção "Notificações" virou "Preferências" (lembrete das aulas + ranking).
 
+- [x] 11. Timer de rounds (backlog, 2026-11-04). **Exige build novo** (expo-audio, Live Activity) e validação no aparelho (som com tela bloqueada, ducking, Live Activity).
+  - **Motor puro** `src/domain/Timer/timerRules.ts` (testado): linha do tempo prepare-se (10 s) → round → descanso → … ; estado e sons SEMPRE pelo relógio (`TimerClock`: início + pausas; pausar/continuar/pular fase mexem só no relógio). Sons: sino no início do round, três sinos no fim, batidas de madeira `warningSeconds` antes do fim do round e do descanso. Um tique que volta de uma suspensão longa não toca sons velhos.
+  - **Predefinições prontas** (no app): Boxe 3×3:00/1:00, Muay Thai 5×3:00/2:00, MMA 3×5:00/1:00, Rola de jiu-jitsu 6×5:00/1:00 (aviso 10 s; rola 30 s). **Da academia:** tabela `timer_presets` (migration `20261105000800`, 8 testes): membros leem, staff cria/atualiza/apaga; nome único por academia.
+  - **Sessão** `src/services/timer/timerSession.ts`: store fora do React (sobrevive à navegação), tique de 200 ms só para tela/sons/Live Activity.
+  - **Áudio** `src/infra/audio/timerAudio.ts` (expo-audio 58.0.11 + expo-asset, plugin com `enableBackgroundPlayback`, microfone desligado): toca no silencioso, sessão viva em segundo plano/tela bloqueada por um loop de silêncio; mistura com a música dos outros apps e só a ABAIXA (`duckOthers`) enquanto o sino toca. Sem o módulo nativo (build antigo) o timer funciona mudo e avisa.
+  - **Android:** sem controles de tela de bloqueio (que exigiriam parar a música) o sistema pode pausar o áudio em segundo plano; por isso, ao sair do app, os próximos sinos viram notificações locais (canal `round-timer`), canceladas ao voltar.
+  - **Live Activity (iOS):** `targets/widgets/RoundTimerActivity.swift` (tela bloqueada + Dynamic Island: fase, round e contagem do próprio sistema) e `modules/kimi-widget/ios/RoundTimerAttributes.swift` (mesma struct; `startRoundTimerActivity(json)` / `endRoundTimerActivity()`), `NSSupportsLiveActivities` no app.json. Atualizada só nas mudanças de fase/aviso/pausa. Toque abre `kimi://timer`.
+  - **Telas:** `/timer` (predefinições, rounds, round M:SS, descanso, aviso; staff salva/atualiza/apaga as da academia; card "Timer em andamento") e `/timer/run` (tela cheia, `useKeepAwake`; cores por estado: prepare-se `warning`, round `success`, aviso `danger`, descanso `water`, pausado `surfaceRaised`; dígitos no token novo `timer` (Barlow 800, 168, encolhe para caber); pausar, fase anterior/próxima, encerrar com confirmação). Entradas: aba Aulas e Perfil → Gestão da academia.
+  - **Sons** `assets/sounds/*.wav`: sintetizados por `scripts/sounds/generate.py` (CC0, ver `assets/sounds/LICENSE.md`).
+  - `yarn.lock` saiu do repositório e do controle (`.gitignore`): o `expo lint` o recriava.
+
 ## Backlog (depois da Fase 6)
 
-Ideias registradas pelo usuário em 2026-11-04. Ofensivas e ranking foram **implementados em 2026-11-04** (itens 8 a 10 do mapa acima); a lista fica como referência. O timer de rounds está **pendente: não implementar agora**.
+Ideias registradas pelo usuário em 2026-11-04. Tudo **implementado em 2026-11-04** (itens 8 a 11 do mapa acima); a lista fica como referência.
 
 - **Ofensivas e recompensas (inspirado no Duolingo):**
   - ofensiva de água (diária) e de treinos (semanal);
@@ -292,7 +303,7 @@ Ideias registradas pelo usuário em 2026-11-04. Ofensivas e ranking foram **impl
   - geral e por modalidade;
   - opção no Perfil para o aluno não aparecer no ranking;
   - visual seguindo o DESIGN-SYSTEM.md.
-- **Timer de rounds com gongo** (registrado em 2026-11-04, **não implementar agora**):
+- **Timer de rounds com gongo** (registrado em 2026-11-04, implementado no mesmo dia a pedido do usuário):
   - configuração de rounds, duração, descanso e aviso antes do fim;
   - predefinições prontas (Boxe, Muay Thai, MMA, rola de jiu-jitsu) e predefinições salvas pela academia;
   - tela grande legível de longe, com cores por estado e tela sempre acesa;

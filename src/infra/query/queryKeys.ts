@@ -30,4 +30,5 @@ export enum QueryKeys {
   WaterDays = 'WaterDays',
   Ranking = 'Ranking',
   RankingChampions = 'RankingChampions',
+  TimerPresets = 'TimerPresets',
 }

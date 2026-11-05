@@ -43,5 +43,14 @@ public class KimiWidgetModule: Module {
     Function("reloadWidgets") {
       WidgetCenter.shared.reloadAllTimelines()
     }
+
+    /// Round timer Live Activity: JSON {title, phase, round, rounds, endsAtMs, paused, remainingSeconds, warning}.
+    Function("startRoundTimerActivity") { (json: String) -> Bool in
+      RoundTimerActivityController.startOrUpdate(json)
+    }
+
+    Function("endRoundTimerActivity") {
+      RoundTimerActivityController.end()
+    }
   }
 }

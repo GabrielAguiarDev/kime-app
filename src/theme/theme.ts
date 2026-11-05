@@ -95,6 +95,8 @@ export const lightTheme = createTheme({
   textVariants: {
     defaults: textVariant('body'),
     displayXl: textVariant('displayXl'),
+    /** Round timer: digits readable across the room (shrinks to fit the width). */
+    timer: textVariant('timer'),
     displayLg: textVariant('displayLg'),
     title: textVariant('title'),
     heading: textVariant('heading'),

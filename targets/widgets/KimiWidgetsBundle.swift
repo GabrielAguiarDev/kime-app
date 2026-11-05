@@ -6,5 +6,6 @@ struct KimiWidgetsBundle: WidgetBundle {
   var body: some Widget {
     WaterWidget()
     CountdownWidget()
+    RoundTimerLiveActivity()
   }
 }

@@ -120,6 +120,8 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="dieta" options={header} />
         <Stack.Screen name="ofensivas" options={header} />
         <Stack.Screen name="ranking" options={header} />
+        <Stack.Screen name="timer/index" options={header} />
+        <Stack.Screen name="timer/run" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
       </Stack.Protected>
       <Stack.Protected guard={access.staff} redirectTo={redirectTo}>
         <Stack.Screen name="academy/schedules" options={header} />

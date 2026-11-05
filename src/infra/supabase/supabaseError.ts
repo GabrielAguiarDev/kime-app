@@ -123,6 +123,7 @@ export function toAppError(error: unknown): AppError {
       break;
     // Only the name uniques get the "already exists" message; others stay generic.
     case '23505':
+      if (/timer_presets_academy_name_idx/.test(message)) return new AppError('duplicate_name', error);
       if (/weight_logs_one_per_day/.test(message)) return new AppError('weight_day_taken', error);
       if (/academy_modalities_academy_name_idx|modality_belts_name_idx/.test(message)) {
         return new AppError('duplicate_name', error);

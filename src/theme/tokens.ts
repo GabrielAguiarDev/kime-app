@@ -166,6 +166,12 @@ export const tokens = {
         "size": 17,
         "lineHeight": 22,
         "weight": 600
+      },
+      "timer": {
+        "family": "displayExtraBold",
+        "size": 168,
+        "lineHeight": 168,
+        "weight": 800
       }
     }
   },
