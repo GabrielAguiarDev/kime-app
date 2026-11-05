@@ -496,9 +496,10 @@ $$;
 grant execute on function pg_temp.seen() to public;
 
 select pg_temp.login(pg_temp.id('s'));
-select is(pg_temp.seen(), 's', 'a student sees only own avatar (not the same academy''s other student)');
+-- Since the ranking: classmates who show in the ranking see each other's photo.
+select is(pg_temp.seen(), 's,s2', 'a student sees own avatar and a ranked classmate''s');
 select pg_temp.login(pg_temp.id('s2'));
-select is(pg_temp.seen(), 's2', 'the other student sees only own avatar');
+select is(pg_temp.seen(), 's,s2', 'and the other way round');
 select pg_temp.login(pg_temp.id('o'));
 select is(pg_temp.seen(), 'i,pi,ps,s,s2', 'the owner sees every member and requester of the academy, no one from another academy');
 select pg_temp.login(pg_temp.id('i'));

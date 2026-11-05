@@ -5,6 +5,7 @@ export {
   useAvatarMutations,
   useAvatarUrl,
   useMyProfile,
+  useSetShowInRanking,
   useUpdateBodyAndBottle,
   useUpdateName,
   useUpdatePersonalData,

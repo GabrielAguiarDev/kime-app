@@ -28,6 +28,7 @@ export function StudentsScreen() {
           variant="secondary"
           onPress={() => router.push('/academy/championships')}
         />
+        <Button title="Ranking" icon="users" variant="secondary" onPress={() => router.push('/ranking')} />
         {/* Codes are owner-only and live in the academy settings. */}
         {isOwner ? (
           <Button

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
@@ -19,6 +20,7 @@ import {
 } from '@domain/Classes';
 import { GraduationTrail } from '@screens/student/GraduationTrail';
 import { WeekSchedule } from '@screens/student/WeekSchedule';
+import { LinkRow } from '@screens/competition/shared';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 
@@ -85,6 +87,13 @@ export function ClassesScreen() {
               <BigCounter value={own?.confirmedTotal ?? 0} label="Aulas confirmadas" />
             </Card>
           )}
+
+          <LinkRow
+            title="Ranking da academia"
+            description="Quem mais treinou no mês"
+            icon="trophy"
+            onPress={() => router.push('/ranking')}
+          />
 
           <Box gap="s12">
             <Text variant="captionCaps">Horários da semana</Text>

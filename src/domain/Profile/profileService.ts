@@ -17,6 +17,7 @@ const toProfile = (row: ProfileRowApi): Profile => ({
   avatarPath: row.avatar_path,
   sex: (row.sex as Sex | null) ?? null,
   birthDate: row.birth_date,
+  showInRanking: row.show_in_ranking,
 });
 
 async function getById(userId: string): Promise<Profile> {
@@ -90,6 +91,14 @@ async function removeAvatar(userId: string, path: string): Promise<void> {
   }
 }
 
+async function setShowInRanking(userId: string, show: boolean): Promise<void> {
+  try {
+    await profileApi.setShowInRanking(userId, show);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
 async function avatarUrl(path: string): Promise<string> {
   try {
     return await profileApi.signedAvatarUrl(path, AVATAR_URL_TTL_SECONDS);
@@ -106,4 +115,5 @@ export const profileService = {
   changeAvatar,
   removeAvatar,
   avatarUrl,
+  setShowInRanking,
 };

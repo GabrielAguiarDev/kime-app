@@ -12,6 +12,8 @@ export interface Profile {
   sex: Sex | null;
   /** `YYYY-MM-DD`. */
   birthDate: string | null;
+  /** Shows in the academy ranking (Perfil switch). */
+  showInRanking: boolean;
 }
 
 export type Sex = 'female' | 'male' | 'unspecified';

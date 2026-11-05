@@ -67,3 +67,16 @@ export function useUpdatePersonalData(userId: string | undefined) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] }),
   });
 }
+
+/** Perfil: "Aparecer no ranking". */
+export function useSetShowInRanking(userId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (show: boolean) => profileService.setShowInRanking(userId!, show),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] }),
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking] }),
+      ]),
+  });
+}

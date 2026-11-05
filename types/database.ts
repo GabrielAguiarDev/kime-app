@@ -726,6 +726,7 @@ export type Database = {
           height_cm: number | null
           id: string
           sex: string | null
+          show_in_ranking: boolean
           timezone: string
           updated_at: string
           weight_kg: number | null
@@ -739,6 +740,7 @@ export type Database = {
           height_cm?: number | null
           id: string
           sex?: string | null
+          show_in_ranking?: boolean
           timezone?: string
           updated_at?: string
           weight_kg?: number | null
@@ -752,6 +754,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           sex?: string | null
+          show_in_ranking?: boolean
           timezone?: string
           updated_at?: string
           weight_kg?: number | null
@@ -1017,6 +1020,26 @@ export type Database = {
       }
     }
     Functions: {
+      academy_ranking: {
+        Args: { p_academy_id: string; p_modality_id?: string; p_month: string }
+        Returns: {
+          avatar_path: string
+          classes: number
+          full_name: string
+          position: number
+          user_id: string
+        }[]
+      }
+      academy_ranking_champions: {
+        Args: { p_academy_id: string; p_modality_id?: string }
+        Returns: {
+          avatar_path: string
+          classes: number
+          full_name: string
+          month: string
+          user_id: string
+        }[]
+      }
       academy_today: { Args: { p_academy_id: string }; Returns: string }
       copy_diet_day: {
         Args: {

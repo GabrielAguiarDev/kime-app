@@ -9,7 +9,7 @@ async function getById(userId: string) {
   const [profile, details] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, bottle_ml, timezone, avatar_path')
+      .select('id, full_name, bottle_ml, timezone, avatar_path, show_in_ranking')
       .eq('id', userId)
       .single(),
     supabase.rpc('get_profile_details', { p_user_id: userId }).maybeSingle(),
@@ -59,6 +59,12 @@ async function uploadAvatar(userId: string, bytes: ArrayBuffer, contentType: str
   return path;
 }
 
+async function setShowInRanking(userId: string, show: boolean) {
+  const { data, error } = await supabase.from('profiles').update({ show_in_ranking: show }).eq('id', userId).select('id');
+  if (error) throw error;
+  if (data.length === 0) throw new Error('forbidden');
+}
+
 async function setAvatarPath(userId: string, path: string | null) {
   const { data, error } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', userId).select('id');
   if (error) throw error;
@@ -95,6 +101,7 @@ export const profileApi = {
   uploadAvatar,
   setAvatarPath,
   removeAvatarFile,
+  setShowInRanking,
   signedAvatarUrl,
 };
 export type ProfileRowApi = Awaited<ReturnType<typeof getById>>;
