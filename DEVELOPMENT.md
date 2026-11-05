@@ -363,6 +363,14 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 5. **Google Sign-In:** pendente. Precisa dos client IDs (iOS, Android, Web) do Google Cloud e do provedor no Supabase.
 6. **Apple Sign-In:** o código já existe (`signInWithIdToken` com nonce). Falta habilitar o provedor Apple no Supabase hospedado (e `[auth.external.apple]` no `config.toml` local) com o bundle id `br.com.kimi.app`, e o capability no time de assinatura.
 
+### Para rever depois (usuário, 2026-11-04)
+
+- **Lembretes de aula:** rever o comportamento com o usuário. Pontos em aberto:
+  - no iOS, cabem no máximo 60 lembretes pendentes, então uma grade cheia cobre menos de 30 dias;
+  - o plano só é refeito quando o app abre: um aluno que não abre o app por um mês para de receber;
+  - hoje entram todas as aulas das modalidades que o aluno treina, não só as que ele costuma frequentar;
+  - o switch é por aparelho e vem desligado.
+
 ### Em andamento
 
 - **Migrations `20261104220000` (logo obrigatória), `20261104230000` (faixas por chave de cor + ponta) e `20261104240000` (variações de cor)** aplicadas no remoto em 2026-11-04 (373 testes pgTAP passando lá; tipos regenerados).
