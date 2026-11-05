@@ -41,6 +41,12 @@
       "expo-image",
       "@bacons/apple-targets",
       [
+        "expo-notifications",
+        {
+          "enableRemoteNotifications": false
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "O Kimi usa suas fotos para você escolher sua foto de perfil e a logo da academia.",

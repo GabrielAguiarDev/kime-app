@@ -15,6 +15,7 @@ import { queryClient } from "@infra";
 import { useNativeHeaderOptions } from "@components";
 import { useRouteAccess } from "@services/access";
 import { useCountdownWidget } from "@services/competition";
+import { useClassReminders } from "@services/reminders";
 import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
 import { ConfirmProvider } from "@services/confirm";
 import { useConsumePendingCode } from "@services/entry";
@@ -83,6 +84,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   useWidgetConfig();
   useCountdownWidget();
   useRecordWaterGoal();
+  useClassReminders();
 
   // Gate only the boot. After that the Stack stays mounted; screens show their
   // own loading state (e.g. memberships loading right after sign-in).
