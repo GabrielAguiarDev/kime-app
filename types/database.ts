@@ -1041,6 +1041,12 @@ export type Database = {
         }[]
       }
       academy_today: { Args: { p_academy_id: string }; Returns: string }
+      account_deletion_academies: {
+        Args: never
+        Returns: {
+          academy_id: string
+        }[]
+      }
       copy_diet_day: {
         Args: {
           p_academy_id: string

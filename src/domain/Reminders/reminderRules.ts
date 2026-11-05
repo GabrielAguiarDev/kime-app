@@ -3,10 +3,16 @@ import type { ClassSchedule, LocalDate } from '@domain/Classes/classesTypes';
 
 /** Reminder lead time: 1 h before the class (user decision). */
 export const REMINDER_LEAD_MS = 60 * 60 * 1000;
-/** Days ahead scheduled at a time (re-planned whenever the app opens). */
-export const REMINDER_DAYS = 7;
-/** iOS keeps at most 64 pending local notifications: stay well below. */
-export const MAX_REMINDERS = 50;
+/**
+ * Days ahead scheduled at a time (re-planned whenever the app opens): a month,
+ * when the monthly fee is due (user decision) — a student who does not open
+ * the app for a month stops getting reminders.
+ */
+export const REMINDER_DAYS = 30;
+/** iOS keeps at most 64 pending local notifications: stay below (a busy schedule covers fewer days). */
+export const MAX_REMINDERS_IOS = 60;
+/** Android has no such small cap; still bounded. */
+export const MAX_REMINDERS_ANDROID = 300;
 
 export interface ClassReminder {
   /** Stable per class occurrence: `${scheduleId}:${date}`. */
@@ -59,7 +65,7 @@ export function zonedTime(date: LocalDate, time: string, timeZone: string): Date
 }
 
 /**
- * Reminders for the classes of the next days (academy calendar), 1 h before
+ * Reminders for the classes of the next 30 days (academy calendar), 1 h before
  * each one, only the ones still ahead of `now`. `modalityIds` limits them to
  * the modalities the student trains (null = every class).
  */
@@ -70,6 +76,7 @@ export function planClassReminders({
   academyName,
   modalityIds,
   now,
+  max = MAX_REMINDERS_IOS,
 }: {
   schedules: ClassSchedule[];
   today: LocalDate;
@@ -77,6 +84,8 @@ export function planClassReminders({
   academyName: string;
   modalityIds: Set<string> | null;
   now: Date;
+  /** Platform cap on pending notifications. */
+  max?: number;
 }): ClassReminder[] {
   const out: ClassReminder[] = [];
   for (let i = 0; i < REMINDER_DAYS; i++) {
@@ -93,7 +102,7 @@ export function planClassReminders({
       });
     }
   }
-  return out.sort((a, b) => a.at.getTime() - b.at.getTime()).slice(0, MAX_REMINDERS);
+  return out.sort((a, b) => a.at.getTime() - b.at.getTime()).slice(0, max);
 }
 
 /** Fingerprint of a plan: unchanged plan = nothing to reschedule. */

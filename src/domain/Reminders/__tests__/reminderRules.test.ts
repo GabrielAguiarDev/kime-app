@@ -32,14 +32,23 @@ describe('planClassReminders', () => {
     modalityIds: null,
   };
 
-  it('reminds 1 h before each class still ahead, for the next 7 days', () => {
+  it('covers 30 days and respects the cap', () => {
+    const daily = ([0, 1, 2, 3, 4, 5, 6] as const).map((d) => schedule(`d${d}`, d, '19:00'));
+    const all = planClassReminders({ ...base, schedules: daily, now: new Date('2026-11-10T12:00:00Z'), max: 1000 });
+    expect(all).toHaveLength(30);
+    // 2026-12-09 (a Wednesday) is the 30th day.
+    expect(all[29]!.key).toBe('d3:2026-12-09');
+    expect(planClassReminders({ ...base, schedules: daily, now: new Date('2026-11-10T12:00:00Z'), max: 5 })).toHaveLength(5);
+  });
+
+  it('reminds 1 h before each class still ahead', () => {
     const reminders = planClassReminders({
       ...base,
       schedules: [schedule('tue', 2, '19:00'), schedule('thu', 4, '07:00')],
       // 20:30 UTC = 17:30 in São Paulo: today's 19:00 reminder (18:00) is still ahead.
       now: new Date('2026-11-10T20:30:00Z'),
     });
-    expect(reminders.map((r) => [r.key, r.at.toISOString()])).toEqual([
+    expect(reminders.slice(0, 2).map((r) => [r.key, r.at.toISOString()])).toEqual([
       ['tue:2026-11-10', '2026-11-10T21:00:00.000Z'],
       ['thu:2026-11-12', '2026-11-12T09:00:00.000Z'],
     ]);
@@ -53,7 +62,8 @@ describe('planClassReminders', () => {
       modalityIds: new Set(['ng']),
       now: new Date('2026-11-10T21:30:00Z'),
     });
-    expect(reminders.map((r) => r.key)).toEqual(['tue-nogi:2026-11-10']);
+    expect(reminders[0]!.key).toBe('tue-nogi:2026-11-10');
+    expect(reminders.every((r) => r.key.startsWith('tue-nogi:'))).toBe(true);
   });
 
   it('ignores inactive schedules and has a stable signature', () => {
