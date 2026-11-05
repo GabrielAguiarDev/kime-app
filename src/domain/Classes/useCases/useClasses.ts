@@ -14,6 +14,7 @@ export function useAcademyToday(academyId: string | undefined) {
     queryFn: () => service.academyToday(academyId!),
     enabled: !!academyId,
     staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 }
 
@@ -28,7 +29,11 @@ export function useSchedules(academyId: string | undefined) {
 
 export function useScheduleMutations(academyId: string) {
   const queryClient = useQueryClient();
-  const onSuccess = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassSchedules, academyId] });
+  const onSuccess = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassSchedules, academyId] }),
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassEnrollments] }),
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking, academyId] }),
+  ]);
   return {
     create: useMutation({ mutationFn: (input: ScheduleInput) => service.createSchedule(academyId, input), onSuccess }),
     update: useMutation({
@@ -166,6 +171,7 @@ function useInvalidateDecisions(academyId: string) {
       // Confirming the first check-in of a class creates its session.
       queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassSessions, academyId] }),
       queryClient.invalidateQueries({ queryKey: [QueryKeys.InstructorStats, academyId] }),
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking, academyId] }),
     ]);
 }
 

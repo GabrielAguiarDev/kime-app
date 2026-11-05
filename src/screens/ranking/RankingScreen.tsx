@@ -1,185 +1,95 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 
-import { Avatar, Box, Card, ChoiceRow, EmptyState, Icon, LoadError, Screen, Text } from '@components';
-import { useAcademyToday, useModalities } from '@domain/Classes';
+import { Avatar, Box, Card, ChoiceRow, EmptyState, Icon, LoadError, Screen, Text, TextButton } from '@components';
+import { useAcademyToday } from '@domain/Classes';
+import { useRankingModalities } from '@domain/Ranking/useCases/useModalityEnrollments';
 import { useMyProfile } from '@domain/Profile';
-import {
-  addMonths,
-  championsByMonth,
-  classesLabel,
-  monthLabel,
-  monthStart,
-  useRanking,
-  useRankingChampions,
-  visibleRanking,
-  type RankingEntry,
-} from '@domain/Ranking';
+import { RANKING_CONFIG, rankingPeriod, useRanking, visibleRanking, type RankingEntry } from '@domain/Ranking';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
-import { useAppTheme } from '@theme';
 
-const OVERALL = 'all';
-
-/**
- * Ranking of the academy: confirmed classes in the month, overall or per
- * modality, with the champions of past months. Students and staff.
- */
 export function RankingScreen() {
   const { active } = useActiveGym();
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   return (
-    <Screen nativeHeader title="Ranking" onBack={back}>
+    <Screen nativeHeader title="Ranking" onBack={() => router.canGoBack() ? router.back() : router.replace('/')}>
       {active ? <RankingView academyId={active.gymId} /> : null}
     </Screen>
   );
 }
 
-/** The ranking itself (also a segment of Equipe): month, modality, list, champions. */
 export function RankingView({ academyId }: { academyId: string }) {
   const { userId } = useSession();
-  const today = useAcademyToday(academyId);
-  const modalities = useModalities(academyId);
   const profile = useMyProfile(userId);
   const { isStaff } = useActiveGym();
-  const [monthPicked, setMonthPicked] = useState<string | null>(null);
-  const [modality, setModality] = useState<string>(OVERALL);
-
-  const currentMonth = today.data ? monthStart(today.data) : undefined;
-  const month = monthPicked ?? currentMonth;
-  const modalityId = modality === OVERALL ? null : modality;
-  const ranking = useRanking(academyId, month, modalityId);
-  const champions = useRankingChampions(academyId, modalityId);
-
-  if (today.isError) return <LoadError title="Não foi possível carregar o ranking" onRetry={() => void today.refetch()} />;
-  if (!month || !currentMonth) return <ActivityIndicator accessibilityLabel="Carregando" />;
-
-  const isCurrent = month === currentMonth;
+  const today = useAcademyToday(academyId);
+  const period = today.data ? rankingPeriod(today.data) : undefined;
+  const modalities = useRankingModalities(academyId, userId, period);
+  const [pickedModality, setPickedModality] = useState<string | null>(null);
+  const selected = modalities.data?.find((m) => m.id === pickedModality) ?? modalities.data?.[0];
+  const ranking = useRanking(academyId, selected?.id, period);
   const { rows, own } = visibleRanking(ranking.data ?? [], userId);
-  const groups = championsByMonth(champions.data ?? []);
-  const options = [
-    { value: OVERALL, label: 'Geral' },
-    ...(modalities.data ?? []).map((m) => ({ value: m.id, label: m.name })),
-  ];
-
+  if (today.isError || modalities.isError) {
+    return <LoadError title="Não foi possível carregar as modalidades do ranking" onRetry={() => { void today.refetch(); void modalities.refetch(); }} />;
+  }
+  if (today.isLoading || modalities.isLoading) return <ActivityIndicator accessibilityLabel="Carregando modalidades" />;
+  if (!selected) return <EmptyState visual="icon" icon="trophy" title={isStaff ? 'Nenhuma modalidade cadastrada.' : 'Nenhuma matrícula ativa em modalidade.'} description={isStaff ? 'Cadastre as modalidades da academia para consultar seus rankings.' : 'Peça à equipe para conferir suas matrículas.'} />;
   return (
     <Box gap="s24">
-      <MonthNav
-        label={monthLabel(month)}
-        onPrevious={() => setMonthPicked(addMonths(month, -1))}
-        onNext={isCurrent ? undefined : () => setMonthPicked(addMonths(month, 1))}
+      <ChoiceRow
+        accessibilityLabel="Modalidade do ranking"
+        options={(modalities.data ?? []).map((m) => ({ value: m.id, label: m.name }))}
+        value={selected.id}
+        onChange={setPickedModality}
       />
-      {options.length > 2 ? (
-        <ChoiceRow accessibilityLabel="Modalidade" options={options} value={modality} onChange={setModality} />
-      ) : null}
-
+      <Box gap="s8">
+        <Text variant="captionCaps">Ranking · {selected.name}</Text>
+        <Text variant="caption">Últimos {RANKING_CONFIG.rollingDays} dias completos · atualizado continuamente</Text>
+        <Text variant="caption">Aulas {RANKING_CONFIG.attendanceWeight * 100}% · Água {RANKING_CONFIG.hydrationWeight * 100}%. Falta: −{RANKING_CONFIG.penalties.missedClass} pontos · Água sem proteção: −{RANKING_CONFIG.penalties.missedHydrationGoal} pontos.</Text>
+      </Box>
       {!isStaff && profile.data && !profile.data.showInRanking ? (
         <Card gap="s4">
           <Text variant="bodyStrong">Você não aparece no ranking.</Text>
           <Text variant="caption">Mude em Perfil → Preferências.</Text>
         </Card>
       ) : null}
-
-      <Box gap="s8">
-        <Text variant="captionCaps">{isCurrent ? 'Aulas confirmadas neste mês' : 'Aulas confirmadas no mês'}</Text>
-        {ranking.isLoading ? <ActivityIndicator /> : null}
+      <Box gap="s12">
+        {ranking.isLoading ? <ActivityIndicator accessibilityLabel="Carregando ranking" /> : null}
         {ranking.isError ? <LoadError title="Não foi possível carregar o ranking" onRetry={() => void ranking.refetch()} /> : null}
-        {ranking.data && ranking.data.length === 0 ? (
-          <EmptyState
-            visual="icon"
-            icon="trophy"
-            title="Nenhuma aula confirmada neste mês."
-            description={isCurrent && !isStaff ? 'A primeira aula confirmada já coloca você no topo.' : undefined}
-          />
-        ) : null}
-        {rows.map((e) => (
-          <RankingRow key={e.userId} entry={e} isSelf={e.userId === userId} />
-        ))}
-        {own ? (
-          <>
-            <Text variant="caption" textAlign="center" accessibilityElementsHidden>
-              …
-            </Text>
-            <RankingRow entry={own} isSelf />
-          </>
-        ) : null}
-      </Box>
-
-      <Box gap="s8">
-        <Text variant="captionCaps">Campeões</Text>
-        {champions.isLoading ? <ActivityIndicator /> : null}
-        {champions.data && groups.length === 0 ? (
-          <Text variant="body" color="textMuted">
-            O campeão de cada mês aparece aqui quando o mês termina.
-          </Text>
-        ) : null}
-        {groups.map((g) => (
-          <Card key={g.month} flexDirection="row" alignItems="center" gap="s12">
-            <Icon name="trophy" color="accent" active />
-            <Box flex={1} gap="s4">
-              <Text variant="caption">{monthLabel(g.month)}</Text>
-              <Text variant="bodyStrong">{g.champions.map((c) => c.fullName).join(', ')}</Text>
-            </Box>
-            <Text variant="caption">{classesLabel(g.champions[0]!.classes)}</Text>
-          </Card>
-        ))}
+        {ranking.data?.length === 0 ? <EmptyState visual="icon" icon="trophy" title="Nenhum aluno no ranking." /> : null}
+        {rows.map((e) => <RankingRow key={`${e.modalityId}:${e.userId}`} entry={e} isSelf={e.userId === userId} />)}
+        {own ? <><Text variant="caption" textAlign="center">…</Text><RankingRow key={`${own.modalityId}:${own.userId}`} entry={own} isSelf /></> : null}
       </Box>
     </Box>
   );
 }
 
-function MonthNav({ label, onPrevious, onNext }: { label: string; onPrevious: () => void; onNext?: () => void }) {
-  const theme = useAppTheme();
-  const button = (direction: 'previous' | 'next', onPress?: () => void) => (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole="button"
-      accessibilityLabel={direction === 'previous' ? 'Mês anterior' : 'Próximo mês'}
-      accessibilityState={{ disabled: !onPress }}
-      hitSlop={theme.spacing.s8}
-      style={{ width: theme.size.touchTarget, height: theme.size.touchTarget, alignItems: 'center', justifyContent: 'center' }}
-    >
-      <Icon name={direction === 'previous' ? 'chevronLeft' : 'chevronRight'} color={onPress ? 'text' : 'disabled'} />
-    </Pressable>
-  );
+const points = (value: number) => value.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+function RankingRow({ entry: e, isSelf }: { entry: RankingEntry; isSelf: boolean }) {
+  const [expanded, setExpanded] = useState(false);
   return (
-    <Box flexDirection="row" alignItems="center" justifyContent="space-between">
-      {button('previous', onPrevious)}
-      <Text variant="heading">{label}</Text>
-      {button('next', onNext)}
-    </Box>
-  );
-}
-
-function RankingRow({ entry, isSelf }: { entry: RankingEntry; isSelf: boolean }) {
-  const { size } = useAppTheme();
-  const podium = entry.position <= 3;
-  return (
-    <Card
-      selected={isSelf}
-      flexDirection="row"
-      alignItems="center"
-      gap="s12"
-      accessible
-      accessibilityLabel={`${entry.position}º lugar: ${entry.fullName}${isSelf ? ' (você)' : ''}, ${classesLabel(entry.classes)}`}
-    >
-      <Box minWidth={size.touchTarget} alignItems="center">
-        {entry.position === 1 ? (
-          <Icon name="trophy" color="accent" active />
-        ) : (
-          <Text variant="counter" color={podium ? 'accent' : 'textMuted'}>
-            {entry.position}
-          </Text>
-        )}
+    <Card selected={isSelf} gap="s12">
+      <Box flexDirection="row" alignItems="center" gap="s12">
+        {e.position === 1 ? <Icon name="trophy" color="accent" /> : <Text variant="counter" color="textMuted">{e.position ?? '–'}</Text>}
+        <Avatar name={e.fullName} path={e.avatarPath} />
+        <Text variant="bodyStrong" flex={1}>{e.fullName}{isSelf ? ' (você)' : ''}</Text>
+        <Text variant="counter">{points(e.rankingScore)}</Text>
       </Box>
-      <Avatar name={entry.fullName} path={entry.avatarPath} />
-      <Text variant="bodyStrong" flex={1} numberOfLines={1}>
-        {entry.fullName}
-        {isSelf ? ' (você)' : ''}
-      </Text>
-      <Text variant="counter">{entry.classes}</Text>
+      {e.status === 'qualifying' ? (
+        <Text variant="caption" color="accent">Em classificação · faltam {e.daysToQualify} dias elegíveis</Text>
+      ) : null}
+      <Text variant="caption">Frequência: {e.eligibleClasses ? `${Math.round(e.attendanceRate * 100)}%` : 'sem aulas obrigatórias'} · Água: {e.eligibleHydrationDays ? `${Math.round(e.hydrationRate * 100)}%` : 'sem meta registrada'}</Text>
+      <Text variant="caption" color={e.penaltyPoints ? 'danger' : 'textMuted'}>Penalidades: −{points(e.penaltyPoints)} pontos</Text>
+      <TextButton title={expanded ? 'Ocultar pontuação' : 'Como foi calculado'} onPress={() => setExpanded(!expanded)} />
+      {expanded ? <Box gap="s8">
+        <Text variant="caption">Desempenho: {points(e.performanceScore)} pontos</Text>
+        <Text variant="caption">Aulas obrigatórias: {e.validCheckIns}/{e.eligibleClasses} · Metas de água: {e.hydrationGoalsAchieved}/{e.eligibleHydrationDays}</Text>
+        <Text variant="caption" color="danger">Falhas sem proteção: {e.unprotectedAttendanceFailures} em aulas · {e.unprotectedHydrationFailures} em água</Text>
+        <Text variant="caption">Falhas de água protegidas: {e.protectedFailures} · sem pontos extras</Text>
+        <Text variant="bodyStrong">Pontuação final: {points(e.rankingScore)} pontos</Text>
+        <Text variant="caption">Só turmas obrigatórias vinculadas ao aluno contam. Dias sem meta válida não contam. Sem aulas ou metas elegíveis, o respectivo critério fica em zero.</Text>
+      </Box> : null}
     </Card>
   );
 }

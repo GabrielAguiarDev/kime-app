@@ -22,7 +22,10 @@ function useAfterLocalChange(userId: string | undefined) {
   return () => {
     void queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterToday, userId] });
     // Best effort: stays pending on the device and retries on the next trigger.
-    if (userId) waterService.sync(userId).catch(() => undefined);
+    if (userId) waterService.sync(userId).then(() => Promise.all([
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking] }),
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterDays, userId] }),
+    ])).catch(() => undefined);
   };
 }
 

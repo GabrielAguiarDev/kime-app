@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Pressable } from 'react-native';
 
-import { Avatar, BigCounter, BottomSheet, Box, Button, Card, EmptyState, LoadError, Screen, SelectionCard, Text } from '@components';
+import { Avatar, BigCounter, BottomSheet, Box, Button, Card, EmptyState, Icon, LoadError, Screen, SelectionCard, Text, TextField } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import {
   countdownLabel,
@@ -17,6 +17,8 @@ import { useGymMembers, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
+import { SheetForm } from '@screens/professor/shared';
+import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
 import { ChampionshipForm } from './ChampionshipForm';
@@ -72,27 +74,39 @@ function ChampionshipDetail({
   const mutations = useChampionshipMutations(academyId);
   const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [search, setSearch] = useState('');
+  const [toAdd, setToAdd] = useState<Set<string>>(new Set());
 
   const entered = useMemo(
     () => (entries.data ?? []).filter((e) => e.championshipId === championship.id).map((e) => e.athleteId),
     [entries.data, championship.id],
   );
-  // Local selection; null = untouched (follows the server).
-  const [picked, setPicked] = useState<Set<string> | null>(null);
-  const selected = picked ?? new Set(entered);
-  const changed = picked !== null && (picked.size !== entered.length || entered.some((a) => !picked.has(a)));
+  const selected = new Set(entered);
 
   const all = members.data ?? [];
   const competitors = all.filter((m) => m.isCompetitor);
   // Entered earlier, no longer on the team: listed so staff can take them off.
-  const formerIds = entered.filter((a) => !competitors.some((m) => m.userId === a));
+  const formerIds = [...selected].filter((a) => !competitors.some((m) => m.userId === a));
+  const available = competitors.filter((m) => !selected.has(m.userId));
+  const matching = available.filter((m) => m.fullName.toLocaleLowerCase('pt-BR').includes(search.trim().toLocaleLowerCase('pt-BR')));
+  const athletesReady = members.isSuccess && entries.isSuccess;
   const memberOf = (userId: string) => all.find((m) => m.userId === userId);
 
-  const toggle = (userId: string) => {
-    const next = new Set(selected);
-    if (next.has(userId)) next.delete(userId);
-    else next.add(userId);
-    setPicked(next);
+  const removeAthlete = async (athleteId: string, name: string) => {
+    if (!athletesReady || mutations.setEntries.isPending) return;
+    const ok = await confirm({
+      title: 'Remover atleta do campeonato?',
+      message: `Remover ${name} de ${championship.name}?`,
+      confirmLabel: 'Remover atleta',
+      tone: 'danger',
+    });
+    if (ok) {
+      mutations.setEntries.mutate(
+        { championshipId: championship.id, athleteIds: entered.filter((id) => id !== athleteId) },
+        { onSuccess: () => haptics.success() },
+      );
+    }
   };
 
   const days = today.data ? daysBetween(today.data, championship.eventDate) : null;
@@ -115,24 +129,7 @@ function ChampionshipDetail({
       title={championship.name}
       onBack={onBack}
       topAction={{ icon: 'edit', accessibilityLabel: 'Editar campeonato', onPress: () => setEditing(true) }}
-      footer={
-        <Button
-          title="Salvar inscritos"
-          disabled={!changed}
-          loading={mutations.setEntries.isPending}
-          onPress={() =>
-            mutations.setEntries.mutate(
-              { championshipId: championship.id, athleteIds: [...selected] },
-              {
-                onSuccess: () => {
-                  haptics.success();
-                  setPicked(null);
-                },
-              },
-            )
-          }
-        />
-      }
+
     >
       <Box gap="s24">
         <Card gap="s12" alignItems="center">
@@ -158,6 +155,17 @@ function ChampionshipDetail({
         </Card>
 
         <Section title={`Atletas inscritos (${selected.size})`}>
+          <Button
+            title="Incluir atletas"
+            icon="plus"
+            variant="secondary"
+            disabled={!athletesReady || mutations.setEntries.isPending}
+            onPress={() => {
+              setSearch('');
+              setToAdd(new Set());
+              setAdding(true);
+            }}
+          />
           {members.isLoading || entries.isLoading ? <ActivityIndicator /> : null}
           {members.isError || entries.isError ? (
             <LoadError
@@ -168,26 +176,25 @@ function ChampionshipDetail({
               }}
             />
           ) : null}
-          {members.data && competitors.length === 0 && formerIds.length === 0 ? (
+          {athletesReady && selected.size === 0 ? (
             <EmptyState
               visual="icon"
               icon="trophy"
-              title="Nenhum atleta na equipe."
-              description="Convide alunos para a equipe de competição pelo perfil deles, em Alunos."
+              title="Nenhum atleta inscrito."
+              description="Toque em Incluir atletas para adicionar participantes ao campeonato."
             />
           ) : null}
-          {competitors.map((m) => (
-            <AthleteOption key={m.id} member={m} selected={selected.has(m.userId)} onPress={() => toggle(m.userId)} />
-          ))}
-          {formerIds.map((athleteId) => {
-            const m = memberOf(athleteId);
+          {entered.map((athleteId) => {
+            const member = memberOf(athleteId);
+            const name = member?.fullName ?? 'Ex-atleta';
             return (
-              <SelectionCard
+              <EnteredAthlete
                 key={athleteId}
-                label={m?.fullName ?? 'Ex-atleta'}
-                description="Saiu da equipe"
-                selected={selected.has(athleteId)}
-                onPress={() => toggle(athleteId)}
+                name={name}
+                avatarPath={member?.avatarPath}
+                former={formerIds.includes(athleteId)}
+                disabled={!athletesReady || mutations.setEntries.isPending}
+                onRemove={() => void removeAthlete(athleteId, name)}
               />
             );
           })}
@@ -198,6 +205,60 @@ function ChampionshipDetail({
           ) : null}
         </Section>
       </Box>
+
+      <BottomSheet visible={adding} onRequestClose={() => setAdding(false)}>
+        <SheetForm
+          title="Incluir atletas"
+          actions={
+            <Button
+              title={toAdd.size > 0 ? `Incluir selecionados (${toAdd.size})` : 'Incluir selecionados'}
+              disabled={toAdd.size === 0 || !athletesReady}
+              loading={mutations.setEntries.isPending}
+              onPress={() => {
+                const next = new Set(selected);
+                available.forEach((m) => {
+                  if (toAdd.has(m.userId)) next.add(m.userId);
+                });
+                mutations.setEntries.mutate(
+                  { championshipId: championship.id, athleteIds: [...next] },
+                  { onSuccess: () => {
+                    haptics.success();
+                    setAdding(false);
+                    setToAdd(new Set());
+                  } },
+                );
+              }}
+            />
+          }
+        >
+          <TextField label="Buscar atleta" placeholder="Nome do atleta" value={search} onChangeText={setSearch} autoCorrect={false} />
+          <Text variant="caption">Ao incluir os selecionados, a inscrição será salva automaticamente.</Text>
+          {mutations.setEntries.error ? (
+            <Text variant="caption" color="danger">{errorMessage(mutations.setEntries.error)}</Text>
+          ) : null}
+          {available.length === 0 ? (
+            <EmptyState
+              title={competitors.length === 0 ? 'Nenhum atleta na equipe.' : 'Todos os atletas já foram incluídos.'}
+              description={competitors.length === 0 ? 'Convide alunos para a equipe de competição pelo perfil deles, em Alunos.' : undefined}
+            />
+          ) : matching.length === 0 ? (
+            <EmptyState title="Nenhum atleta encontrado." description="Tente buscar por outro nome." />
+          ) : matching.map((m) => (
+            <AthleteOption
+              key={m.id}
+              member={m}
+              selected={toAdd.has(m.userId)}
+              disabled={mutations.setEntries.isPending}
+              onPress={() => setToAdd((current) => {
+                const next = new Set(current);
+                if (next.has(m.userId)) next.delete(m.userId);
+                else next.add(m.userId);
+                return next;
+              })}
+            />
+          ))}
+        </SheetForm>
+      </BottomSheet>
 
       <BottomSheet visible={editing} onRequestClose={() => setEditing(false)}>
         <ChampionshipForm
@@ -222,14 +283,44 @@ function ChampionshipDetail({
   );
 }
 
-function AthleteOption({ member, selected, onPress }: { member: GymMember; selected: boolean; onPress: () => void }) {
+function AthleteOption({ member, selected, onPress, disabled }: { member: GymMember; selected: boolean; onPress: () => void; disabled?: boolean }) {
   return (
     <SelectionCard
+      disabled={disabled}
       label={member.fullName}
       leading={<Avatar name={member.fullName} path={member.avatarPath} />}
       selected={selected}
       onPress={onPress}
       accessibilityLabel={`${member.fullName}${selected ? ', inscrito' : ''}`}
     />
+  );
+}
+
+function EnteredAthlete({ name, avatarPath, former, disabled, onRemove }: {
+  name: string;
+  avatarPath?: GymMember['avatarPath'];
+  former: boolean;
+  disabled: boolean;
+  onRemove: () => void;
+}) {
+  const { size } = useAppTheme();
+  return (
+    <Card flexDirection="row" alignItems="center" gap="s12">
+      <Avatar name={name} path={avatarPath} />
+      <Box flex={1} gap="s4">
+        <Text variant="bodyStrong">{name}</Text>
+        {former ? <Text variant="caption">Saiu da equipe</Text> : null}
+      </Box>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Remover ${name} do campeonato`}
+        accessibilityState={{ disabled }}
+        disabled={disabled}
+        onPress={onRemove}
+        style={{ minWidth: size.touchTarget, minHeight: size.touchTarget, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.5 : 1 }}
+      >
+        <Icon name="trash" color="danger" />
+      </Pressable>
+    </Card>
   );
 }
