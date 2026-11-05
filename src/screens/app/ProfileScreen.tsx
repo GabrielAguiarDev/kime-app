@@ -31,7 +31,7 @@ import { haptics } from '@utils/haptics';
 
 /**
  * Perfil: avatar (photo or initials; tap for camera / gallery / remove),
- * editable name and e-mail, then grouped sections — Academias, Água,
+ * editable name and e-mail, then grouped sections — Academias,
  * Gestão da academia (staff) and Conta.
  */
 export function ProfileScreen() {
@@ -120,11 +120,6 @@ export function ProfileScreen() {
               }}
             />
           ) : null}
-        </Section>
-
-        <Section title="Água">
-          <ManageCard title="Garrafa, peso e altura" icon="drop" onPress={() => router.push('/agua/configurar')} />
-          <ManageCard title="Água de hoje" icon="drop" onPress={() => router.push('/agua')} />
         </Section>
 
         {isStaff ? (
@@ -314,7 +309,7 @@ function ManageCard({
   onPress,
 }: {
   title: string;
-  icon: 'drop' | 'settings' | 'calendar' | 'belt' | 'user' | 'trophy';
+  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy';
   onPress: () => void;
 }) {
   return (
