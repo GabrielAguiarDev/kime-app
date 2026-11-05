@@ -27,4 +27,5 @@ export enum QueryKeys {
   WaterPlans = 'WaterPlans',
   AthleteWater = 'AthleteWater',
   DietDays = 'DietDays',
+  WaterDays = 'WaterDays',
 }

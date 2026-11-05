@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { ActivityIndicator, Alert } from 'react-native';
 
 import { Box, Button, Card, EmptyState, FeedbackSheet, Icon, Screen, Text, TextButton, WaterRing } from '@components';
+import { useWaterStreak } from '@domain/Streaks';
 import { crossedGoal, useLogWater, useUndoWater, useWaterDay } from '@domain/Water';
 import { errorMessage } from '@infra';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
@@ -120,7 +121,9 @@ export function WaterScreen() {
               fullWidth={false}
               onPress={() => router.push('/agua/configurar')}
             />
-          ) : null}
+          ) : (
+            <WaterStreakLink userId={userId} timeZone={timeZone} goalMl={goalMl} />
+          )}
         </Box>
 
         <Box gap="s12">
@@ -153,5 +156,21 @@ export function WaterScreen() {
         </Box>
       </Box>
     </Screen>
+  );
+}
+
+/** "12 dias seguidos" under the ring: opens Ofensivas. */
+function WaterStreakLink({ userId, timeZone, goalMl }: { userId: string | undefined; timeZone: string | undefined; goalMl: number }) {
+  const { streak } = useWaterStreak(userId, timeZone, goalMl);
+  if (!streak) return null;
+  const n = streak.current;
+  return (
+    <TextButton
+      title={n > 0 ? `${n} ${n === 1 ? 'dia seguido' : 'dias seguidos'}` : 'Ofensiva de água'}
+      icon="flame"
+      fullWidth={false}
+      onPress={() => router.push('/ofensivas')}
+      accessibilityLabel={`Ofensiva de água: ${n} ${n === 1 ? 'dia seguido' : 'dias seguidos'}. Ver ofensivas`}
+    />
   );
 }

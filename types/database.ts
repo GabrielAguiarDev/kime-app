@@ -758,6 +758,38 @@ export type Database = {
         }
         Relationships: []
       }
+      water_goal_days: {
+        Row: {
+          created_at: string
+          day: string
+          goal_ml: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          goal_ml: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          goal_ml?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "water_goal_days_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       water_logs: {
         Row: {
           amount_ml: number
@@ -1047,6 +1079,14 @@ export type Database = {
           academy_name: string
           code_type: Database["public"]["Enums"]["membership_role"]
           logo_path: string
+        }[]
+      }
+      my_water_days: {
+        Args: never
+        Returns: {
+          day: string
+          goal_ml: number
+          total_ml: number
         }[]
       }
       regenerate_student_code: {

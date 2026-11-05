@@ -32,6 +32,17 @@ function day(userId: string, timeZone: string, now = new Date()): WaterDay {
   return { date, logs, totalMl: totalMl(logs) };
 }
 
+/** Totals per local day of the logs kept on the device (last days, includes the widget's). */
+function localDayTotals(userId: string, timeZone: string): { day: string; totalMl: number }[] {
+  const totals = new Map<string, number>();
+  for (const log of readLogs(userId)) {
+    if (log.deleted) continue;
+    const date = localDate(log.loggedAt, timeZone);
+    totals.set(date, (totals.get(date) ?? 0) + log.amountMl);
+  }
+  return [...totals].map(([day, totalMl]) => ({ day, totalMl }));
+}
+
 /** Device first: saved (and the widget refreshed) before any network call. */
 function log(userId: string, amountMl: number): WaterLog {
   const entry: WaterLog = {
@@ -153,4 +164,4 @@ async function syncOnce(userId: string): Promise<void> {
   }
 }
 
-export const waterService = { day, log, undoLast, readConfig, publishConfig, sync };
+export const waterService = { day, localDayTotals, log, undoLast, readConfig, publishConfig, sync };

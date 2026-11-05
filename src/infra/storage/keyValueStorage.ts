@@ -22,6 +22,10 @@ const ScopedKeys = {
   waterGoalCelebrated: 'kimi.waterGoalCelebrated.v1',
   /** Join requests seen (membership id → academy name + decision already shown), per user. */
   joinRequests: 'kimi.joinRequests.v1',
+  /** Last water goal sent to the server (`day:goal`), per user: avoids re-sending it on every render. */
+  waterGoalRecorded: 'kimi.waterGoalRecorded.v1',
+  /** Streak records already celebrated (JSON {water, training}), per user (+ academy for training). */
+  streakRecords: 'kimi.streakRecords.v1',
 } as const;
 
 type ScopedKey = keyof typeof ScopedKeys;

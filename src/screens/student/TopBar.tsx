@@ -7,6 +7,8 @@ import { useAppTheme } from '@theme';
 
 interface TopBarProps {
   streakWeeks: number;
+  /** This week already has a confirmed class (flame lit). */
+  streakDone: boolean;
   confirmedTotal: number;
   /** Latest belt across modalities (strip color); null = no belt yet. */
   belt: BeltLook | null;
@@ -15,22 +17,22 @@ interface TopBarProps {
 /**
  * Top bar of Início (11.1): weekly streak and confirmed classes. Today's water
  * lives in the header (top right), the same for students and staff.
- * Tapping a counter opens its detail (Aulas tab).
+ * The flame opens Ofensivas; the classes counter opens the Aulas tab.
  */
-export function TopBar({ streakWeeks, confirmedTotal, belt }: TopBarProps) {
+export function TopBar({ streakWeeks, streakDone, confirmedTotal, belt }: TopBarProps) {
   const { size, spacing } = useAppTheme();
   const open = () => router.navigate('/(tabs)/classes');
 
   return (
     <Box flexDirection="row" gap="s24">
       <Pressable
-        onPress={open}
+        onPress={() => router.push('/ofensivas')}
         accessibilityRole="button"
-        accessibilityLabel={`${streakWeeks} ${streakWeeks === 1 ? 'semana seguida' : 'semanas seguidas'} treinando`}
+        accessibilityLabel={`${streakWeeks} ${streakWeeks === 1 ? 'semana seguida' : 'semanas seguidas'} treinando. Ver ofensivas`}
         hitSlop={spacing.s8}
       >
         <Box flexDirection="row" alignItems="center" gap="s8">
-          <Icon name="flame" color={streakWeeks > 0 ? 'accent' : 'disabled'} active={streakWeeks > 0} />
+          <Icon name="flame" color={streakWeeks > 0 || streakDone ? 'accent' : 'disabled'} active={streakDone} />
           <Text variant="counter">{streakWeeks}</Text>
         </Box>
       </Pressable>
