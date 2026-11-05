@@ -1,13 +1,28 @@
 import { supabase } from '@infra/supabase';
 
+/**
+ * Body data (weight, height, sex, birth date) is not readable from the table:
+ * get_profile_details returns it for the user themselves or for staff of an
+ * academy where the user is a competitor (null otherwise).
+ */
 async function getById(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, full_name, weight_kg, height_cm, bottle_ml, timezone, avatar_path, sex, birth_date')
-    .eq('id', userId)
-    .single();
-  if (error) throw error;
-  return data;
+  const [profile, details] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, full_name, bottle_ml, timezone, avatar_path')
+      .eq('id', userId)
+      .single(),
+    supabase.rpc('get_profile_details', { p_user_id: userId }).maybeSingle(),
+  ]);
+  if (profile.error) throw profile.error;
+  if (details.error) throw details.error;
+  return {
+    ...profile.data,
+    weight_kg: details.data?.weight_kg ?? null,
+    height_cm: details.data?.height_cm ?? null,
+    sex: details.data?.sex ?? null,
+    birth_date: details.data?.birth_date ?? null,
+  };
 }
 
 async function updateName(userId: string, fullName: string) {

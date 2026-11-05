@@ -3,6 +3,7 @@ export * from './authRules';
 export { authService } from './authService';
 export {
   useChangePassword,
+  useDeleteAccount,
   useRequestEmailChange,
   useVerifyEmailChange,
   useResendSignUpCode,

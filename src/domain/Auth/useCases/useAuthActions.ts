@@ -35,6 +35,10 @@ export function useSignOut() {
   return useMutation({ mutationFn: () => authService.signOut() });
 }
 
+export function useDeleteAccount() {
+  return useMutation({ mutationFn: (avatarPath: string | null) => authService.deleteAccount(avatarPath) });
+}
+
 export function useRequestEmailChange() {
   return useMutation({ mutationFn: (newEmail: string) => authService.requestEmailChange(newEmail) });
 }

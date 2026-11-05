@@ -1,7 +1,7 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: Fase 6 (polimento) — 2026-11-04
+> Última atualização: Fase 7 (pré-lançamento) — 2026-11-04
 
 ## 1. Visão geral
 
@@ -249,6 +249,12 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 | Folha de feedback entrando e saindo | `components/FeedbackSheet/FeedbackSheet.tsx`, `screens/app/HomeScreen.tsx`, `screens/water/WaterScreen.tsx` |
 | Outros | entrada da conquista (`AchievementScreen`), balão do mascote (`MascotBalloon`), código (`CodeField`), entrada (`StartScreen`, `EnterCodeScreen`), reordenar (`ReorderList`) |
 
+- [x] 7. Pré-lançamento (2026-11-04): migration `20261105000400_prelaunch_hardening` + 21 testes em `prelaunch.test.sql` (454 no total).
+  - **Excluir conta** (exigência da App Store): Perfil → Meus dados → "Excluir conta" (confirmação `danger`). RPC `delete_my_account` (DEFINER): bloqueia com `owner_must_transfer` se o usuário é owner de academia com outros membros ATIVOS; academia em que ele é o único ativo é apagada junto (pedidos pendentes não bloqueiam); depois apaga `auth.users` e tudo pessoal cai em cascata. O app apaga a foto em seguida (o token ainda vale) e sai só localmente. Limitação: a logo de uma academia apagada fica órfã no bucket público.
+  - **Dados do corpo** (peso, altura, sexo, nascimento): o cliente não lê mais essas colunas de `profiles` (grant só nas colunas públicas). `get_profile_details(user)` devolve para o próprio usuário ou para staff de academia em que ele é COMPETIDOR (aceitou o convite); senão, zero linhas. `profileApi.getById` junta as duas leituras (campos nulos quando não pode ler). Escrita continua igual.
+  - **Pedido recusado:** `request_join` recusa com `join_cooldown` por 24 h depois da decisão (o código de professor não é gasto).
+  - **Limite no `lookup_invite_code`** (anônimo): 20 consultas SEM resultado por IP em 15 min → `rate_limited`. IP de `cf-connecting-ip` / `x-real-ip` / primeiro `x-forwarded-for`; sem cabeçalhos (SQL, testes) não limita. Tabela `private.code_lookup_failures` (limpa as do IP com mais de 1 dia a cada falha). A função virou VOLATILE.
+
 ## Backlog (depois da Fase 6)
 
 Ideias registradas pelo usuário em 2026-11-04. **Não implementar agora**: seguimos com as fases planejadas (4 → 6).
@@ -310,9 +316,9 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 
 ### Antes do lançamento (produção) — resolver todas
 
-1. **Exclusão de conta:** apagar a conta de um owner falha hoje (o trigger `memberships_keep_owner` impede a academia de ficar sem owner). O fluxo de exclusão precisa exigir a transferência antes, ou apagar a academia quando o owner for o único membro ativo. Fazer uma RPC explícita, nunca depender do cascade.
-2. **Limite de tentativas no código:** `lookup_invite_code` é anônima e sem limite (31^8 ≈ 8,5e11 códigos; até 20 códigos de professor vivos por academia). Precisa de rate limit no gateway ou CAPTCHA antes de abrir ao público. Opcional: códigos de professor mais longos.
-3. **Pedido recusado:** quem foi recusado pode pedir de novo sem limite (o `request_join` reabre a linha como `pending`). Decidir um intervalo mínimo (ex.: 24 h desde `decided_at`) ou um limite de tentativas.
+1. ~~Exclusão de conta~~ — feito na Fase 7.
+2. ~~Limite de tentativas no código~~ — feito na Fase 7 (por IP no banco). O `join_with_code` (logado) segue sem limite próprio: exige conta com e-mail confirmado.
+3. ~~Pedido recusado~~ — feito na Fase 7 (24 h).
 4. **Universal Links / App Links:** hoje o deep link é `kimi://entrar?codigo=…`, que só abre com o app instalado. Precisa de domínio + `apple-app-site-association` / `assetlinks.json` e `ios.associatedDomains` / `android.intentFilters` no `app.json`. Junto: ligar a confirmação de e-mail (`enable_confirmations`) no projeto hospedado.
 5. **Google Sign-In:** pendente. Precisa dos client IDs (iOS, Android, Web) do Google Cloud e do provedor no Supabase.
 6. **Apple Sign-In:** o código já existe (`signInWithIdToken` com nonce). Falta habilitar o provedor Apple no Supabase hospedado (e `[auth.external.apple]` no `config.toml` local) com o bundle id `br.com.kimi.app`, e o capability no time de assinatura.
