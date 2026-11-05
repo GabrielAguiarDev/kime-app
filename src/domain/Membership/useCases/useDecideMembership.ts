@@ -43,8 +43,7 @@ export function useTransferOwnership(gymId: string) {
         queryClient.invalidateQueries({ queryKey: [QueryKeys.GymMembers, gymId] }),
         // The old owner no longer sees professor requests nor the codes.
         queryClient.invalidateQueries({ queryKey: [QueryKeys.PendingRequests, gymId] }),
-        queryClient.removeQueries({ queryKey: [QueryKeys.ProfessorCodes, gymId] }),
-        queryClient.removeQueries({ queryKey: [QueryKeys.StudentCode, gymId] }),
+        queryClient.removeQueries({ queryKey: [QueryKeys.InviteCodes, gymId] }),
       ]),
   });
 }

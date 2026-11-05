@@ -1,6 +1,6 @@
 # Ranking contínuo do Kimi
 
-A interface possui uma lista contínua independente por modalidade, sem ranking geral, navegação por mês ou campeões mensais. O aluno seleciona apenas as modalidades nas quais tem matrícula ativa; a equipe pode consultar cada modalidade da academia. A janela móvel usa os últimos **28 dias completos**, no calendário da academia. Essa decisão segue o pedido de uma lista contínua, que tem precedência sobre o exemplo mensal do briefing. A janela evita acúmulo indefinido de penalidades e permite recuperação. `rankingPeriod` aceita outra duração; o serviço aceita `{ from, to }` inclusivo para períodos personalizados, limitados a 366 dias. O dia atual fica fora dos denominadores, pontos e penalidades.
+A interface possui uma lista contínua independente por modalidade, sem ranking geral, navegação por mês ou campeões mensais. O aluno vê o ranking da modalidade selecionada no header da Início; a equipe escolhe uma modalidade da academia (padrão: a primeira). A janela móvel usa os últimos **28 dias completos**, no calendário da academia. Essa decisão segue o pedido de uma lista contínua, que tem precedência sobre o exemplo mensal do briefing. A janela evita acúmulo indefinido de penalidades e permite recuperação. `rankingPeriod` aceita outra duração; o serviço aceita `{ from, to }` inclusivo para períodos personalizados, limitados a 366 dias. O dia atual fica fora dos denominadores, pontos e penalidades.
 
 ## Arquitetura e fonte de verdade
 
@@ -12,35 +12,21 @@ O ranking mensal existente foi substituído, preservando o módulo `Ranking`, Re
 
 Não existe ledger de penalidades ou congelamentos novo. A consulta não escreve nada. Repetir o cálculo produz o mesmo resultado com os mesmos fatos; correções legítimas de presença/justificativa e sincronização offline de água atualizam os fatos. O cache é invalidado após confirmações, vínculos com turmas e sincronização de água; consultas ativas atualizam a cada minuto e ao retornar ao app. O calendário também atualiza a cada minuto para atravessar a meia-noite.
 
-## Algoritmo
+## Algoritmo (2026-11-05, validado pelo usuário)
 
-Parâmetros centralizados em `src/domain/Ranking/rankingConfig.ts`:
+Parâmetros centralizados em `src/domain/Ranking/rankingConfig.ts`. Sempre UMA modalidade (não existe "Todas", nem para owner e professor).
 
-- Frequência: 60% (`confirmados / aulas obrigatórias elegíveis`).
-- Hidratação: 40% (`dias com meta atingida / dias com meta válida elegíveis`).
-- Cada falta obrigatória sem justificativa: −5 pontos.
-- Cada falha de água sem proteção: −5 pontos.
-- Falha de água congelada: sem desconto adicional, permanece no denominador e não conta como meta cumprida.
-- Pontuação: `max(0, min(100, desempenho - penalidades))`.
-- Participação competitiva: sete **datas distintas** com ao menos uma obrigação elegível. Antes disso, score individual, status "Em classificação", dias restantes e nenhuma posição.
+- **Presença (70%)**: a janela de 28 dias completos é dividida em 4 semanas de 7 dias, contadas para trás a partir de ontem. Em cada semana com dias elegíveis, presença = aulas confirmadas na modalidade ÷ meta semanal, limitada a 100%. A meta semanal é a do aluno nessa modalidade (`student_modality_enrollments.weekly_class_goal`, definida pelo staff no detalhe do aluno) ou a da modalidade (`academy_modalities.weekly_class_goal`, padrão 2, definida pelo owner em Modalidades). Numa semana com só parte dos dias elegíveis (vínculo novo), a meta é proporcional aos dias. Presença final = média das semanas.
+- **Água (30%)**: dias em que o aluno cumpriu a PRÓPRIA meta ÷ dias com meta conhecida e elegíveis. Nunca o volume. A meta do dia é a do plano do professor (competidores) ou a automática. Dia de **meta**: cumprido com total ≥ valor. Dia de **limite** (plano): cumprido com total entre 90% e 100% do valor; passar do limite = não cumprido. A água é pessoal: o mesmo histórico vale em todas as modalidades do aluno.
+- **Sem penalidades.** Congelamentos de água continuam (1 a cada 7 dias seguidos, até 2): o dia coberto sai do denominador, sem somar nem tirar ponto.
+- **Pontuação** = (0,7 × presença + 0,3 × água) × 100.
+- **Classificação**: mínimo de 7 dias elegíveis (vínculo ativo na academia e na modalidade). Antes disso, "Em classificação", sem posição.
+- **Desempate**: pontuação, total de aulas confirmadas no período, taxa de água, UUID estável.
+- **Tela**: colegas aparecem só com posição, foto, nome e pontuação. O próprio aluno toca na sua linha para ver presença, aulas, meta semanal, dias de água cumpridos e dias protegidos.
 
-Um critério sem oportunidades elegíveis fica em zero, sem inventar participação ou redistribuir os pesos. Assim, somente hidratação permite até 40 pontos; sem metas de água conhecidas, somente frequência permite até 60. Isso é mostrado nos detalhes da interface. Um dia com aula e água conta uma vez para classificação/desempate. Água acima da meta não muda o resultado booleano.
+`academy_ranking_facts` devolve, por aluno: `weekly_goal`, `attendance` = um item por dia elegível `{day, classes}` (check-ins confirmados da modalidade no dia) e `hydration` (booleano `done` já com a regra de meta/limite; volumes nunca saem do banco).
 
-Ordenação: classificados primeiro; score, proporção de frequência, proporção de hidratação, número de datas com atividade realmente concluída e UUID estável. O cálculo não arredonda para ordenar; a interface mostra uma casa decimal. Não utiliza volume consumido, antiguidade ou contagem absoluta de aulas como desempate.
-
-## Elegibilidade das aulas
-
-A arquitetura anterior possuía horários recorrentes e check-ins opcionais, mas **não** matrícula em modalidade/turmas, obrigação individual, cancelamento ou justificativa. Não havia dados seguros para presumir faltas.
-
-A nova tabela `student_class_enrollments` registra apenas compromissos explicitamente atribuídos pela equipe. Em **Alunos → perfil do aluno → Turmas obrigatórias**, a equipe pode tornar uma turma obrigatória ou opcional, com confirmação. Inclusões e remoções valem amanhã, impedindo faltas retroativas pelo aplicativo. Nenhum aluno existente recebe turma automaticamente. Sem vínculos, não há faltas presumidas; aulas opcionais não entram no numerador nem no denominador, evitando vantagem por mais horários disponíveis.
-
-Cada compromisso preserva dia da semana, horário, modalidade e identidade original do horário. Apenas datas encerradas após ativação da matrícula entram. Duplicatas são impedidas pelo índice existente de check-ins e deduplicadas defensivamente no domínio. Alterações/desativação/exclusão do horário encerram o vínculo antigo a partir do dia da alteração, preservando o passado e exigindo novo vínculo explícito. Identidade original do check-in permite contar presenças mesmo após exclusão do horário.
-
-O vínculo com a turma só pode ser criado se houver matrícula ativa na modalidade correspondente. Suspender a modalidade mantém o vínculo com as turmas, mas exclui obrigações durante a suspensão; ao retomar a matrícula, os compromissos anteriores voltam a valer em dias completos. Encerrar e reativar uma matrícula também preserva o histórico e os vínculos com turmas. A equipe pode tornar turmas opcionais separadamente.
-
-O app admite check-in durante o dia inteiro, sem deadline por horário: o fechamento seguro adotado é a meia-noite da academia. Somente `confirmed` conclui uma obrigação; check-ins pendentes/rejeitados não geram conclusão, e confirmação posterior corrige a pontuação automaticamente.
-
-`class_attendance_exceptions` registra cancelamentos (sem `membership_id`) ou justificativas individuais (com matrícula), com motivo obrigatório. Exclui a obrigação inteira. RLS permite administração somente à equipe da academia correspondente. Não havia fluxo de justificativas/cancelamentos: esta entrega disponibiliza a estrutura e a API de tabela para correções administrativas, **sem uma nova tela de gestão de exceções**.
+As "Turmas obrigatórias" (`student_class_enrollments`, `class_attendance_exceptions`, `set_student_class_enrollment`) saíram da interface e não entram mais no cálculo. As tabelas e a RPC continuam no banco até confirmarmos que nada depende delas.
 
 ## Metas históricas e congelamentos
 
@@ -71,9 +57,9 @@ Para preservar congelamentos, a RPC devolve o histórico booleano conhecido de h
 
 ## Arquivos e validação
 
-- `src/domain/Ranking/`: configuração, cálculo, tipos, consulta e vínculos com turmas.
-- `src/screens/ranking/`: lista/detalhes da pontuação e gestão de compromissos de aula.
-- `src/screens/professor/MemberDetailScreen.tsx`: integração das turmas obrigatórias.
+- `src/domain/Ranking/`: configuração, cálculo, tipos e consulta.
+- `src/screens/ranking/RankingScreen.tsx`: lista (colegas: posição, foto, nome e pontuação) e os números do próprio aluno.
+- `src/screens/professor/MemberDetailScreen.tsx`: modalidades do aluno e meta semanal dele.
 - `src/screens/staff/StaffHome.tsx`: resumo do ranking contínuo.
 - `src/domain/Classes/useCases/useClasses.ts`, `src/domain/Water/useCases/useWater.ts`, `src/services/water/useWaterSync.ts`: calendário/cache.
 - `src/domain/Streaks/streakApi.ts`, `src/services/water/useRecordWaterGoal.ts`: meta derivada no servidor.
@@ -83,22 +69,8 @@ Para preservar congelamentos, a RPC devolve o histórico booleano conhecido de h
 Validação concluída: 222 testes Jest (23 suítes), 556 testes pgTAP (12 arquivos), TypeScript, Expo lint, lint SQL e replay da migração em banco sombra com diff vazio. As migrações de base foram aplicadas no Supabase conectado ao app. A migração de modalidades deve ser aplicada e verificada antes de usar a nova interface. Os avisos de políticas permissivas em `checkins`/`memberships` e da volatilidade de `is_valid_timezone` antecedem esta alteração. O advisor remoto também sinaliza funções SECURITY DEFINER expostas a authenticated: nas novas RPCs isso é intencional para agregar dados sob RLS e capturar históricos, com validação explícita do usuário/academia e privilégios mínimos. Acesso de anon foi revogado. O aviso de proteção contra senhas vazadas é anterior e não foi alterado. Não foi realizada validação visual no simulador nesta entrega.
 
 
-## Matrícula e ranking por modalidade
+## Vínculo aluno ↔ modalidade (2026-11-05)
 
-`student_modality_enrollments` referencia a matrícula existente na academia e `academy_modalities`, sem copiar alunos, modalidades ou água. Tem um vínculo único por matrícula/modalidade e estados `active`, `suspended`, `ended`. `private.modality_active_periods` preserva cada intervalo ativo, inclusive depois de suspensões, saídas e retornos. Escrita direta pelo cliente é revogada; `set_student_modality_enrollment` valida a equipe, a academia e a modalidade, serializa alterações pelo vínculo principal e mantém os intervalos na mesma transação. Repetir uma ativação não abre outro intervalo.
+`student_modality_enrollments` é o vínculo do aluno com cada modalidade: `active` ou `ended` (a suspensão saiu; as suspensas viraram encerradas), com `started_at`, a meta semanal do aluno e o competidor POR modalidade (`is_competitor`, `competitor_since`, convite). `private.modality_active_periods` guarda cada intervalo ativo. Um aluno ativo tem sempre pelo menos um vínculo ativo (constraint trigger adiado, `student_modality_required`). Escrita só pelas RPCs `approve_student` (aprovação com as modalidades) e `set_student_modalities` (o conjunto inteiro, mínimo um); remover encerra o vínculo e preserva aulas e faixas. Ver `supabase/migrations/20261105210000_student_modalities.sql`.
 
-A equipe gerencia esses vínculos em **Alunos → perfil do aluno → Matrículas por modalidade**, com confirmação para ativar, suspender, reativar ou encerrar. Não existiam matrículas explícitas por modalidade antes desta entrega. A migração só reconhece como evidência os vínculos obrigatórios ainda ativos com turmas existentes, usando o momento em que foram criados. Check-ins opcionais e presença na academia não matriculam ninguém automaticamente em modalidades. Os demais vínculos devem ser confirmados pela equipe; sem vínculo, o aluno não aparece naquele ranking.
-
-A API não conserva a sobrecarga antiga sem modalidade. `fetchRanking({ academyId, modalityId, startDate, endDate })` exige os quatro parâmetros. A RPC valida a modalidade na academia e, para alunos, também o próprio vínculo elegível; um aluno de Muay Thai não pode consultar o ranking de BJJ alterando o identificador manualmente. A equipe pode consultar qualquer modalidade da própria academia. `ranking_modalities` retorna as opções autorizadas; não há opção "Geral".
-
-O banco filtra os participantes por vínculo com a modalidade. A frequência exige `student_class_enrollments.modality_id` e `checkins.modality_id` iguais à modalidade solicitada. Cada obrigação também precisa de um dia elegível na matrícula da academia **e** na matrícula da modalidade. A ausência em uma modalidade nunca entra nos fatos de outra.
-
-A hidratação mantém uma única origem individual. O mesmo histórico de resultados e congelamentos é retornado para todas as modalidades, sem cortar o histórico no início de uma modalidade e sem escrever registros adicionais. Só a marca de elegibilidade diária varia: entram dias completos pertencentes aos dois vínculos ativos e ao intervalo solicitado. Isso permite metas, penalidades e classificação diferentes quando uma modalidade começou mais tarde, preservando exatamente a mesma proteção de água em uma data compartilhada. Não existe evento de penalidade duplicado por modalidade: a pontuação é uma projeção de fatos, não um ledger de descontos gravados.
-
-A consulta atual (intervalo terminando ontem) inclui apenas matrículas de modalidade atualmente ativas. Consultas históricas terminando antes de ontem incluem os vínculos que tiveram intervalos ativos naquele período, mesmo se hoje suspensos/encerrados. O denominador respeita cada pausa e saída. O vínculo principal da academia e o opt-out continuam respeitados. Se o cadastro principal for apagado, o histórico dependente segue o comportamento de exclusão existente; esta entrega não restaura matrículas apagadas.
-
-Cada resultado carrega `modalityId`; o domínio rejeita conjuntos com modalidades misturadas. Cache e requisição incluem academia, modalidade e ambas as datas. Ao trocar a escolha, a tela passa a usar a consulta correspondente, sem reutilizar dados da modalidade anterior como placeholder; as linhas também têm identidade por modalidade/aluno, reiniciando detalhes expandidos. O resumo da tela inicial mostra o nome da modalidade correspondente ao seu top 3, sem somar rankings.
-
-Testes adicionais: separação real no SQL de participantes, check-ins, obrigações e datas; duas matrículas simultâneas; exclusão de não matriculados; hidratação compartilhada; pausa/saída/retorno e histórico; controle de acesso e idempotência; congelamento compartilhado e penalidade de aulas isolada no domínio; cache/requisição por modalidade/período e troca da seleção da interface com substituição de todos os dados da linha. O teste de interface inspeciona elementos React com hooks controlados, sem adicionar um renderer nativo; não substitui validação visual no simulador.
-
-Arquivos adicionais desta etapa: `src/domain/Ranking/useCases/useModalityEnrollments.ts`, `src/screens/ranking/StudentModalityEnrollments.tsx`, `src/domain/Ranking/__tests__/rankingService.test.ts`, `rankingView.test.tsx`, `supabase/tests/database/ranking_modalities.test.sql` e a migração de modalidades. Também foram atualizados o cálculo/tipos e testes existentes de ranking, a consulta, o seletor da tela, a atribuição de turmas, o perfil do aluno, o resumo inicial, chaves de cache, mensagens de erro e os tipos do banco.
+O banco filtra os participantes pelo vínculo com a modalidade; consultas que terminam antes de ontem incluem vínculos que estiveram ativos no período. Para alunos, a RPC exige o próprio vínculo: um aluno de Muay Thai não consulta o ranking de BJJ trocando o identificador.

@@ -13,10 +13,14 @@ export type AppErrorCode =
   | 'cannot_change_role'
   | 'transfer_target_invalid'
   | 'academy_needs_owner'
-  | 'too_many_codes'
+  | 'invalid_code_type'
   | 'invalid_academy_name'
   | 'invalid_modalities'
+  | 'invalid_plan_tier'
+  | 'invalid_belts'
   | 'invalid_modality_enrollment'
+  | 'student_modality_required'
+  | 'weekly_goal_invalid'
   | 'modality_enrollment_required'
   | 'invalid_ranking_modality'
   | 'invalid_ranking_period'
@@ -59,10 +63,14 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'cannot_change_role',
   'transfer_target_invalid',
   'academy_needs_owner',
-  'too_many_codes',
+  'invalid_code_type',
   'invalid_academy_name',
   'invalid_modalities',
+  'invalid_plan_tier',
+  'invalid_belts',
   'invalid_modality_enrollment',
+  'student_modality_required',
+  'weekly_goal_invalid',
   'modality_enrollment_required',
   'invalid_ranking_modality',
   'invalid_ranking_period',
@@ -154,7 +162,7 @@ const MESSAGES: Record<AppErrorCode, string> = {
   not_authenticated: 'Sua sessão expirou. Entre novamente.',
   forbidden: 'Você não tem permissão para isso.',
   invite_invalid: 'Código não encontrado. Confira as letras ou peça um novo código.',
-  too_many_codes: 'Há muitos códigos de professor ativos. Revogue algum antes de gerar outro.',
+  invalid_code_type: 'Tipo de código inválido.',
   invalid_gym_name: 'O nome da academia precisa ter entre 2 e 80 caracteres.',
   membership_not_found: 'Solicitação não encontrada.',
   membership_not_pending: 'Esta solicitação já foi respondida.',
@@ -164,14 +172,18 @@ const MESSAGES: Record<AppErrorCode, string> = {
   academy_needs_owner: 'A academia precisa de um proprietário. Transfira a academia antes de sair.',
   invalid_academy_name: 'O nome da academia precisa ter entre 2 e 80 caracteres.',
   invalid_modalities: 'Escolha pelo menos uma modalidade (até 20).',
+  invalid_plan_tier: 'Escolha um dos planos disponíveis.',
+  invalid_belts: 'Confira as faixas das modalidades.',
   invalid_modality_enrollment: 'Confira se o aluno e a modalidade estão ativos nesta academia.',
+  student_modality_required: 'O aluno precisa de pelo menos uma modalidade.',
+  weekly_goal_invalid: 'A meta semanal vai de 1 a 14 aulas.',
   modality_enrollment_required: 'Ative a matrícula do aluno nesta modalidade antes de definir uma turma obrigatória.',
   invalid_ranking_modality: 'Escolha uma modalidade desta academia para consultar o ranking.',
   invalid_ranking_period: 'Escolha um período de dias completos, de até 366 dias.',
   invalid_enrollment: 'Confira se o aluno e o horário estão ativos nesta academia.',
   instructor_invalid: 'Escolha um professor ativo desta academia.',
   logo_required: 'A academia precisa ter uma logo. Troque por outra em vez de remover.',
-  competitor_target_invalid: 'Só alunos ativos podem entrar na equipe de competição.',
+  competitor_target_invalid: 'Só alunos ativos desta modalidade podem entrar na equipe de competição.',
   already_competitor: 'Este aluno já está na equipe de competição.',
   competitor_invite_missing: 'Este convite não está mais disponível.',
   water_plan_invalid: 'O plano de água precisa ter os 7 dias da semana.',

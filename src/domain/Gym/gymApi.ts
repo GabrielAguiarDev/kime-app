@@ -1,7 +1,21 @@
 import { supabase } from '@infra/supabase';
+import type { Json } from '@infra/supabase/database.types';
+
+import type { CodeType } from './gymTypes';
 
 async function create(name: string, modalities: string[]) {
   const { data, error } = await supabase.rpc('create_academy', { p_name: name, p_modalities: modalities });
+  if (error) throw error;
+  return data;
+}
+
+/** Sign-up: academy + owner + modalities + suggested belts + plan, in one call. */
+async function createWithSetup(name: string, planTier: string | null, modalities: Json) {
+  const { data, error } = await supabase.rpc('create_academy_with_setup', {
+    p_name: name,
+    p_plan_tier: planTier,
+    p_modalities: modalities,
+  });
   if (error) throw error;
   return data;
 }
@@ -22,46 +36,22 @@ async function joinWithCode(code: string) {
   return row;
 }
 
-async function getStudentCode(gymId: string) {
-  const { data, error } = await supabase.from('academies').select('invite_code').eq('id', gymId).single();
-  if (error) throw error;
-  return data.invite_code;
-}
-
-async function regenerateStudentCode(gymId: string) {
-  const { data, error } = await supabase.rpc('regenerate_student_code', { p_academy_id: gymId });
-  if (error) throw error;
-  return data;
-}
-
-/** Live codes only (RLS: owner). */
-async function listProfessorCodes(gymId: string) {
+/** Active codes of the academy (RLS: owner both, instructors the student one). */
+async function listInviteCodes(gymId: string) {
   const { data, error } = await supabase
-    .from('professor_codes')
-    .select('id, code, expires_at')
+    .from('academy_invite_codes')
+    .select('code_type, code')
     .eq('academy_id', gymId)
-    .is('used_at', null)
-    .is('revoked_at', null)
-    .gt('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false });
+    .eq('status', 'active');
   if (error) throw error;
   return data;
 }
 
-async function createProfessorCode(gymId: string) {
-  const { data, error } = await supabase.rpc('create_professor_code', { p_academy_id: gymId });
+/** Owner: replaces the active code of that kind; the old one stops working. */
+async function regenerateInviteCode(gymId: string, codeType: CodeType) {
+  const { data, error } = await supabase.rpc('regenerate_invite_code', { p_academy_id: gymId, p_code_type: codeType });
   if (error) throw error;
-  return data[0];
-}
-
-async function revokeProfessorCode(codeId: string) {
-  const { data, error } = await supabase
-    .from('professor_codes')
-    .update({ revoked_at: new Date().toISOString() })
-    .eq('id', codeId)
-    .select('id');
-  if (error) throw error;
-  if (data.length === 0) throw new Error('forbidden');
+  return data;
 }
 
 // ------------------------------------------------------------- settings ---
@@ -103,13 +93,11 @@ async function removeLogoFile(path: string) {
 
 export const gymApi = {
   create,
+  createWithSetup,
   lookupCode,
   joinWithCode,
-  getStudentCode,
-  regenerateStudentCode,
-  listProfessorCodes,
-  createProfessorCode,
-  revokeProfessorCode,
+  listInviteCodes,
+  regenerateInviteCode,
   getSettings,
   updateSettings,
   uploadLogo,
@@ -118,5 +106,5 @@ export const gymApi = {
 
 export type CodeLookupApi = NonNullable<Awaited<ReturnType<typeof lookupCode>>>;
 export type JoinResultApi = Awaited<ReturnType<typeof joinWithCode>>;
-export type ProfessorCodeRowApi = Awaited<ReturnType<typeof listProfessorCodes>>[number];
+export type InviteCodeRowApi = Awaited<ReturnType<typeof listInviteCodes>>[number];
 export type GymSettingsRowApi = Awaited<ReturnType<typeof getSettings>>;

@@ -1,13 +1,21 @@
 import { addDays, weekdayOf, weekStart } from '@domain/Classes/classesRules';
 import type { LocalDate, Weekday } from '@domain/Classes/classesTypes';
 
-import type { Championship, WaterPlan, WeekTargets, WeightLog } from './competitionTypes';
+import type { Championship, WaterPlan, WeekLimits, WeekTargets, WeightLog } from './competitionTypes';
 
 export const WATER_PLAN_MIN_ML = 500;
 export const WATER_PLAN_MAX_ML = 20000;
 
 export function emptyWeekTargets(): WeekTargets {
   return { 0: null, 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
+}
+
+export function emptyWeekLimits(): WeekLimits {
+  return { 0: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false };
+}
+
+export function limitsToArray(limits: WeekLimits): boolean[] {
+  return ([0, 1, 2, 3, 4, 5, 6] as Weekday[]).map((d) => limits[d]);
 }
 
 /** The array set_water_plan expects: index 0 = Sunday … 6 = Saturday. */

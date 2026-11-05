@@ -11,6 +11,9 @@ import {
   parseDuration,
   pause,
   resume,
+  roundsDone,
+  stepConfig,
+  summaryLine,
   seekTo,
   startClock,
   stateAt,
@@ -137,5 +140,49 @@ describe('built-in presets per modality', () => {
   it('offers only the academy modalities; none matching → all', () => {
     expect(builtInsForAcademy(['Muay Thai', 'Jiu-Jitsu', 'No-Gi']).map((p) => p.name)).toEqual(['Muay Thai', 'Rola de jiu-jitsu']);
     expect(builtInsForAcademy(['Judô'])).toHaveLength(4);
+  });
+});
+
+describe('stepper', () => {
+  it('steps on the grid: rounds 1, round/rest 30 s, warning 5 s', () => {
+    expect(stepConfig(boxe, 'rounds', 1)?.rounds).toBe(4);
+    expect(stepConfig(boxe, 'roundSeconds', -1)?.roundSeconds).toBe(150);
+    expect(stepConfig(boxe, 'restSeconds', 1)?.restSeconds).toBe(90);
+    expect(stepConfig(boxe, 'warningSeconds', 1)?.warningSeconds).toBe(15);
+  });
+
+  it('snaps values off the grid', () => {
+    const odd = { ...boxe, roundSeconds: 190 };
+    expect(stepConfig(odd, 'roundSeconds', 1)?.roundSeconds).toBe(210);
+    expect(stepConfig(odd, 'roundSeconds', -1)?.roundSeconds).toBe(180);
+  });
+
+  it('stops at the limits', () => {
+    expect(stepConfig({ ...boxe, rounds: 1 }, 'rounds', -1)).toBeNull();
+    expect(stepConfig({ ...boxe, rounds: 30 }, 'rounds', 1)).toBeNull();
+    expect(stepConfig({ ...boxe, restSeconds: 0 }, 'restSeconds', -1)).toBeNull();
+    expect(stepConfig({ ...boxe, warningSeconds: 0 }, 'warningSeconds', -1)).toBeNull();
+    expect(stepConfig({ ...boxe, warningSeconds: 60 }, 'warningSeconds', 1)).toBeNull();
+    expect(stepConfig({ ...boxe, roundSeconds: 30, warningSeconds: 0 }, 'roundSeconds', -1)).toBeNull();
+  });
+
+  it('a shorter round pulls the warning below it', () => {
+    const c = stepConfig({ ...boxe, roundSeconds: 60, warningSeconds: 30 }, 'roundSeconds', -1);
+    expect(c).toMatchObject({ roundSeconds: 30, warningSeconds: 25 });
+  });
+});
+
+describe('summary and progress', () => {
+  it('summary line', () => {
+    expect(summaryLine({ rounds: 5, roundSeconds: 180, restSeconds: 120, warningSeconds: 10 })).toBe('5 rounds · descanso 2:00');
+    expect(summaryLine({ rounds: 1, roundSeconds: 180, restSeconds: 0, warningSeconds: 0 })).toBe('1 round · sem descanso');
+  });
+
+  it('rounds done by phase', () => {
+    const segs = timeline(boxe, 10);
+    expect(roundsDone(stateAt(boxe, segs, 0))).toBe(0);
+    expect(roundsDone(stateAt(boxe, segs, 11_000))).toBe(0);
+    expect(roundsDone(stateAt(boxe, segs, (10 + 180 + 1) * 1000))).toBe(1);
+    expect(roundsDone(stateAt(boxe, segs, totalMs(segs)))).toBe(3);
   });
 });

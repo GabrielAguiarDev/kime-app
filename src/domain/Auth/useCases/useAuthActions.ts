@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { waterService } from '@domain/Water';
 import { QueryKeys } from '@infra/query';
+import { supabase } from '@infra/supabase';
 
 import { authService } from '../authService';
 import type { SignInInput, SignUpInput } from '../authTypes';
@@ -31,8 +33,25 @@ export function useSignInWithApple() {
   });
 }
 
+/** How long "Sair da conta" waits for pending water logs to reach the server. */
+const SIGN_OUT_SYNC_MS = 5_000;
+
 export function useSignOut() {
-  return useMutation({ mutationFn: () => authService.signOut() });
+  return useMutation({
+    mutationFn: async () => {
+      // Last chance to send water logged offline (app or widget) while the
+      // session is still valid; offline it gives up and the logs stay.
+      const { data } = await supabase.auth.getSession();
+      const userId = data.session?.user.id;
+      if (userId) {
+        await Promise.race([
+          waterService.sync(userId).catch(() => undefined),
+          new Promise((resolve) => setTimeout(resolve, SIGN_OUT_SYNC_MS)),
+        ]);
+      }
+      await authService.signOut();
+    },
+  });
 }
 
 export function useDeleteAccount() {

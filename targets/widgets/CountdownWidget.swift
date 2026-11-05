@@ -4,15 +4,30 @@ import WidgetKit
 // MARK: - Store
 
 /// Championships published by the app for the countdown widget (App Group, see KimiWidgetModule.swift).
-/// `competition.championships` JSON {userId, timeZone, items: [{name, date (YYYY-MM-DD), location}]}.
+/// `competition.championships` JSON {userId, timeZone, items: [{name, date (YYYY-MM-DD), location, modalityId}]}.
 /// Missing when the user is not a competitor (or signed out).
+/// `competition.selectedModality` JSON {modalityId, name, competes}: the modality picked in the app;
+/// only its championships count down. Missing = every championship.
 enum ChampionshipStore {
   static let key = "competition.championships"
+  static let modalityKey = "competition.selectedModality"
 
   struct Item: Decodable {
     let name: String
     let date: String
     let location: String
+    let modalityId: String?
+  }
+
+  struct SelectedModality: Decodable {
+    let modalityId: String
+    let name: String
+    let competes: Bool
+  }
+
+  static func selectedModality() -> SelectedModality? {
+    guard let raw = UserDefaults(suiteName: WaterStore.appGroup)?.string(forKey: modalityKey) else { return nil }
+    return try? JSONDecoder().decode(SelectedModality.self, from: Data(raw.utf8))
   }
 
   struct Payload: Decodable {
@@ -44,8 +59,9 @@ enum ChampionshipStore {
 
 struct CountdownEntry: TimelineEntry {
   enum State {
-    /// Not a competitor (or signed out): discreet empty state.
-    case none
+    /// Not a competitor in the selected modality, no championship in it, or signed out: discreet
+    /// empty state (with the modality name when there is one).
+    case none(modality: String?)
     case next(name: String, date: String, location: String, days: Int)
   }
 
@@ -76,13 +92,20 @@ struct CountdownProvider: TimelineProvider {
   }
 
   private func entry(at date: Date) -> CountdownEntry {
-    guard let payload = ChampionshipStore.payload() else { return CountdownEntry(date: date, state: .none) }
+    let modality = ChampionshipStore.selectedModality()
+    guard let payload = ChampionshipStore.payload() else {
+      return CountdownEntry(date: date, state: .none(modality: modality?.name))
+    }
+    if let modality, !modality.competes {
+      return CountdownEntry(date: date, state: .none(modality: modality.name))
+    }
     let today = WaterStore.dayKey(date, in: payload.zone)
     let upcoming = payload.items
       .filter { $0.date >= today }
+      .filter { modality == nil || $0.modalityId == modality?.modalityId }
       .sorted { ($0.date, $0.name) < ($1.date, $1.name) }
     guard let first = upcoming.first, let days = ChampionshipStore.days(from: today, to: first.date) else {
-      return CountdownEntry(date: date, state: .none)
+      return CountdownEntry(date: date, state: .none(modality: modality?.name))
     }
     return CountdownEntry(date: date, state: .next(name: first.name, date: first.date, location: first.location, days: days))
   }
@@ -122,12 +145,12 @@ struct CountdownWidgetView: View {
 
   var body: some View {
     switch entry.state {
-    case .none:
+    case let .none(modality):
       VStack(spacing: KimiTokens.Space.s8) {
         Image(systemName: "trophy")
           .font(.system(size: KimiTokens.Size.icon, weight: .bold))
           .foregroundStyle(KimiTokens.Colors.textMuted)
-        Text("Nenhum campeonato marcado")
+        Text(modality.map { "Nenhum campeonato em \($0)" } ?? "Nenhum campeonato marcado")
           .font(KimiTokens.Typography.caption)
           .foregroundStyle(KimiTokens.Colors.textMuted)
           .multilineTextAlignment(.center)

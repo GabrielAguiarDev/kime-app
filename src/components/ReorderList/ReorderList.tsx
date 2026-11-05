@@ -103,8 +103,12 @@ function DraggableRow({
     },
     onUpdate: (e) => {
       'worklet';
-      drag.set(e.translationY);
-      const target = Math.max(0, Math.min(count - 1, Math.round(startIndex.get() + e.translationY / step)));
+      const translation = Math.max(
+        -startIndex.get() * step,
+        Math.min((count - 1 - startIndex.get()) * step, e.translationY),
+      );
+      drag.set(translation);
+      const target = Math.max(0, Math.min(count - 1, Math.round(startIndex.get() + translation / step)));
       if (target !== currentIndex.get()) scheduleOnRN(onMove, target);
     },
     onFinalize: () => {

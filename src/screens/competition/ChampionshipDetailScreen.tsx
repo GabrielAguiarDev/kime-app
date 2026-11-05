@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable } from 'react-native';
 
 import { Avatar, BigCounter, BottomSheet, Box, Button, Card, EmptyState, Icon, LoadError, Screen, SelectionCard, Text, TextField } from '@components';
-import { useAcademyToday } from '@domain/Classes';
+import { useAcademyToday, useModalities } from '@domain/Classes';
 import {
   countdownLabel,
   daysBetween,
@@ -72,6 +72,8 @@ function ChampionshipDetail({
   const members = useGymMembers(academyId);
   const entries = useChampionshipEntries(academyId);
   const mutations = useChampionshipMutations(academyId);
+  const modalities = useModalities(academyId);
+  const modalityName = modalities.data?.find((m) => m.id === championship.modalityId)?.name ?? null;
   const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -85,7 +87,10 @@ function ChampionshipDetail({
   const selected = new Set(entered);
 
   const all = members.data ?? [];
-  const competitors = all.filter((m) => m.isCompetitor);
+  // Only competitors of the championship's modality can be entered.
+  const competitors = all.filter((m) =>
+    m.modalities.some((l) => l.modalityId === championship.modalityId && l.isCompetitor),
+  );
   // Entered earlier, no longer on the team: listed so staff can take them off.
   const formerIds = [...selected].filter((a) => !competitors.some((m) => m.userId === a));
   const available = competitors.filter((m) => !selected.has(m.userId));
@@ -143,6 +148,7 @@ function ChampionshipDetail({
             )
           ) : null}
           <Box alignItems="center" gap="s4">
+            {modalityName ? <Text variant="captionCaps">{modalityName}</Text> : null}
             <Text variant="bodyStrong">{formatLocalDate(championship.eventDate)}</Text>
             {championship.location ? <Text variant="caption">{championship.location}</Text> : null}
             {isPast ? <Text variant="caption">Já aconteceu</Text> : null}
@@ -238,8 +244,16 @@ function ChampionshipDetail({
           ) : null}
           {available.length === 0 ? (
             <EmptyState
-              title={competitors.length === 0 ? 'Nenhum atleta na equipe.' : 'Todos os atletas já foram incluídos.'}
-              description={competitors.length === 0 ? 'Convide alunos para a equipe de competição pelo perfil deles, em Alunos.' : undefined}
+              title={
+                competitors.length === 0
+                  ? `Nenhum atleta na equipe${modalityName ? ` de ${modalityName}` : ''}.`
+                  : 'Todos os atletas já foram incluídos.'
+              }
+              description={
+                competitors.length === 0
+                  ? 'Convide alunos para a equipe de competição desta modalidade pelo perfil deles, em Equipe.'
+                  : undefined
+              }
             />
           ) : matching.length === 0 ? (
             <EmptyState title="Nenhum atleta encontrado." description="Tente buscar por outro nome." />
@@ -263,6 +277,7 @@ function ChampionshipDetail({
       <BottomSheet visible={editing} onRequestClose={() => setEditing(false)}>
         <ChampionshipForm
           initial={championship}
+          modalities={modalities.data ?? []}
           saving={mutations.update.isPending}
           error={mutations.update.error ?? mutations.remove.error}
           onSave={(input) =>

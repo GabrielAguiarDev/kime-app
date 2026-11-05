@@ -9,6 +9,7 @@ import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
 import { useAppTheme } from '@theme';
 
+import { GoalStepper, weeklyGoalLabel } from './GoalStepper';
 import { SheetForm } from './shared';
 
 type ModalityEditing = { mode: 'new' } | { mode: 'edit'; modality: Modality };
@@ -96,6 +97,7 @@ function ModalitiesList({ gymId }: { gymId: string }) {
                         : `Com faixas · ${count} ${count === 1 ? 'faixa' : 'faixas'}`
                       : 'Sem faixas · só conta as aulas'}
                   </Text>
+                  <Text variant="caption">Meta: {weeklyGoalLabel(modality.weeklyClassGoal)}</Text>
                 </Box>
                 <Pressable
                   onPress={() => askDelete(modality)}
@@ -180,21 +182,28 @@ function ModalityForm({
   onDelete: (modality: Modality) => void;
 }) {
   const current = editing.mode === 'edit' ? editing.modality : null;
-  const { create, update } = useModalityMutations(gymId);
+  const { create, update, setWeeklyGoal } = useModalityMutations(gymId);
   const [name, setName] = useState(current?.name ?? '');
   const [usesBelts, setUsesBelts] = useState(current?.usesBelts ?? true);
+  const [goal, setGoal] = useState(current?.weeklyClassGoal ?? 2);
 
   const trimmed = name.trim();
   const duplicate = existing.some((m) => m.id !== current?.id && sameModality(m.name, trimmed));
-  const changed = !current || trimmed !== current.name || usesBelts !== current.usesBelts;
+  const goalChanged = !!current && goal !== current.weeklyClassGoal;
+  const detailsChanged = !current || trimmed !== current.name || usesBelts !== current.usesBelts;
+  const changed = detailsChanged || goalChanged;
   const valid = trimmed.length >= 1 && trimmed.length <= 60 && !duplicate && changed;
-  const mutation = current ? update : create;
+  const mutation = current ? (detailsChanged ? update : setWeeklyGoal) : create;
   const options = { onSuccess: () => onDone() };
 
   const submit = () => {
     if (!valid) return;
-    if (current) update.mutate({ id: current.id, name: trimmed, usesBelts }, options);
-    else {
+    if (current) {
+      const saveGoal = () =>
+        goalChanged ? setWeeklyGoal.mutate({ id: current.id, goal }, options) : onDone();
+      if (detailsChanged) update.mutate({ id: current.id, name: trimmed, usesBelts }, { onSuccess: saveGoal });
+      else saveGoal();
+    } else {
       const position = existing.length === 0 ? 0 : Math.max(...existing.map((m) => m.position)) + 1;
       create.mutate({ name: trimmed, position, usesBelts }, options);
     }
@@ -240,6 +249,20 @@ function ModalityForm({
           selected={!usesBelts}
           onPress={() => setUsesBelts(false)}
         />
+      </Box>
+      <Box gap="s8">
+        <Text variant="caption">Meta semanal do ranking</Text>
+        {current ? (
+          <>
+            <GoalStepper value={goal} onChange={setGoal} />
+            <Text variant="caption">
+              Aulas confirmadas por semana que contam como 100% de presença. Pode ser diferente para um aluno, no
+              detalhe dele.
+            </Text>
+          </>
+        ) : (
+          <Text variant="caption">Começa com {weeklyGoalLabel(2)}; mude depois em Editar.</Text>
+        )}
       </Box>
     </SheetForm>
   );

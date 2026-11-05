@@ -47,6 +47,30 @@ async function decide(membershipId: string, approve: boolean): Promise<void> {
   }
 }
 
+async function approveStudent(membershipId: string, modalityIds: string[]): Promise<void> {
+  try {
+    await membershipApi.approveStudent(membershipId, modalityIds);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+async function setStudentModalities(membershipId: string, modalityIds: string[]): Promise<void> {
+  try {
+    await membershipApi.setStudentModalities(membershipId, modalityIds);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
+async function setStudentWeeklyGoal(membershipId: string, modalityId: string, goal: number | null): Promise<void> {
+  try {
+    await membershipApi.setStudentWeeklyGoal(membershipId, modalityId, goal);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
 /** Owner only. The target must be an active professor; the owner becomes a professor. */
 async function transferOwnership(gymId: string, membershipId: string): Promise<void> {
   try {
@@ -63,4 +87,7 @@ export const membershipService = {
   listPending,
   remove,
   decide,
+  approveStudent,
+  setStudentModalities,
+  setStudentWeeklyGoal,
 };

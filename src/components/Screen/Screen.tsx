@@ -39,6 +39,8 @@ interface ScreenProps {
   headerRight?: ReactNode;
   /** nativeHeader (iOS): large title that collapses (default true). False = compact bar only. */
   largeTitle?: boolean;
+  /** Without nativeHeader: content above the title (e.g. the signed-in account row). */
+  header?: ReactNode;
 }
 
 export function Screen({
@@ -54,6 +56,7 @@ export function Screen({
   headerLeft,
   headerRight,
   largeTitle = true,
+  header: topContent,
 }: ScreenProps) {
   const { bottom } = useSafeAreaInsets();
   const { spacing, size, colors } = useAppTheme();
@@ -132,6 +135,7 @@ export function Screen({
   const header = (
     <>
       {topRow}
+      {topContent ? <Box marginBottom="s24">{topContent}</Box> : null}
       {title ? (
         <Text variant="title" marginBottom="s24" accessibilityRole="header">
           {title}

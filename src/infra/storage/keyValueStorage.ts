@@ -2,7 +2,7 @@ import Storage from 'expo-sqlite/kv-store';
 
 /**
  * Small synchronous key-value store for app preferences (not secrets, not
- * widget data — widget shared storage comes in phase 3).
+ * widget data — that lives in infra/widget sharedStore).
  */
 export const StorageKeys = {
   activeGymId: 'kimi.activeGymId',
@@ -32,9 +32,20 @@ const ScopedKeys = {
   classRemindersPlan: 'kimi.classRemindersPlan.v1',
   /** Last round timer used (JSON {presetId, config}), per user + academy. */
   timerLast: 'kimi.timerLast.v1',
+  /** Modality the student picked in the Início header, per user + academy. */
+  selectedModality: 'kimi.selectedModality.v1',
 } as const;
 
 type ScopedKey = keyof typeof ScopedKeys;
+
+/** A scoped key whose scope is `userId` or starts with `userId.` (e.g. `userId.academyId`). */
+export function isUserScopedKey(key: string, userId: string): boolean {
+  if (!userId) return false;
+  return Object.values(ScopedKeys).some((prefix) => {
+    const own = `${prefix}.${userId}`;
+    return key === own || key.startsWith(`${own}.`);
+  });
+}
 const scoped = (key: ScopedKey, scope: string) => `${ScopedKeys[key]}.${scope}`;
 
 export const keyValueStorage = {
@@ -47,5 +58,11 @@ export const keyValueStorage = {
   setScoped: (key: ScopedKey, scope: string, value: string): void => Storage.setItemSync(scoped(key, scope), value),
   removeScoped: (key: ScopedKey, scope: string): void => {
     Storage.removeItemSync(scoped(key, scope));
+  },
+  /** Sign-out: every scoped key of a user (scope `userId` or `userId.<more>`). */
+  removeUserScoped: (userId: string): void => {
+    for (const key of Storage.getAllKeysSync()) {
+      if (isUserScopedKey(key, userId)) Storage.removeItemSync(key);
+    }
   },
 };

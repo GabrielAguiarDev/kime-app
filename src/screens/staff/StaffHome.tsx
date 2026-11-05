@@ -4,7 +4,6 @@ import { ActivityIndicator } from 'react-native';
 import { Avatar, BigCounter, Box, Button, Card, EmptyState, Icon, LoadError, StatusBadge, Text } from '@components';
 import {
   attendanceCounts,
-  classesOn,
   nextClass,
   nowTimeIn,
   startsInLabel,
@@ -17,7 +16,6 @@ import {
   WEEKDAY_LABELS,
   weekdayOf,
   weekStart,
-  type ClassSchedule,
   type NextClass,
 } from '@domain/Classes';
 import { countdownLabel, daysBetween, formatLocalDate, upcomingChampionships, useChampionships } from '@domain/Competition';
@@ -31,8 +29,8 @@ const ACADEMY_TIME_ZONE = 'America/Sao_Paulo';
 const CHAMPIONSHIP_NOTICE_DAYS = 30;
 
 /**
- * Início (owner / instructor): the next class in focus (attendance and timer),
- * the other classes of the day, notices (join requests, a championship in the
+ * Início (owner / instructor): only the next class (attendance and timer),
+ * notices (join requests, a championship in the
  * next 30 days) only when there are any, and the week summary.
  */
 export function StaffHome() {
@@ -57,7 +55,6 @@ export function StaffHome() {
 
   const all = schedules.data ?? [];
   const next = nextClass(all, today.data, nowTimeIn(ACADEMY_TIME_ZONE));
-  const others = classesOn(all, today.data).filter((c) => c.id !== (next?.date === today.data ? next.schedule.id : ''));
 
   return (
     // Same space above the first card as between the sections (the header has no large title here).
@@ -69,15 +66,6 @@ export function StaffHome() {
         />
       ) : next ? (
         <NextClassCard next={next} counts={attendanceCounts(checkins.data ?? [], next.schedule.id)} />
-      ) : null}
-
-      {others.length > 0 ? (
-        <Box gap="s12">
-          <Text variant="captionCaps">Aulas de hoje</Text>
-          {others.map((c) => (
-            <TodayClassRow key={c.id} schedule={c} date={today.data!} pending={attendanceCounts(checkins.data ?? [], c.id).pending} />
-          ))}
-        </Box>
       ) : null}
 
       <Notices academyId={academyId} today={today.data} />
@@ -135,27 +123,6 @@ function NextClassCard({ next, counts }: { next: NextClass; counts: { confirmed:
           </Box>
         </>
       ) : null}
-    </Card>
-  );
-}
-
-function TodayClassRow({ schedule, date, pending }: { schedule: ClassSchedule; date: string; pending: number }) {
-  return (
-    <Card
-      onPress={() => router.push({ pathname: '/presenca', params: { schedule: schedule.id, date } })}
-      accessibilityLabel={`${schedule.startTime}, ${schedule.modality}, ${pending} pendentes. Abrir lista de presença`}
-      flexDirection="row"
-      alignItems="center"
-      gap="s12"
-    >
-      <Text variant="counter">{schedule.startTime}</Text>
-      <Text variant="bodyStrong" flex={1}>
-        {schedule.modality}
-      </Text>
-      {pending > 0 ? (
-        <StatusBadge status="pending" label={pending === 1 ? '1 pendente' : `${pending} pendentes`} />
-      ) : null}
-      <Icon name="chevronRight" color="textMuted" />
     </Card>
   );
 }

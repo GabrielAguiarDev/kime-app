@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
 import { BottomSheet, Box, Button, Card, EmptyState, Icon, LoadError, Screen, Text } from '@components';
-import { useAcademyToday } from '@domain/Classes';
+import { useAcademyToday, useModalities, type Modality } from '@domain/Classes';
 import {
   countdownLabel,
   daysBetween,
@@ -16,6 +16,7 @@ import {
   type Championship,
   type ChampionshipEntry,
 } from '@domain/Competition';
+import { ModalityFilter } from '@screens/staff/ModalityFilter';
 import { useActiveGym } from '@services/activeGym';
 import { haptics } from '@utils/haptics';
 
@@ -43,19 +44,24 @@ export function ChampionshipsScreen() {
   );
 }
 
-/** The championship list (upcoming with countdown, past). */
+/** The championship list (upcoming with countdown, past), filtered by modality ("Todas" by default). */
 export function ChampionshipsView({ academyId }: { academyId: string }) {
   const today = useAcademyToday(academyId);
   const championships = useChampionships(academyId);
   const entries = useChampionshipEntries(academyId);
+  const modalities = useModalities(academyId);
+  const [modality, setModality] = useState<string | null>(null);
 
   const loading = today.isLoading || championships.isLoading;
-  const list = championships.data ?? [];
+  const all = championships.data ?? [];
+  const list = modality ? all.filter((c) => c.modalityId === modality) : all;
+  const mods = modalities.data ?? [];
   const upcoming = today.data ? upcomingChampionships(list, today.data) : [];
   const past = today.data ? pastChampionships(list, today.data) : [];
 
   return (
     <Box gap="s24">
+      <ModalityFilter modalities={mods} value={modality} onChange={setModality} />
       {loading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
       {championships.isError || today.isError ? (
         <LoadError
@@ -68,7 +74,11 @@ export function ChampionshipsView({ academyId }: { academyId: string }) {
       ) : null}
 
       {!loading && championships.data && today.data ? (
-        list.length === 0 ? (
+        list.length === 0 && modality ? (
+          <Text variant="body" color="textMuted">
+            Nenhum campeonato desta modalidade.
+          </Text>
+        ) : list.length === 0 ? (
           <EmptyState
             visual="icon"
             icon="trophy"
@@ -84,13 +94,19 @@ export function ChampionshipsView({ academyId }: { academyId: string }) {
                 </Text>
               ) : null}
               {upcoming.map((c) => (
-                <ChampionshipRow key={c.id} championship={c} today={today.data} entries={entries.data ?? []} />
+                <ChampionshipRow
+                  key={c.id}
+                  championship={c}
+                  today={today.data}
+                  entries={entries.data ?? []}
+                  modalities={mods}
+                />
               ))}
             </Section>
             {past.length > 0 ? (
               <Section title="Anteriores">
                 {past.map((c) => (
-                  <ChampionshipRow key={c.id} championship={c} entries={entries.data ?? []} />
+                  <ChampionshipRow key={c.id} championship={c} entries={entries.data ?? []} modalities={mods} />
                 ))}
               </Section>
             ) : null}
@@ -104,8 +120,10 @@ export function ChampionshipsView({ academyId }: { academyId: string }) {
 
 function CreateChampionship({ academyId, onDone }: { academyId: string; onDone: () => void }) {
   const { create } = useChampionshipMutations(academyId);
+  const modalities = useModalities(academyId);
   return (
     <ChampionshipForm
+      modalities={modalities.data ?? []}
       saving={create.isPending}
       error={create.error}
       onSave={(input) =>
@@ -125,15 +143,19 @@ function ChampionshipRow({
   championship,
   today,
   entries,
+  modalities,
 }: {
   championship: Championship;
   /** Upcoming only: shows the countdown. */
   today?: string;
   entries: ChampionshipEntry[];
+  modalities: Modality[];
 }) {
+  const modalityName = modalities.find((m) => m.id === championship.modalityId)?.name ?? null;
   const count = entries.filter((e) => e.championshipId === championship.id).length;
   const when = today ? countdownLabel(daysBetween(today, championship.eventDate)) : null;
   const details = [
+    modalityName,
     formatLocalDate(championship.eventDate),
     championship.location || null,
     `${count} ${count === 1 ? 'atleta' : 'atletas'}`,

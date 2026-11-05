@@ -31,7 +31,6 @@ export function useScheduleMutations(academyId: string) {
   const queryClient = useQueryClient();
   const onSuccess = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassSchedules, academyId] }),
-    queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassEnrollments] }),
     queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking, academyId] }),
   ]);
   return {
@@ -89,6 +88,11 @@ export function useModalityMutations(academyId: string) {
       mutationFn: ({ id, name, usesBelts }: { id: string; name: string; usesBelts: boolean }) =>
         service.updateModality(id, name, usesBelts),
       onSuccess,
+    }),
+    setWeeklyGoal: useMutation({
+      mutationFn: ({ id, goal }: { id: string; goal: number }) => service.setModalityWeeklyGoal(id, goal),
+      onSuccess: () =>
+        Promise.all([onSuccess(), queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking] })]),
     }),
     remove: useMutation({ mutationFn: (id: string) => service.deleteModality(id), onSuccess }),
   };

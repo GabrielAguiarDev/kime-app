@@ -12,6 +12,7 @@ const m = (gymId: string, status: Membership['status'], role: Membership['role']
   competitorInvitedAt: null,
   competitorSince: null,
   decidedAt: null,
+  modalities: [],
 });
 
 describe('resolveActiveMembership', () => {

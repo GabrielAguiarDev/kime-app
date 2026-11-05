@@ -9,17 +9,21 @@ interface TopBarProps {
   streakWeeks: number;
   /** This week already has a confirmed class (flame lit). */
   streakDone: boolean;
+  /** Confirmed classes in the selected modality. */
   confirmedTotal: number;
-  /** Latest belt across modalities (strip color); null = no belt yet. */
+  /** The selected modality has belts; false = only the class total (no belt chip). */
+  showBelt: boolean;
+  /** Current belt in the selected modality (strip color); null = no belt yet. */
   belt: BeltLook | null;
 }
 
 /**
- * Top bar of Início (11.1): weekly streak and confirmed classes. Today's water
+ * Top bar of Início (11.1): weekly streak (every modality) and the belt and
+ * confirmed classes of the selected modality. Today's water
  * lives in the header (top right), the same for students and staff.
  * The flame opens Ofensivas; the classes counter opens the Aulas tab.
  */
-export function TopBar({ streakWeeks, streakDone, confirmedTotal, belt }: TopBarProps) {
+export function TopBar({ streakWeeks, streakDone, confirmedTotal, showBelt, belt }: TopBarProps) {
   const { size, spacing } = useAppTheme();
   const open = () => router.navigate('/(tabs)/classes');
 
@@ -43,8 +47,8 @@ export function TopBar({ streakWeeks, streakDone, confirmedTotal, belt }: TopBar
         hitSlop={spacing.s8}
       >
         <Box flexDirection="row" alignItems="center" gap="s8">
-          {/* Belt icon: a 24-wide strip in the student's belt color. */}
-          <BeltSwatch belt={belt} width={size.icon} height={size.beltChipHeight} />
+          {/* Belt icon: a 24-wide strip in the student's belt color; none in a modality without belts. */}
+          {showBelt ? <BeltSwatch belt={belt} width={size.icon} height={size.beltChipHeight} /> : null}
           <Text variant="counter">{confirmedTotal}</Text>
         </Box>
       </Pressable>

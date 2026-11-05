@@ -1,17 +1,14 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
-import { BeltChip, BigCounter, Box, Button, Card, ChoiceRow, EmptyState, ProgressBar, Screen, Text } from '@components';
+import { BeltChip, BigCounter, Box, Button, Card, EmptyState, ProgressBar, Screen, Text } from '@components';
 import {
   beltName,
   beltProgress,
   beltsOf,
-  trainedModalities,
   useAcademyToday,
   useBelts,
   useMemberStats,
-  useModalities,
   useModalityStats,
   useSchedules,
   type Modality,
@@ -22,12 +19,13 @@ import { GraduationTrail } from '@screens/student/GraduationTrail';
 import { WeekSchedule } from '@screens/student/WeekSchedule';
 import { LinkRow } from '@screens/competition/shared';
 import { useActiveGym } from '@services/activeGym';
+import { useActiveModality } from '@services/activeModality';
 import { useSession } from '@services/session';
 
 /**
- * Aulas (student): per modality, the belt progress and graduation trail
- * (modalities with belts) or just the class count (without belts); then the
- * week's classes. Training more than one modality: a selector on top.
+ * Aulas (student), for the modality picked in the Início header: the belt
+ * progress and graduation trail (modalities with belts) or just the class
+ * count (without belts); then the week's classes of that modality.
  */
 export function ClassesScreen() {
   const { userId } = useSession();
@@ -35,21 +33,18 @@ export function ClassesScreen() {
   const academyId = active?.gymId;
   const today = useAcademyToday(academyId);
   const schedules = useSchedules(academyId);
-  const modalities = useModalities(academyId);
+  const { selected, modalities, isLoading: modalitiesLoading } = useActiveModality();
   const belts = useBelts(academyId);
   const stats = useMemberStats(academyId);
   const modalityStats = useModalityStats(academyId);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const queries = [today, schedules, modalities, belts, stats, modalityStats];
-  const loading = queries.some((q) => q.isLoading);
+  const queries = [today, schedules, belts, stats, modalityStats];
+  const loading = modalitiesLoading || queries.some((q) => q.isLoading);
   const failed = queries.some((q) => q.isError);
 
   const own = stats.data?.find((s) => s.userId === userId);
   const ownModalities = (modalityStats.data ?? []).filter((s) => s.userId === userId);
-  const trained = trainedModalities(modalities.data ?? [], ownModalities);
-  const selected = trained.find((m) => m.id === selectedId) ?? trained[0] ?? null;
-  const activeSchedules = (schedules.data ?? []).filter((s) => s.active);
+  const activeSchedules = (schedules.data ?? []).filter((s) => s.active && s.modalityId === selected?.id);
 
   return (
     <Screen nativeHeader title="Aulas" bottomInset={false}>
@@ -64,15 +59,6 @@ export function ClassesScreen() {
       ) : null}
       {!loading && !failed ? (
         <Box gap="s32">
-          {trained.length > 1 && selected ? (
-            <ChoiceRow
-              accessibilityLabel="Modalidade"
-              options={trained.map((m) => ({ value: m.id, label: m.name }))}
-              value={selected.id}
-              onChange={setSelectedId}
-            />
-          ) : null}
-
           {selected ? (
             <ModalityProgress
               key={selected.id}
@@ -80,7 +66,7 @@ export function ClassesScreen() {
               belts={beltsOf(belts.data ?? [], selected.id)}
               stats={ownModalities.find((s) => s.modalityId === selected.id)}
               overallTotal={own?.confirmedTotal ?? 0}
-              showOverall={trained.length > 1 || (modalities.data?.length ?? 0) > 1}
+              showOverall={modalities.length > 1}
             />
           ) : (
             <Card>

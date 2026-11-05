@@ -1,21 +1,23 @@
 import { supabase } from '@infra/supabase';
 
 // ------------------------------------------------------------- team ---
-async function inviteCompetitor(membershipId: string) {
-  const { error } = await supabase.rpc('invite_competitor', { p_membership_id: membershipId });
+// Competitor per modality: the invite, the acceptance and leaving are per modality.
+async function inviteCompetitor(membershipId: string, modalityId: string) {
+  const { error } = await supabase.rpc('invite_competitor', { p_membership_id: membershipId, p_modality_id: modalityId });
   if (error) throw error;
 }
 
-async function respondInvite(membershipId: string, accept: boolean) {
+async function respondInvite(membershipId: string, modalityId: string, accept: boolean) {
   const { error } = await supabase.rpc('respond_competitor_invite', {
     p_membership_id: membershipId,
+    p_modality_id: modalityId,
     p_accept: accept,
   });
   if (error) throw error;
 }
 
-async function removeCompetitor(membershipId: string) {
-  const { error } = await supabase.rpc('remove_competitor', { p_membership_id: membershipId });
+async function removeCompetitor(membershipId: string, modalityId: string) {
+  const { error } = await supabase.rpc('remove_competitor', { p_membership_id: membershipId, p_modality_id: modalityId });
   if (error) throw error;
 }
 
@@ -24,7 +26,7 @@ async function removeCompetitor(membershipId: string) {
 async function listChampionships(academyId: string) {
   const { data, error } = await supabase
     .from('championships')
-    .select('id, academy_id, name, event_date, location')
+    .select('id, academy_id, modality_id, name, event_date, location')
     .eq('academy_id', academyId)
     .order('event_date');
   if (error) throw error;
@@ -35,26 +37,26 @@ async function listChampionships(academyId: string) {
 async function listMyChampionships(athleteId: string) {
   const { data, error } = await supabase
     .from('championship_entries')
-    .select('championship:championships!inner(id, academy_id, name, event_date, location)')
+    .select('championship:championships!inner(id, academy_id, modality_id, name, event_date, location)')
     .eq('athlete_id', athleteId);
   if (error) throw error;
   return data.map((row) => row.championship);
 }
 
-async function createChampionship(academyId: string, name: string, eventDate: string, location: string) {
+async function createChampionship(academyId: string, modalityId: string, name: string, eventDate: string, location: string) {
   const { data, error } = await supabase
     .from('championships')
-    .insert({ academy_id: academyId, name, event_date: eventDate, location })
+    .insert({ academy_id: academyId, modality_id: modalityId, name, event_date: eventDate, location })
     .select('id')
     .single();
   if (error) throw error;
   return data.id;
 }
 
-async function updateChampionship(id: string, name: string, eventDate: string, location: string) {
+async function updateChampionship(id: string, modalityId: string, name: string, eventDate: string, location: string) {
   const { data, error } = await supabase
     .from('championships')
-    .update({ name, event_date: eventDate, location })
+    .update({ modality_id: modalityId, name, event_date: eventDate, location })
     .eq('id', id)
     .select('id');
   if (error) throw error;
@@ -133,7 +135,7 @@ async function listAthleteWater(athleteId: string, sinceIso: string) {
 async function listWaterPlans(athleteId: string) {
   const { data, error } = await supabase
     .from('water_plans')
-    .select('id, academy_id, week_start, updated_at, days:water_plan_days(weekday, target_ml)')
+    .select('id, academy_id, week_start, updated_at, days:water_plan_days(weekday, target_ml, is_limit)')
     .eq('athlete_id', athleteId)
     .order('week_start', { ascending: false })
     .limit(20);
@@ -141,12 +143,13 @@ async function listWaterPlans(athleteId: string) {
   return data;
 }
 
-async function setWaterPlan(academyId: string, athleteId: string, targets: (number | null)[]) {
+async function setWaterPlan(academyId: string, athleteId: string, targets: (number | null)[], limits: boolean[]) {
   const { error } = await supabase.rpc('set_water_plan', {
     p_academy_id: academyId,
     p_athlete_id: athleteId,
     // Nulls are valid array items for the RPC (no target that day).
     p_targets: targets as number[],
+    p_limits: limits,
   });
   if (error) throw error;
 }

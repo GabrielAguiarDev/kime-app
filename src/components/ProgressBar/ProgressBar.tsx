@@ -1,5 +1,8 @@
+import { useReducedMotion } from 'react-native-reanimated';
+
 import type { BeltColorKey } from '@domain/Classes/classesTypes';
 import { useAppTheme } from '@theme';
+import { useTweened } from '@utils/useTweened';
 
 import { BELT_COLOR_TOKEN } from '../BeltChip/BeltChip';
 
@@ -17,12 +20,21 @@ interface ProgressBarProps {
   beltColor?: BeltColorKey;
   /** Optional label on the left of the numbers. */
   label?: string;
+  /**
+   * Fill grows / shrinks smoothly when the value changes (user decision, an
+   * exception to section 8; instant with "Reduce motion"). Off by default.
+   */
+  animated?: boolean;
 }
 
+const FILL_MS = 450;
+
 /** Progress bar (DESIGN-SYSTEM.md, 3.3): 14 high, track `border`, 3px shine on top of the fill. */
-export function ProgressBar({ value, max, unit, color = 'accent', beltColor, label }: ProgressBarProps) {
+export function ProgressBar({ value, max, unit, color = 'accent', beltColor, label, animated = false }: ProgressBarProps) {
   const { size, borderRadii } = useAppTheme();
-  const ratio = max > 0 ? Math.min(Math.max(value / max, 0), 1) : 0;
+  const target = max > 0 ? Math.min(Math.max(value / max, 0), 1) : 0;
+  const reduceMotion = useReducedMotion();
+  const ratio = useTweened(target, !animated || reduceMotion, FILL_MS);
   const numbers = `${value} / ${max} ${unit}`;
 
   return (
@@ -38,7 +50,7 @@ export function ProgressBar({ value, max, unit, color = 'accent', beltColor, lab
         <Text variant="bodyStrong">{numbers}</Text>
       </Box>
       <Box height={size.progressBar} borderRadius="progress" backgroundColor="border" overflow="hidden">
-        {/* TODO(motion): belt/progress bar advancing to the new value. */}
+        {/* TODO(motion): belt/progress bar advancing to the new value (done only where `animated`). */}
         {ratio > 0 ? (
           <Box
             height={size.progressBar}

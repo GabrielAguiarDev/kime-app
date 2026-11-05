@@ -1,16 +1,49 @@
 import { toAppError } from '@infra/supabase';
+import type { Json } from '@infra/supabase/database.types';
 
 import { gymAdapter } from './gymAdapter';
 import { gymApi } from './gymApi';
 import { prepareLogo } from './gymLogo';
 import { normalizeCode } from './gymRules';
-import type { CodeLookup, GymSettings, JoinResult, ProfessorCode } from './gymTypes';
+import type { CodeLookup, CodeType, GymSettings, InviteCodes, JoinResult } from './gymTypes';
+import type { PlanTier } from './plans';
+import { toSetupModalities, type SignupModality } from './signupRules';
 
 async function create(name: string, modalities: string[]): Promise<string> {
   try {
     return await gymApi.create(name.trim(), modalities.map((m) => m.trim()).filter(Boolean));
   } catch (e) {
     throw toAppError(e);
+  }
+}
+
+/**
+ * Sign-up (step 4): creates everything in one call; then the logo picked in
+ * step 3, best effort (the academy exists; the owner can set it later).
+ * Returns the academy id and whether the logo made it.
+ */
+async function createWithSetup(input: {
+  name: string;
+  planTier: PlanTier | null;
+  modalities: SignupModality[];
+  logoUri: string | null;
+}): Promise<{ gymId: string; logoSaved: boolean }> {
+  let gymId: string;
+  try {
+    gymId = await gymApi.createWithSetup(
+      input.name.trim(),
+      input.planTier,
+      toSetupModalities(input.modalities) as unknown as Json,
+    );
+  } catch (e) {
+    throw toAppError(e);
+  }
+  if (!input.logoUri) return { gymId, logoSaved: true };
+  try {
+    await changeLogo(gymId, input.logoUri, null);
+    return { gymId, logoSaved: true };
+  } catch {
+    return { gymId, logoSaved: false };
   }
 }
 
@@ -33,43 +66,17 @@ async function joinWithCode(code: string): Promise<JoinResult> {
   }
 }
 
-async function getStudentCode(gymId: string): Promise<string> {
+async function listInviteCodes(gymId: string): Promise<InviteCodes> {
   try {
-    return await gymApi.getStudentCode(gymId);
+    return gymAdapter.toInviteCodes(await gymApi.listInviteCodes(gymId));
   } catch (e) {
     throw toAppError(e);
   }
 }
 
-async function regenerateStudentCode(gymId: string): Promise<string> {
+async function regenerateInviteCode(gymId: string, codeType: CodeType): Promise<string> {
   try {
-    return await gymApi.regenerateStudentCode(gymId);
-  } catch (e) {
-    throw toAppError(e);
-  }
-}
-
-async function listProfessorCodes(gymId: string): Promise<ProfessorCode[]> {
-  try {
-    return (await gymApi.listProfessorCodes(gymId)).map(gymAdapter.toProfessorCode);
-  } catch (e) {
-    throw toAppError(e);
-  }
-}
-
-async function createProfessorCode(gymId: string): Promise<ProfessorCode> {
-  try {
-    const row = await gymApi.createProfessorCode(gymId);
-    if (!row) throw new Error('unknown');
-    return gymAdapter.toProfessorCode(row);
-  } catch (e) {
-    throw toAppError(e);
-  }
-}
-
-async function revokeProfessorCode(codeId: string): Promise<void> {
-  try {
-    await gymApi.revokeProfessorCode(codeId);
+    return await gymApi.regenerateInviteCode(gymId, codeType);
   } catch (e) {
     throw toAppError(e);
   }
@@ -112,13 +119,11 @@ async function changeLogo(gymId: string, uri: string, previousPath: string | nul
 
 export const gymService = {
   create,
+  createWithSetup,
   lookupCode,
   joinWithCode,
-  getStudentCode,
-  regenerateStudentCode,
-  listProfessorCodes,
-  createProfessorCode,
-  revokeProfessorCode,
+  listInviteCodes,
+  regenerateInviteCode,
   getSettings,
   updateSettings,
   changeLogo,

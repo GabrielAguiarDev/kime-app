@@ -50,13 +50,28 @@ import java.util.TimeZone
 
 /**
  * Championships published by the app (see WaterStore for the shared store).
- * `competition.championships` JSON {userId, timeZone, items: [{name, date (YYYY-MM-DD), location}]}.
+ * `competition.championships` JSON {userId, timeZone, items: [{name, date (YYYY-MM-DD), location, modalityId}]}.
  * Missing when the user is not a competitor (or signed out).
+ * `competition.selectedModality` JSON {modalityId, name, competes}: the modality picked in the app;
+ * only its championships count down. Missing = every championship.
  */
 object ChampionshipStore {
   const val KEY = "competition.championships"
+  const val MODALITY_KEY = "competition.selectedModality"
 
-  data class Item(val name: String, val date: String, val location: String)
+  data class Item(val name: String, val date: String, val location: String, val modalityId: String?)
+
+  data class SelectedModality(val modalityId: String, val name: String, val competes: Boolean)
+
+  fun selectedModality(context: Context): SelectedModality? {
+    val raw = WaterStore.prefs(context).getString(MODALITY_KEY, null) ?: return null
+    return try {
+      val json = JSONObject(raw)
+      SelectedModality(json.getString("modalityId"), json.getString("name"), json.optBoolean("competes", false))
+    } catch (e: Exception) {
+      null
+    }
+  }
 
   data class Payload(val timeZone: TimeZone, val items: List<Item>)
 
@@ -67,7 +82,12 @@ object ChampionshipStore {
       val array = json.getJSONArray("items")
       val items = (0 until array.length()).map { i ->
         val item = array.getJSONObject(i)
-        Item(item.getString("name"), item.getString("date"), item.optString("location", ""))
+        Item(
+          item.getString("name"),
+          item.getString("date"),
+          item.optString("location", ""),
+          if (item.has("modalityId")) item.getString("modalityId") else null,
+        )
       }
       Payload(TimeZone.getTimeZone(json.optString("timeZone", "America/Sao_Paulo")), items)
     } catch (e: Exception) {
@@ -85,20 +105,27 @@ object ChampionshipStore {
 }
 
 private sealed interface CountdownState {
-  /** Not a competitor or no championship ahead: discreet empty state. */
-  data object None : CountdownState
+  /**
+   * Not a competitor in the selected modality, or no championship ahead in it: discreet empty
+   * state (with the modality name when there is one).
+   */
+  data class None(val modality: String? = null) : CountdownState
 
   data class Next(val name: String, val date: String, val location: String, val days: Int) : CountdownState
 }
 
 private fun loadCountdown(context: Context, now: Date = Date()): CountdownState {
-  val payload = ChampionshipStore.payload(context) ?: return CountdownState.None
+  val modality = ChampionshipStore.selectedModality(context)
+  val empty = CountdownState.None(modality?.name)
+  val payload = ChampionshipStore.payload(context) ?: return empty
+  if (modality != null && !modality.competes) return empty
   val today = WaterStore.dayKey(now, payload.timeZone)
   val next = payload.items
     .filter { it.date >= today }
+    .filter { modality == null || it.modalityId == modality.modalityId }
     .minWithOrNull(compareBy<ChampionshipStore.Item>({ it.date }, { it.name }))
-    ?: return CountdownState.None
-  val days = ChampionshipStore.days(today, next.date) ?: return CountdownState.None
+    ?: return empty
+  val days = ChampionshipStore.days(today, next.date) ?: return empty
   return CountdownState.Next(next.name, next.date, next.location, days)
 }
 
@@ -184,7 +211,7 @@ private fun CountdownContent(state: CountdownState) {
     contentAlignment = Alignment.Center,
   ) {
     when (state) {
-      CountdownState.None -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+      is CountdownState.None -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
           provider = ImageProvider(R.drawable.kimi_ic_trophy),
           contentDescription = null,
@@ -193,7 +220,7 @@ private fun CountdownContent(state: CountdownState) {
         )
         Spacer(GlanceModifier.height(KimiTokens.Space.s8))
         Text(
-          text = "Nenhum campeonato marcado",
+          text = state.modality?.let { "Nenhum campeonato em $it" } ?: "Nenhum campeonato marcado",
           style = TextStyle(
             color = KimiTokens.Colors.textMuted,
             fontSize = KimiTokens.Typography.caption,

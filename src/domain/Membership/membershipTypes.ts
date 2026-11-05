@@ -3,6 +3,21 @@ import type { Enums } from '@infra/supabase';
 export type MembershipRole = Enums<'membership_role'>;
 export type MembershipStatus = Enums<'membership_status'>;
 
+/** Active link of a student to a modality of the academy (competitor flag per modality). */
+export interface StudentModality {
+  enrollmentId: string;
+  modalityId: string;
+  /** Start of the current link. */
+  startedAt: string;
+  /** Staff override of the modality's weekly class goal (null = the modality's goal). */
+  weeklyClassGoal: number | null;
+  /** Accepted the invite to compete in this modality. */
+  isCompetitor: boolean;
+  /** Pending invite to compete in this modality. */
+  competitorInvitedAt: string | null;
+  competitorSince: string | null;
+}
+
 /** A membership of the signed-in user, with the gym it belongs to. */
 export interface Membership {
   id: string;
@@ -12,14 +27,16 @@ export interface Membership {
   gymLogoUrl: string | null;
   role: MembershipRole;
   status: MembershipStatus;
-  /** Only students compete. */
+  /** Competes in at least one modality (water plan, diet and weight are per athlete and academy). */
   isCompetitor: boolean;
-  /** Pending invite to the competition team (the student accepts or declines). */
+  /** Legacy membership-level invite (always null since the invites moved to the modalities). */
   competitorInvitedAt: string | null;
-  /** When the student accepted the invite. */
+  /** First acceptance among the modalities. */
   competitorSince: string | null;
   /** When the request was approved/rejected (null while pending). */
   decidedAt: string | null;
+  /** Active modalities of a student (empty for owner/professor). */
+  modalities: StudentModality[];
 }
 
 /** A member of a gym as seen by its professor. */
@@ -35,6 +52,8 @@ export interface GymMember {
   /** Profile photo in the private `avatars` bucket (read with a signed URL). */
   avatarPath: string | null;
   createdAt: string;
+  /** Active modalities of a student (empty for owner/professor). */
+  modalities: StudentModality[];
 }
 
 /** A pending join request, as seen by a professor of the gym. */

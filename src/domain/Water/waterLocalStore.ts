@@ -85,4 +85,18 @@ function migrateLegacy(userId: string): void {
   Storage.removeItemSync(legacyKey(userId));
 }
 
-export const waterLocalStore = { list, get, put, remove, readConfig, writeConfig, migrateLegacy };
+/**
+ * Sign-out: the user's synced logs and the widget config. Logs not yet on the
+ * server stay (they would be lost for good); the widget no longer shows them
+ * and they sync on the user's next sign-in.
+ */
+function clearUser(userId: string): void {
+  for (const [key, raw] of Object.entries(sharedStore.getItems(LOG_PREFIX))) {
+    const log = parseLog(raw);
+    if (log?.userId === userId && log.synced) sharedStore.removeItem(key);
+  }
+  Storage.removeItemSync(legacyKey(userId));
+  sharedStore.removeItem(CONFIG_KEY);
+}
+
+export const waterLocalStore = { list, get, put, remove, readConfig, writeConfig, migrateLegacy, clearUser };

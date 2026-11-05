@@ -4,7 +4,7 @@ import type { LocalDate } from '@domain/Classes';
 import { QueryKeys } from '@infra/query';
 
 import { competitionService as service } from '../competitionService';
-import type { ChampionshipInput, WeekTargets } from '../competitionTypes';
+import type { ChampionshipInput, WeekLimits, WeekTargets } from '../competitionTypes';
 
 // ------------------------------------------------------------- team ---
 function useInvalidateMemberships() {
@@ -18,26 +18,37 @@ function useInvalidateMemberships() {
     ]);
 }
 
-/** Staff: invite a student to the competition team. */
-export function useInviteCompetitor() {
-  const onSuccess = useInvalidateMemberships();
-  return useMutation({ mutationFn: (membershipId: string) => service.inviteCompetitor(membershipId), onSuccess });
+interface CompetitorTarget {
+  membershipId: string;
+  modalityId: string;
 }
 
-/** Student: accept or decline their invite. */
-export function useRespondCompetitorInvite() {
+/** Staff: invite a student to compete in one of their modalities. */
+export function useInviteCompetitor() {
   const onSuccess = useInvalidateMemberships();
   return useMutation({
-    mutationFn: ({ membershipId, accept }: { membershipId: string; accept: boolean }) =>
-      service.respondInvite(membershipId, accept),
+    mutationFn: ({ membershipId, modalityId }: CompetitorTarget) => service.inviteCompetitor(membershipId, modalityId),
     onSuccess,
   });
 }
 
-/** Staff take a student off the team (or cancel the invite); the student can leave. */
+/** Student: accept or decline the invite of one modality. */
+export function useRespondCompetitorInvite() {
+  const onSuccess = useInvalidateMemberships();
+  return useMutation({
+    mutationFn: ({ membershipId, modalityId, accept }: CompetitorTarget & { accept: boolean }) =>
+      service.respondInvite(membershipId, modalityId, accept),
+    onSuccess,
+  });
+}
+
+/** Staff take a student off the team of a modality (or cancel the invite); the student can leave. */
 export function useRemoveCompetitor() {
   const onSuccess = useInvalidateMemberships();
-  return useMutation({ mutationFn: (membershipId: string) => service.removeCompetitor(membershipId), onSuccess });
+  return useMutation({
+    mutationFn: ({ membershipId, modalityId }: CompetitorTarget) => service.removeCompetitor(membershipId, modalityId),
+    onSuccess,
+  });
 }
 
 // ---------------------------------------------------- championships ---
@@ -140,7 +151,8 @@ export function useAthleteWater(athleteId: string | undefined, days: number) {
 export function useSetWaterPlan(academyId: string, athleteId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (targets: WeekTargets) => service.setWaterPlan(academyId, athleteId, targets),
+    mutationFn: ({ targets, limits }: { targets: WeekTargets; limits: WeekLimits }) =>
+      service.setWaterPlan(academyId, athleteId, targets, limits),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterPlans, athleteId] }),
   });
 }

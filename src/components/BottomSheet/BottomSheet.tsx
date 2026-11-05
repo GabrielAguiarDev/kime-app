@@ -69,6 +69,16 @@ export function BottomSheet({
 
   if (visible && !mounted) setMounted(true);
 
+  // Callers often drop the content as soon as they close the sheet
+  // ({open ? <Form /> : null}). While the exit motion runs, keep showing the
+  // last content and keep the measured height: otherwise the sheet shrinks to
+  // the handle, the exit is recomputed from that height and the sheet seems
+  // to vanish instead of sliding down (most visible after a drag-to-dismiss).
+  // (Adjusted while rendering, not in an effect: it converges in one pass.)
+  const [lastChildren, setLastChildren] = useState(children);
+  if (visible && lastChildren !== children) setLastChildren(children);
+  const content = visible ? children : lastChildren;
+
   useEffect(() => {
     if (!mounted) return;
     if (visible) {
@@ -164,7 +174,9 @@ export function BottomSheet({
             <Animated.View
               style={sheetStyle}
               accessibilityViewIsModal
-              onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
+              onLayout={(e) => {
+                if (visible) setSheetHeight(e.nativeEvent.layout.height);
+              }}
             >
               <Box
                 backgroundColor="surface"
@@ -185,7 +197,7 @@ export function BottomSheet({
                     backgroundColor="border"
                   />
                 </Box>
-                {children}
+                {content}
               </Box>
             </Animated.View>
           </GestureDetector>

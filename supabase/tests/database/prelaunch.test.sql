@@ -77,7 +77,8 @@ select lives_ok($$ update public.profiles set weight_kg = 81 where id = pg_temp.
 -- ---------------------------------------------------------------------------
 -- Rejected request cooldown
 -- ---------------------------------------------------------------------------
-select set_config('t.code', (select invite_code from public.academies where id = pg_temp.id('a1')), true);
+select pg_temp.logout();
+select set_config('t.code', (select code from public.academy_invite_codes where academy_id = pg_temp.id('a1') and code_type = 'student' and status = 'active'), true);
 select pg_temp.login(pg_temp.id('x'));
 select public.join_with_code(current_setting('t.code'));
 select pg_temp.login(pg_temp.id('o'));
