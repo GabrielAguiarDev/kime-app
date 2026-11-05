@@ -18,7 +18,7 @@ import {
   Text,
   TextButton,
 } from '@components';
-import { useDeleteAccount, useSignOut } from '@domain/Auth';
+import { useSignOut } from '@domain/Auth';
 import { activeMemberships, membershipLabel, useLeaveGym, type Membership } from '@domain/Membership';
 import { useAvatarMutations, useMyProfile } from '@domain/Profile';
 import { errorMessage } from '@infra';
@@ -159,7 +159,6 @@ export function ProfileScreen() {
               }
             }}
           />
-          {isStaff ? <DeleteAccountButton avatarPath={profile?.avatarPath ?? null} /> : null}
         </Section>
       </Box>
     </Screen>
@@ -329,28 +328,5 @@ function ManageCard({
       </Text>
       <Icon name="chevronRight" color="textMuted" />
     </Card>
-  );
-}
-
-/** Staff: "Excluir conta" (the same flow as Meus dados). */
-function DeleteAccountButton({ avatarPath }: { avatarPath: string | null }) {
-  const remove = useDeleteAccount();
-  const confirm = useConfirm();
-  return (
-    <TextButton
-      title="Excluir conta"
-      color="danger"
-      disabled={remove.isPending}
-      onPress={async () => {
-        const ok = await confirm({
-          title: 'Excluir sua conta?',
-          message:
-            'Seu perfil e seus dados são apagados para sempre. Academias em que você é o único membro também são apagadas. Se a academia tiver outros membros, transfira-a antes.',
-          confirmLabel: 'Excluir conta',
-          tone: 'danger',
-        });
-        if (ok) remove.mutate(avatarPath, { onError: (e) => Alert.alert('Excluir conta', errorMessage(e)) });
-      }}
-    />
   );
 }
