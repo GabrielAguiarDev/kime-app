@@ -43,15 +43,11 @@ export function ChampionshipsScreen() {
   );
 }
 
-/**
- * The championship list (also a segment of Equipe). `inlineCreate` puts
- * "Novo campeonato" at the top (no fixed footer there).
- */
-export function ChampionshipsView({ academyId, inlineCreate = false }: { academyId: string; inlineCreate?: boolean }) {
+/** The championship list (upcoming with countdown, past). */
+export function ChampionshipsView({ academyId }: { academyId: string }) {
   const today = useAcademyToday(academyId);
   const championships = useChampionships(academyId);
   const entries = useChampionshipEntries(academyId);
-  const [creating, setCreating] = useState(false);
 
   const loading = today.isLoading || championships.isLoading;
   const list = championships.data ?? [];
@@ -60,9 +56,6 @@ export function ChampionshipsView({ academyId, inlineCreate = false }: { academy
 
   return (
     <Box gap="s24">
-      {inlineCreate ? (
-        <Button title="Novo campeonato" icon="plus" variant="secondary" onPress={() => setCreating(true)} />
-      ) : null}
       {loading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
       {championships.isError || today.isError ? (
         <LoadError
@@ -105,11 +98,6 @@ export function ChampionshipsView({ academyId, inlineCreate = false }: { academy
         )
       ) : null}
 
-      {inlineCreate ? (
-        <BottomSheet visible={creating} onRequestClose={() => setCreating(false)}>
-          <CreateChampionship academyId={academyId} onDone={() => setCreating(false)} />
-        </BottomSheet>
-      ) : null}
     </Box>
   );
 }

@@ -33,3 +33,4 @@ export { HeaderButton, useNativeHeaderOptions } from './NativeHeader/NativeHeade
 export { EditBadge } from './EditBadge/EditBadge';
 export { ReorderList } from './ReorderList/ReorderList';
 export { LoadError } from './LoadError/LoadError';
+export { FilterChips, type FilterChip } from './FilterChips/FilterChips';

@@ -156,5 +156,6 @@ enum KimiTokens {
     static let mascotFeedback: CGFloat = 56
     static let touchTarget: CGFloat = 44
     static let reorderRow: CGFloat = 60
+    static let filterChip: CGFloat = 32
   }
 }

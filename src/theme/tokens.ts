@@ -234,7 +234,8 @@ export const tokens = {
     "mascotEmpty": 96,
     "mascotFeedback": 56,
     "touchTarget": 44,
-    "reorderRow": 60
+    "reorderRow": 60,
+    "filterChip": 32
   }
 } as const;
 

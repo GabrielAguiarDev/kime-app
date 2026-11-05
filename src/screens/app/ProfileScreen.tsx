@@ -140,6 +140,12 @@ export function ProfileScreen() {
           </Section>
         ) : null}
 
+        {isStaff && !isOwner ? (
+          <Section title="Academia">
+            <ManageCard title="Campeonatos" icon="trophy" onPress={() => router.push('/academy/championships')} />
+          </Section>
+        ) : null}
+
         {!isStaff && active ? (
           <Section title="Preferências">
             <ClassReminderSwitch />
