@@ -8,8 +8,8 @@ import {
   BottomSheet,
   Box,
   Card,
-  ChoiceRow,
   EmptyState,
+  FilterChips,
   HeaderButton,
   Icon,
   LoadError,
@@ -28,26 +28,17 @@ import {
   type ModalityStats,
 } from '@domain/Classes';
 import { membershipLabel, splitMembers, useGymMembers, usePendingRequests, type GymMember } from '@domain/Membership';
-import { ChampionshipsView } from '@screens/competition/ChampionshipsScreen';
-import { RankingView } from '@screens/ranking/RankingScreen';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 
 import { InviteSheet } from './InviteSheet';
 
-type Segment = 'members' | 'ranking' | 'championships';
-const SEGMENTS: { value: Segment; label: string }[] = [
-  { value: 'members', label: 'Membros' },
-  { value: 'ranking', label: 'Ranking' },
-  { value: 'championships', label: 'Campeonatos' },
-];
-const ALL = 'all';
-type Who = 'all' | 'competitors';
 
 /**
  * Equipe (owner / instructor; replaces Alunos): search always on top (by name,
- * every member), join requests banner, and Membros | Ranking | Campeonatos.
- * "Convidar" in the header.
+ * every member), join requests banner, compact filters (modality, competitors)
+ * and the members. "Convidar" in the header. Ranking opens from Início;
+ * championships from Perfil.
  */
 export function TeamScreen() {
   const { active, isOwner } = useActiveGym();
@@ -58,9 +49,8 @@ export function TeamScreen() {
   const stats = useModalityStats(academyId);
   const belts = useBelts(academyId);
   const [query, setQuery] = useState('');
-  const [segment, setSegment] = useState<Segment>('members');
-  const [modality, setModality] = useState<string>(ALL);
-  const [who, setWho] = useState<Who>('all');
+  const [modality, setModality] = useState<string | null>(null);
+  const [onlyCompetitors, setOnlyCompetitors] = useState(false);
   const [inviting, setInviting] = useState(false);
 
   if (!active || !academyId) return null;
@@ -118,24 +108,17 @@ export function TeamScreen() {
 
         {q && members.data ? (
           <SearchResults members={members.data.filter((m) => m.fullName.toLowerCase().includes(q))} ctx={ctx} />
-        ) : (
-          <Box gap="s24">
-            <ChoiceRow accessibilityLabel="Seção" options={SEGMENTS} value={segment} onChange={setSegment} />
-            {segment === 'members' && members.data ? (
-              <MembersSection
-                members={members.data}
-                ctx={ctx}
-                modality={modality}
-                onModality={setModality}
-                who={who}
-                onWho={setWho}
-                isOwner={isOwner}
-              />
-            ) : null}
-            {segment === 'ranking' ? <RankingView academyId={academyId} /> : null}
-            {segment === 'championships' ? <ChampionshipsView academyId={academyId} inlineCreate /> : null}
-          </Box>
-        )}
+        ) : members.data ? (
+          <MembersSection
+            members={members.data}
+            ctx={ctx}
+            modality={modality}
+            onModality={setModality}
+            onlyCompetitors={onlyCompetitors}
+            onOnlyCompetitors={setOnlyCompetitors}
+            isOwner={isOwner}
+          />
+        ) : null}
       </Box>
 
       <BottomSheet visible={inviting} onRequestClose={() => setInviting(false)}>
@@ -173,48 +156,49 @@ function MembersSection({
   ctx,
   modality,
   onModality,
-  who,
-  onWho,
+  onlyCompetitors,
+  onOnlyCompetitors,
   isOwner,
 }: {
   members: GymMember[];
   ctx: RowContext;
-  modality: string;
-  onModality: (v: string) => void;
-  who: Who;
-  onWho: (v: Who) => void;
+  modality: string | null;
+  onModality: (v: string | null) => void;
+  onlyCompetitors: boolean;
+  onOnlyCompetitors: (v: boolean) => void;
   isOwner: boolean;
 }) {
   const { staff, students } = splitMembers(members);
-  const modalityId = modality === ALL ? null : modality;
   const trains = (m: GymMember) =>
-    !modalityId ||
-    trainedModalities(ctx.modalities, ctx.stats.filter((s) => s.membershipId === m.id)).some((x) => x.id === modalityId);
-  const shownStudents = students.filter((m) => (who === 'all' || m.isCompetitor) && trains(m));
+    !modality ||
+    trainedModalities(ctx.modalities, ctx.stats.filter((s) => s.membershipId === m.id)).some((x) => x.id === modality);
+  const shownStudents = students.filter((m) => (!onlyCompetitors || m.isCompetitor) && trains(m));
+  const filtering = !!modality || onlyCompetitors;
 
   return (
     <Box gap="s24">
-      <Box gap="s8">
-        {ctx.modalities.length > 1 ? (
-          <ChoiceRow
-            accessibilityLabel="Modalidade"
-            options={[{ value: ALL, label: 'Todas' }, ...ctx.modalities.map((m) => ({ value: m.id, label: m.name }))]}
-            value={modality}
-            onChange={onModality}
-          />
-        ) : null}
-        <ChoiceRow<Who>
-          accessibilityLabel="Quem"
-          options={[
-            { value: 'all', label: 'Todos' },
-            { value: 'competitors', label: 'Só competidores' },
-          ]}
-          value={who}
-          onChange={onWho}
-        />
-      </Box>
+      {/* One compact row; tapping a selected chip clears it. */}
+      <FilterChips
+        accessibilityLabel="Filtros"
+        chips={[
+          ...(ctx.modalities.length > 1
+            ? ctx.modalities.map((m) => ({
+                key: m.id,
+                label: m.name,
+                selected: modality === m.id,
+                onPress: () => onModality(modality === m.id ? null : m.id),
+              }))
+            : []),
+          {
+            key: 'competitors',
+            label: 'Só competidores',
+            selected: onlyCompetitors,
+            onPress: () => onOnlyCompetitors(!onlyCompetitors),
+          },
+        ]}
+      />
 
-      {who === 'all' && !modalityId ? (
+      {!filtering ? (
         <Box gap="s8">
           <Text variant="captionCaps">Professores ({staff.length})</Text>
           {staff.map((m) => (
@@ -238,7 +222,7 @@ function MembersSection({
           </Text>
         ) : null}
         {shownStudents.map((m) => (
-          <MemberRow key={m.id} member={m} ctx={ctx} modalityId={modalityId} />
+          <MemberRow key={m.id} member={m} ctx={ctx} modalityId={modality} />
         ))}
       </Box>
     </Box>

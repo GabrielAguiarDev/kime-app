@@ -234,7 +234,7 @@ function WeekSummary({ academyId, today }: { academyId: string; today: string })
           </Card>
         </Box>
       </Box>
-      <Card gap="s12" onPress={() => router.navigate('/team')} accessibilityLabel="Ranking do mês. Abrir Equipe">
+      <Card gap="s12" onPress={() => router.push('/ranking')} accessibilityLabel="Ranking do mês. Abrir o ranking">
         <Text variant="captionCaps">Ranking do mês</Text>
         {ranking.isLoading ? <ActivityIndicator /> : null}
         {ranking.data && top.length === 0 ? (

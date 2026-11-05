@@ -134,8 +134,7 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
           <Text variant="body" color="textMuted">
             {goal
               ? `Sua meta diária: ${formatMl(goal)} ml (${ML_PER_KG} ml por kg).`
-              : `Com o peso, o Kimi calcula sua meta diária (${ML_PER_KG} ml por kg).`}{' '}
-            É o mesmo peso de Meus dados.
+              : `Com o peso, o Kimi calcula sua meta diária (${ML_PER_KG} ml por kg).`}
           </Text>
         </Box>
 
