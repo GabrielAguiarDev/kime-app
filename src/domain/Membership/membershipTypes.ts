@@ -58,6 +58,7 @@ export interface GymMember {
 
 /** A pending join request, as seen by a professor of the gym. */
 export interface PendingRequest {
+  avatarPath: string | null;
   membershipId: string;
   userId: string;
   fullName: string;

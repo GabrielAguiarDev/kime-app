@@ -13,6 +13,8 @@ select set_config('search_path', concat_ws(',',
   (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
   'public', 'extensions'), true);
 select plan(129);
+grant usage on schema private to authenticated;
+grant execute on function private.ranking_facts_internal(uuid,uuid,date,date) to authenticated;
 
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -483,7 +485,7 @@ update private.modality_active_periods set starts_at = now() - interval '40 days
 where enrollment_id in (select id from public.student_modality_enrollments where membership_id in (pg_temp.mid('r'), pg_temp.mid('r2')));
 
 create function pg_temp.facts(p_user text, p_mod text) returns jsonb language sql as $$
-  select to_jsonb(f) from public.academy_ranking_facts(pg_temp.id('a1'), pg_temp.mod(p_mod), pg_temp.today() - 5, pg_temp.today() - 1) f
+  select to_jsonb(f) from private.ranking_facts_internal(pg_temp.id('a1'), pg_temp.mod(p_mod), pg_temp.today() - 5, pg_temp.today() - 1) f
   where f.user_id = pg_temp.id(p_user)
 $$;
 create function pg_temp.classes(p_user text, p_mod text, p_day date) returns int language sql as $$
@@ -532,7 +534,7 @@ select is(pg_temp.classes('r', 'jj', pg_temp.today() - 3), 2, 'facts: two confir
 select is(pg_temp.classes('r', 'mt', pg_temp.today() - 3), 1, 'facts: the Muay Thai ranking counts only its own class');
 select is(pg_temp.classes('r', 'jj', pg_temp.today() - 2), 0, 'facts: a pending check-in is not a class');
 select is(pg_temp.classes('r', 'jj', pg_temp.today() - 4), 0, 'facts: a day without class has zero');
-select is((select count(*)::int from public.academy_ranking_facts(pg_temp.id('a1'), pg_temp.mod('mt'), pg_temp.today() - 5, pg_temp.today() - 1) where user_id = pg_temp.id('r2')),
+select is((select count(*)::int from private.ranking_facts_internal(pg_temp.id('a1'), pg_temp.mod('mt'), pg_temp.today() - 5, pg_temp.today() - 1) where user_id = pg_temp.id('r2')),
   0, 'facts: a student not linked to the modality is not a participant');
 
 -- Water: a limit day is done between 90 % and 100 % of the goal; a goal day at or above it.

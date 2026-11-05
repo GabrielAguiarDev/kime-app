@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   useWindowDimensions,
@@ -62,12 +63,25 @@ export function BottomSheet({
   const reduceMotion = useReducedMotion();
 
   const [mounted, setMounted] = useState(visible);
+  // Native modal shown. Goes false after the exit motion; on iOS the content
+  // unmounts (and onClosed fires) only once UIKit finished dismissing it:
+  // presenting another controller before that (image picker, share sheet) is
+  // silently ignored on a real device.
+  const [presented, setPresented] = useState(visible);
   const [sheetHeight, setSheetHeight] = useState(0);
   // 0 = open, sheet height (or window height before measuring) = hidden.
   const offset = useSharedValue(windowHeight);
   const hiddenOffset = sheetHeight || windowHeight;
 
   if (visible && !mounted) setMounted(true);
+  if (visible && !presented) setPresented(true);
+
+  const unmount = () => {
+    if (visible) return; // reopened meanwhile
+    setMounted(false);
+    setSheetHeight(0);
+    onClosed?.();
+  };
 
   // Callers often drop the content as soon as they close the sheet
   // ({open ? <Form /> : null}). While the exit motion runs, keep showing the
@@ -94,9 +108,9 @@ export function BottomSheet({
       );
     } else {
       const finish = () => {
-        setMounted(false);
-        setSheetHeight(0);
-        onClosed?.();
+        setPresented(false);
+        // iOS: unmount from the Modal's onDismiss.
+        if (Platform.OS !== "ios") unmount();
       };
       if (reduceMotion) {
         offset.set(hiddenOffset);
@@ -148,7 +162,8 @@ export function BottomSheet({
 
   return (
     <Modal
-      visible
+      visible={presented}
+      onDismiss={unmount}
       transparent
       animationType="none"
       statusBarTranslucent

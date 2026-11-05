@@ -21,9 +21,10 @@ jest.mock('react', () => {
   };
 });
 jest.mock('expo-router', () => ({ router: {} }));
+jest.mock('@infra', () => ({ errorMessage: () => 'Erro' }));
 jest.mock('@components', () =>
   Object.fromEntries(
-    ['Avatar', 'BottomSheet', 'Box', 'Card', 'EmptyState', 'FilterChips', 'Icon', 'LoadError', 'Screen', 'SelectionCard', 'Text'].map(
+    ['Avatar', 'BottomSheet', 'Box', 'Button', 'PersonRow', 'Card', 'EmptyState', 'FilterChips', 'Icon', 'LoadError', 'Screen', 'SelectionCard', 'Text'].map(
       (name) => [name, name],
     ),
   ),

@@ -102,7 +102,15 @@ describe('water and training', () => {
     );
     expect(merged).toEqual([
       { day: '2026-11-03', totalMl: 1500, goalMl: 2500 },
-      { day: '2026-11-04', totalMl: 500, goalMl: 3000 },
+      { day: '2026-11-04', totalMl: 500, goalMl: 3000, isLimit: false },
     ]);
   });
+});
+
+it('does not count a limit day above 100% in the water streak', () => {
+  const days = [
+    { day: '2026-11-01', totalMl: 1800, goalMl: 2000, isLimit: true },
+    { day: '2026-11-02', totalMl: 2001, goalMl: 2000, isLimit: true },
+  ];
+  expect(waterStreak(days, '2026-11-03').periods.map((p) => p.state)).toEqual(['done', 'missed', 'open']);
 });

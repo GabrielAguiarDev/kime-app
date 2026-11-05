@@ -4,7 +4,7 @@ import { Box, Button, Card, EmptyState, Icon, Screen, Text } from '@components';
 import { addDays, weekdayOf, WEEKDAY_LABELS } from '@domain/Classes';
 import {
   formatShortDate,
-  planInForce,
+  plannedIsLimitOn,
   plannedMlOn,
   sortWeights,
   useAthleteWater,
@@ -12,7 +12,7 @@ import {
   useWeightLogs,
 } from '@domain/Competition';
 import { useMyProfile } from '@domain/Profile';
-import { dailyGoal, localDate } from '@domain/Water';
+import { dailyGoal, localDate, waterDayState } from '@domain/Water';
 import { formatMl } from '@screens/water/format';
 
 import { Section, WeightRow, WeightSummary } from './shared';
@@ -85,11 +85,9 @@ export function AthleteProgressScreen() {
               const total = totals.get(day) ?? 0;
               const planned = plannedMlOn(plans.data ?? [], day);
               const goal = dailyGoal({ weightKg: profile.data.weightKg, plannedMl: planned });
-              // A planned limit is done between 90 % and 100 % of it (going over is not done).
-              const isLimit = planned !== null && !!planInForce(plans.data ?? [], day)?.limits[weekdayOf(day)];
-              const reached =
-                goal.goalMl !== null &&
-                (isLimit ? total >= Math.ceil(goal.goalMl * 0.9) && total <= goal.goalMl : total >= goal.goalMl);
+              const isLimit = plannedIsLimitOn(plans.data ?? [], day);
+              const state = waterDayState(total, goal.goalMl, isLimit);
+              const reached = state === 'done';
               const label = day === today ? 'Hoje' : `${WEEKDAY_LABELS[weekdayOf(day)].short} ${formatShortDate(day)}`;
               return (
                 <Box
@@ -100,7 +98,7 @@ export function AthleteProgressScreen() {
                   accessible
                   accessibilityLabel={`${label}: ${formatMl(total)} ml${
                     goal.goalMl
-                      ? ` de ${formatMl(goal.goalMl)}${isLimit ? ' (limite)' : ''}${reached ? (isLimit ? ', dentro do limite' : ', meta batida') : ''}`
+                      ? ` de ${formatMl(goal.goalMl)}${isLimit ? ' (limite)' : ''}${state === 'over' ? ', você passou do limite de hoje' : reached ? (isLimit ? ', dentro do limite' : ', meta batida') : ''}`
                       : ''
                   }`}
                 >
@@ -111,7 +109,7 @@ export function AthleteProgressScreen() {
                   <Text variant="caption">
                     {goal.goalMl ? `/ ${formatMl(goal.goalMl)}${isLimit ? ' limite' : ''}` : ''}
                   </Text>
-                  {reached ? <Icon name="check" color="success" /> : null}
+                  {reached ? <Icon name="check" color="success" /> : state === 'over' ? <Text variant="caption" color="warning">Você passou do limite de hoje</Text> : null}
                 </Box>
               );
             })}

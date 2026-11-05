@@ -14,6 +14,7 @@ export interface Profile {
   birthDate: string | null;
   /** Shows in the academy ranking (Perfil switch). */
   showInRanking: boolean;
+  showCheckinsToPeers: boolean;
 }
 
 export type Sex = 'female' | 'male' | 'unspecified';

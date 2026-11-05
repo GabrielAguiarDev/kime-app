@@ -4,6 +4,8 @@ set local role postgres;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
 select no_plan();
+grant usage on schema private to authenticated;
+grant execute on function private.ranking_facts_internal(uuid,uuid,date,date) to authenticated;
 create temp table ids(k text primary key,v uuid); grant all on ids to authenticated;
 create function pg_temp.id(k text) returns uuid language sql as $$select v from ids where ids.k=$1$$;
 create function pg_temp.login(u uuid) returns void language plpgsql as $$begin
@@ -44,12 +46,12 @@ insert into private.water_auto_goal_history(user_id,effective_on,goal_ml) values
 insert into public.water_logs(id,user_id,amount_ml,logged_at)
 select gen_random_uuid(),pg_temp.id('multi'),2000,(d+interval '12 hours') at time zone 'America/Sao_Paulo' from generate_series((pg_temp.today()-21)::timestamp,(pg_temp.today()-2)::timestamp,interval '1 day')d;
 create function pg_temp.facts(modality text) returns jsonb language sql as $$
-select to_jsonb(r) from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id(modality),pg_temp.today()-21,pg_temp.today()-1)r where r.user_id=pg_temp.id('multi')$$;
+select to_jsonb(r) from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id(modality),pg_temp.today()-21,pg_temp.today()-1)r where r.user_id=pg_temp.id('multi')$$;
 grant execute on function pg_temp.facts(text) to public;
 select pg_temp.login(pg_temp.id('owner'));
-select is((select count(*)::int from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('Muay Thai'),pg_temp.today()-21,pg_temp.today()-1)),2,'MT includes only its two enrolled students');
-select is((select count(*)::int from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,pg_temp.today()-1)),1,'multi student participates in BJJ too; MT-only student is excluded');
-select is((select count(*)::int from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('Boxe'),pg_temp.today()-21,pg_temp.today()-1)),0,'no fabricated membership in another modality');
+select is((select count(*)::int from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('Muay Thai'),pg_temp.today()-21,pg_temp.today()-1)),2,'MT includes only its two enrolled students');
+select is((select count(*)::int from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,pg_temp.today()-1)),1,'multi student participates in BJJ too; MT-only student is excluded');
+select is((select count(*)::int from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('Boxe'),pg_temp.today()-21,pg_temp.today()-1)),0,'no fabricated membership in another modality');
 select is(jsonb_array_length(pg_temp.facts('Muay Thai')->'attendance'),21,'MT attendance has one entry per day of its own link');
 select is(jsonb_array_length(pg_temp.facts('BJJ')->'attendance'),9,'later BJJ link has fewer eligible days');
 select is((select coalesce(sum((c->>'classes')::int),0)::int from jsonb_array_elements(pg_temp.facts('Muay Thai')->'attendance')c),1,'confirmed MT check-in counts in MT');
@@ -61,19 +63,19 @@ select pg_temp.login(pg_temp.id('multi'));
 select is((select count(*)::int from public.water_logs where user_id=pg_temp.id('multi')),20,'consulting two modalities never duplicates water logs');
 select pg_temp.login(pg_temp.id('owner'));
 select is(pg_temp.facts('Muay Thai'),pg_temp.facts('Muay Thai'),'repeated calculations have no side effects');
-select throws_ok($$select * from public.academy_ranking_facts(pg_temp.id('academy'),null,pg_temp.today()-21,pg_temp.today()-1)$$,'22023','invalid_ranking_modality','modality is mandatory');
-select throws_ok($$select * from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('BJJ'),null,pg_temp.today()-1)$$,'22023','invalid_ranking_period','start date is mandatory');
-select throws_ok($$select * from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,null)$$,'22023','invalid_ranking_period','end date is mandatory');
-select ok(to_regprocedure('public.academy_ranking_facts(uuid,date,date)') is null,'no callable global ranking overload remains');
+select throws_ok($$select * from private.ranking_facts_internal(pg_temp.id('academy'),null,pg_temp.today()-21,pg_temp.today()-1)$$,'22023','invalid_ranking_modality','modality is mandatory');
+select throws_ok($$select * from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('BJJ'),null,pg_temp.today()-1)$$,'22023','invalid_ranking_period','start date is mandatory');
+select throws_ok($$select * from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,null)$$,'22023','invalid_ranking_period','end date is mandatory');
+select ok(to_regprocedure('private.ranking_facts_internal(uuid,date,date)') is null,'no callable global ranking overload remains');
 select pg_temp.login(pg_temp.id('multi'));
 select is((select array_agg(name order by name) from public.ranking_modalities(pg_temp.id('academy'),pg_temp.today()-21,pg_temp.today()-1)),array['BJJ','Muay Thai'],'student can select both their active modalities');
 select throws_ok($$select public.set_student_modalities(pg_temp.id('m-multi'),array[pg_temp.id('Muay Thai'),pg_temp.id('BJJ'),pg_temp.id('Boxe')])$$,'42501','forbidden','student cannot self-enrol to manufacture ranking eligibility');
 select throws_ok($$update public.student_modality_enrollments set status='active'$$,'42501',null,'client cannot overwrite membership status/history');
 select pg_temp.login(pg_temp.id('single'));
 select is((select array_agg(name) from public.ranking_modalities(pg_temp.id('academy'),pg_temp.today()-21,pg_temp.today()-1)),array['Muay Thai'],'single-modality student sees only their modality');
-select throws_ok($$select * from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,pg_temp.today()-1)$$,'42501','forbidden','cannot request classmates data in an unregistered modality');
+select ok(to_regprocedure('public.academy_ranking_facts(uuid,uuid,date,date)') is null,'raw facts are no longer exposed');
 select pg_temp.login(pg_temp.id('owner'));
-select is((select count(*)::int from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,pg_temp.today()-12)),0,'historical interval before BJJ entry has no BJJ participants');
+select is((select count(*)::int from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,pg_temp.today()-12)),0,'historical interval before BJJ entry has no BJJ participants');
 -- Explicit historical pause/resume intervals; no production timestamps are backdated.
 select pg_temp.admin();
 update private.modality_active_periods ap set ends_at=((pg_temp.today()-8)::timestamp at time zone 'America/Sao_Paulo') from public.student_modality_enrollments e where e.id=ap.enrollment_id and e.membership_id=pg_temp.id('m-multi') and e.modality_id=pg_temp.id('BJJ');
@@ -84,9 +86,9 @@ select is(jsonb_array_length(pg_temp.facts('BJJ')->'attendance'),4,'only the day
 select is((select count(*)::int from jsonb_array_elements(pg_temp.facts('Muay Thai')->'hydration')d where d->>'eligible'='true'),21,'a BJJ pause does not affect MT');
 select pg_temp.login(pg_temp.id('owner'));
 select lives_ok($$select public.set_student_modalities(pg_temp.id('m-multi'),array[pg_temp.id('Muay Thai')])$$,'staff can end one modality');
-select is((select count(*)::int from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,pg_temp.today()-1)),0,'a student who ended BJJ leaves the current BJJ competition');
-select is((select count(*)::int from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('Muay Thai'),pg_temp.today()-21,pg_temp.today()-1)),2,'MT participants remain unchanged');
-select is((select count(*)::int from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,pg_temp.today()-2)),1,'historical BJJ query still respects past active enrolment');
+select is((select count(*)::int from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,pg_temp.today()-1)),0,'a student who ended BJJ leaves the current BJJ competition');
+select is((select count(*)::int from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('Muay Thai'),pg_temp.today()-21,pg_temp.today()-1)),2,'MT participants remain unchanged');
+select is((select count(*)::int from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('BJJ'),pg_temp.today()-21,pg_temp.today()-2)),1,'historical BJJ query still respects past active enrolment');
 select lives_ok($$select public.set_student_modalities(pg_temp.id('m-multi'),array[pg_temp.id('Muay Thai'),pg_temp.id('BJJ')])$$,'staff can reopen the link without replacing history');
 select lives_ok($$select public.set_student_modalities(pg_temp.id('m-multi'),array[pg_temp.id('Muay Thai'),pg_temp.id('BJJ')])$$,'repeated activation is idempotent');
 select pg_temp.admin();

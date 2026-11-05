@@ -46,7 +46,7 @@ function ModalitiesList({ gymId }: { gymId: string }) {
     const run = async () => {
       const ok = await confirm({
         title: 'Remover modalidade?',
-        message: `${modality.name} e as faixas dela saem da academia. Só é possível remover uma modalidade sem horários e sem graduações.`,
+        message: `Os alunos vinculados a esta modalidade perdem o vínculo com ela. O histórico de aulas e faixas é mantido. Só é possível remover ${modality.name} sem horários e sem graduações.`,
         confirmLabel: 'Remover',
         tone: 'danger',
       });

@@ -3,29 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { QueryKeys } from '@infra/query';
 import { supabase, toAppError } from '@infra/supabase';
 
-import type { Json } from '@infra/supabase/database.types';
-
-import { calculateRanking, type AttendanceFact, type HydrationFact, type RankingFacts } from '../rankingRules';
-
-function objects(value: Json): { [key: string]: Json | undefined }[] {
-  if (!Array.isArray(value)) throw new Error('Resposta inválida do ranking.');
-  return value.map((row) => {
-    if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('Atividade inválida no ranking.');
-    return row;
-  });
-}
-function attendanceFacts(value: Json): AttendanceFact[] {
-  return objects(value).map((r) => {
-    if (typeof r.day !== 'string' || typeof r.classes !== 'number') throw new Error('Aula inválida no ranking.');
-    return { day: r.day, classes: r.classes };
-  });
-}
-function hydrationFacts(value: Json): HydrationFact[] {
-  return objects(value).map((r) => {
-    if (typeof r.day !== 'string' || typeof r.known !== 'boolean' || typeof r.done !== 'boolean' || typeof r.eligible !== 'boolean') throw new Error('Dia inválido no ranking.');
-    return { day: r.day, known: r.known, done: r.done, eligible: r.eligible };
-  });
-}
+import type { RankingEntry } from '../rankingRules';
 
 export interface RankingPeriod { from: string; to: string }
 export interface RankingRequest {
@@ -35,22 +13,33 @@ export interface RankingRequest {
   endDate: string;
 }
 
-export async function fetchRanking({ academyId, modalityId, startDate, endDate }: RankingRequest) {
+export async function fetchRanking({ academyId, modalityId }: RankingRequest): Promise<RankingEntry[]> {
   try {
-    const { data, error } = await supabase.rpc('academy_ranking_facts', {
-      p_academy_id: academyId,
-      p_modality_id: modalityId,
-      p_from: startDate,
-      p_to: endDate,
+    const [ranking, details] = await Promise.all([
+      supabase.from('ranking_snapshots').select('*').eq('academy_id', academyId).eq('modality_id', modalityId).order('position', { nullsFirst: false }).order('score', { ascending: false }),
+      supabase.from('ranking_details').select('*').eq('academy_id', academyId).eq('modality_id', modalityId),
+    ]);
+    if (ranking.error) throw ranking.error;
+    if (details.error) throw details.error;
+    const ownDetails = new Map(details.data.map((d) => [d.user_id, d]));
+    return ranking.data.map((r): RankingEntry => {
+      const d = ownDetails.get(r.user_id);
+      return {
+        modalityId: r.modality_id, userId: r.user_id, fullName: r.full_name, avatarPath: r.avatar_path,
+        position: r.position, rankingScore: Number(r.score), status: r.status as RankingEntry['status'],
+        attendanceRate: Number(d?.attendance_rate ?? 0), hydrationRate: Number(d?.hydration_rate ?? 0),
+        confirmedClasses: d?.confirmed_classes ?? 0, weeklyGoal: d?.weekly_goal ?? 0,
+        weeks: d?.weeks ?? 0, hydrationGoalsAchieved: d?.hydration_goals_achieved ?? 0,
+        eligibleHydrationDays: d?.eligible_hydration_days ?? 0, protectedDays: d?.protected_days ?? 0,
+        eligibleDays: d?.eligible_days ?? 0, daysToQualify: d?.days_to_qualify ?? 0,
+      };
     });
-    if (error) throw error;
-    const facts: RankingFacts[] = data.map((r) => ({
-      modalityId: r.modality_id, userId: r.user_id, fullName: r.full_name || 'Sem nome', avatarPath: r.avatar_path,
-      today: r.today, periodFrom: r.period_from, periodTo: r.period_to, weeklyGoal: r.weekly_goal,
-      attendance: attendanceFacts(r.attendance), hydration: hydrationFacts(r.hydration),
-    }));
-    return calculateRanking(facts, modalityId);
   } catch (e) { throw toAppError(e); }
+}
+
+export async function recalculateRanking(academyId: string) {
+  const { error } = await supabase.rpc('recalculate_ranking', { p_academy_id: academyId });
+  if (error) throw toAppError(error);
 }
 
 /** One independent query/cache entry per modality and complete date interval. */

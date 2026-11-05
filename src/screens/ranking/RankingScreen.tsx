@@ -1,25 +1,27 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { ActivityIndicator, Alert, Pressable } from 'react-native';
 
 import {
-  Avatar,
   BottomSheet,
+  Button,
   Box,
   Card,
   EmptyState,
   FilterChips,
-  Icon,
   LoadError,
+  PersonRow,
   Screen,
   SelectionCard,
   Text,
 } from '@components';
 import { useAcademyToday } from '@domain/Classes';
+import { errorMessage } from '@infra';
 import { useMyProfile } from '@domain/Profile';
 import {
   RANKING_CONFIG,
   rankingPeriod,
+  recalculateRanking,
   useRanking,
   useRankingModalities,
   visibleRanking,
@@ -53,6 +55,7 @@ export function RankingView({ academyId }: { academyId: string }) {
   const modalities = useRankingModalities(academyId, userId, period);
   const [picked, setPicked] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
   const options = modalities.data ?? [];
   const selected = isStaff
     ? (options.find((m) => m.id === picked) ?? options[0])
@@ -118,6 +121,13 @@ export function RankingView({ academyId }: { academyId: string }) {
         </>
       ) : null}
 
+      {isStaff ? <Button title="Recalcular ranking" variant="secondary" loading={recalculating} onPress={async () => {
+        setRecalculating(true);
+        try { await recalculateRanking(academyId); await ranking.refetch(); }
+        catch (error) { Alert.alert('Ranking', errorMessage(error)); }
+        finally { setRecalculating(false); }
+      }} /> : null}
+
       <Box gap="s8">
         <Text variant="captionCaps">Ranking · {selected.name}</Text>
         <Text variant="caption">
@@ -137,9 +147,7 @@ export function RankingView({ academyId }: { academyId: string }) {
         {ranking.isLoading ? <ActivityIndicator accessibilityLabel="Carregando ranking" /> : null}
         {ranking.isError ? <LoadError title="Não foi possível carregar o ranking" onRetry={() => void ranking.refetch()} /> : null}
         {ranking.data?.length === 0 ? <EmptyState visual="icon" icon="trophy" title="Nenhum aluno no ranking." /> : null}
-        {rows.map((e) => (
-          <RankingRow key={`${e.modalityId}:${e.userId}`} entry={e} isSelf={e.userId === userId} />
-        ))}
+        {rows.length ? <Card>{rows.map((e, index) => <RankingRow last={index === rows.length - 1} key={`${e.modalityId}:${e.userId}`} entry={e} isSelf={e.userId === userId} />)}</Card> : null}
         {own ? (
           <>
             <Text variant="caption" textAlign="center">
@@ -157,26 +165,12 @@ const points = (value: number) => value.toLocaleString('pt-BR', { maximumFractio
 const percent = (rate: number) => `${Math.round(rate * 100)}%`;
 
 /** Colleagues: position, photo, name and score only. The student's own row opens their numbers. */
-function RankingRow({ entry: e, isSelf }: { entry: RankingEntry; isSelf: boolean }) {
+function RankingRow({ entry: e, isSelf, last }: { entry: RankingEntry; isSelf: boolean; last?: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const head = (
-    <Box flexDirection="row" alignItems="center" gap="s12">
-      {e.position === 1 ? (
-        <Icon name="trophy" color="accent" />
-      ) : (
-        <Text variant="counter" color="textMuted">
-          {e.position ?? '–'}
-        </Text>
-      )}
-      <Avatar name={e.fullName} path={e.avatarPath} />
-      <Text variant="bodyStrong" flex={1}>
-        {e.fullName}
-        {isSelf ? ' (você)' : ''}
-      </Text>
-      <Text variant="counter">{points(e.rankingScore)}</Text>
-    </Box>
-  );
-  if (!isSelf) return <Card>{head}</Card>;
+  const head = <PersonRow last={last} name={`${e.fullName}${isSelf ? ' (você)' : ''}`} avatarPath={e.avatarPath}
+    leading={<Text variant="counter" color="textMuted">{e.position ?? '–'}</Text>}
+    trailing={<Text variant="counter">{points(e.rankingScore)}</Text>} />;
+  if (!isSelf) return head;
   return (
     <Pressable
       onPress={() => setExpanded(!expanded)}
@@ -184,7 +178,7 @@ function RankingRow({ entry: e, isSelf }: { entry: RankingEntry; isSelf: boolean
       accessibilityState={{ expanded }}
       accessibilityLabel={`Sua posição: ${e.position ?? 'em classificação'}, ${points(e.rankingScore)} pontos. ${expanded ? 'Ocultar' : 'Ver'} seus números`}
     >
-      <Card selected gap="s12">
+      <Box gap="s12">
         {head}
         {e.status === 'qualifying' ? (
           <Text variant="caption" color="accent">
@@ -213,7 +207,7 @@ function RankingRow({ entry: e, isSelf }: { entry: RankingEntry; isSelf: boolean
             </Text>
           </Box>
         ) : null}
-      </Card>
+      </Box>
     </Pressable>
   );
 }

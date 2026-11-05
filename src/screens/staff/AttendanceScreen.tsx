@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert } from 'react-native';
 
 import {
   Avatar,
+  BeltChip,
   BottomSheet,
   Box,
   Button,
@@ -11,6 +12,7 @@ import {
   EmptyState,
   HeaderButton,
   LoadError,
+  PersonRow,
   Screen,
   SelectionCard,
   StatusBadge,
@@ -21,6 +23,8 @@ import {
   useAcademyCheckins,
   useAcademyToday,
   useClassSessions,
+  useBelts,
+  useModalityStats,
   useConfirmAll,
   useDecideCheckin,
   useMarkAttendance,
@@ -34,6 +38,7 @@ import { useGymMembers, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { SheetForm } from '@screens/professor/shared';
 import { useActiveGym } from '@services/activeGym';
+import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
 import { haptics } from '@utils/haptics';
 
@@ -122,6 +127,8 @@ function AttendanceList({
   const confirmAll = useConfirmAll(academyId);
   const sessions = useClassSessions(academyId, date);
   const members = useGymMembers(academyId);
+  const modalityStats = useModalityStats(academyId);
+  const belts = useBelts(academyId);
   const [marking, setMarking] = useState(false);
 
   const pending = checkins.filter((c) => c.status === 'pending');
@@ -129,6 +136,11 @@ function AttendanceList({
   const rejected = checkins.filter((c) => c.status === 'rejected');
   const session = (sessions.data ?? []).find((x) => x.scheduleId === schedule.id);
   const staff = (members.data ?? []).filter((m) => m.role === 'owner' || m.role === 'instructor');
+  const beltFor = (userId: string) => {
+    const membership = members.data?.find((m) => m.userId === userId);
+    const stat = modalityStats.data?.find((x) => x.membershipId === membership?.id && x.modalityId === schedule.modalityId);
+    return belts.data?.find((b) => b.id === stat?.beltId) ?? null;
+  };
 
   return (
     <Screen
@@ -147,9 +159,6 @@ function AttendanceList({
         {pending.length > 0 ? (
           <Box gap="s12">
             <Text variant="captionCaps">Pendentes ({pending.length})</Text>
-            {pending.map((c) => (
-              <PendingRow key={c.id} checkin={c} academyId={academyId} />
-            ))}
             {pending.length > 1 ? (
               <Button
                 title={`Confirmar todos (${pending.length})`}
@@ -165,6 +174,7 @@ function AttendanceList({
                 }
               />
             ) : null}
+            <Card>{pending.map((c, index) => <PendingRow key={c.id} checkin={c} academyId={academyId} last={index === pending.length - 1} />)}</Card>
           </Box>
         ) : null}
 
@@ -176,14 +186,11 @@ function AttendanceList({
                 Ninguém confirmado ainda.
               </Text>
             ) : null}
-            {confirmed.map((c) => (
-              <Box key={c.id} flexDirection="row" alignItems="center" gap="s12">
-                <Text variant="bodyStrong" flex={1}>
-                  {c.fullName}
-                </Text>
-                <StatusBadge status="confirmed" />
-              </Box>
-            ))}
+            {confirmed.length ? <Card>{confirmed.map((c, index) => {
+              const belt = beltFor(c.userId);
+              return <PersonRow key={c.id} name={c.fullName} avatarPath={c.avatarPath} last={index === confirmed.length - 1}
+                secondary={belt ? <BeltChip belt={belt} /> : 'Confirmado'} />;
+            })}</Card> : null}
           </Box>
         ) : null}
 
@@ -222,7 +229,7 @@ function AttendanceList({
   );
 }
 
-function PendingRow({ checkin, academyId }: { checkin: AcademyCheckin; academyId: string }) {
+function PendingRow({ checkin, academyId, last }: { checkin: AcademyCheckin; academyId: string; last?: boolean }) {
   const decide = useDecideCheckin(academyId);
   const run = (status: 'confirmed' | 'rejected') =>
     decide.mutate(
@@ -234,26 +241,17 @@ function PendingRow({ checkin, academyId }: { checkin: AcademyCheckin; academyId
         onError: (e) => Alert.alert('Check-in', errorMessage(e)),
       },
     );
-  return (
-    <Card gap="s12">
-      <Text variant="bodyStrong">{checkin.fullName}</Text>
-      <Box flexDirection="row" gap="s12">
-        <Box flex={1}>
-          <Button title="Recusar" variant="secondary" disabled={decide.isPending} onPress={() => run('rejected')} />
-        </Box>
-        <Box flex={1}>
-          <Button title="Confirmar" loading={decide.isPending} onPress={() => run('confirmed')} />
-        </Box>
-      </Box>
-    </Card>
-  );
+  const confirm = useConfirm();
+  const reject = async () => {
+    if (await confirm({ title: `Recusar o check-in de ${checkin.fullName}?`, message: 'O check-in será recusado.', confirmLabel: 'Recusar', tone: 'danger' })) run('rejected');
+  };
+  return <PersonRow name={checkin.fullName} avatarPath={checkin.avatarPath} secondary="Pendente" last={last}
+    actions={[
+      { icon: 'trash', label: `Recusar check-in de ${checkin.fullName}`, onPress: () => void reject(), disabled: decide.isPending },
+      { icon: 'check', label: `Confirmar check-in de ${checkin.fullName}`, onPress: () => run('confirmed'), color: 'accent', disabled: decide.isPending },
+    ]} />;
 }
 
-/**
- * "Marcar presença": the academy's students who train this modality (searching
- * looks through every student), minus who is already on the list. Someone
- * whose check-in was rejected gets it confirmed instead of a new one.
- */
 function MarkAttendanceForm({
   academyId,
   schedule,

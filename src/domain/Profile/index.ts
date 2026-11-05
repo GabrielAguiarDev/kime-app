@@ -10,3 +10,5 @@ export {
   useUpdateName,
   useUpdatePersonalData,
 } from './useCases/useMyProfile';
+
+export { useSetShowCheckinsToPeers } from './useCases/useMyProfile';

@@ -19,6 +19,9 @@ enum WaterStore {
     let goalMl: Int?
     let timeZone: String
     let goalsByDate: [String: Int]?
+    let limitsByDate: [String: Bool]?
+
+    func isLimit(on date: Date) -> Bool { limitsByDate?[WaterStore.dayKey(date, in: zone)] ?? false }
 
     var zone: TimeZone { TimeZone(identifier: timeZone) ?? .current }
 

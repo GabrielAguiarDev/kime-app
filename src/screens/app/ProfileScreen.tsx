@@ -22,6 +22,7 @@ import { useSignOut } from '@domain/Auth';
 import { activeMemberships, membershipLabel, useLeaveGym, type Membership } from '@domain/Membership';
 import { useAvatarMutations, useMyProfile } from '@domain/Profile';
 import { errorMessage } from '@infra';
+import { CheckinPrivacySwitch } from '@screens/profile/CheckinPrivacySwitch';
 import { RankingSwitch } from '@screens/ranking/RankingSwitch';
 import { ClassReminderSwitch } from '@screens/reminders/ClassReminderSwitch';
 import { useActiveGym } from '@services/activeGym';
@@ -154,6 +155,7 @@ export function ProfileScreen() {
         ) : null}
 
         <Section title="Conta">
+          <CheckinPrivacySwitch />
           <ManageCard title="Meus dados" icon="user" onPress={() => router.push('/conta/dados')} />
           <TextButton
             title="Sair da conta"

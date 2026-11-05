@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useState } from 'react';
 
 import { useAvatarUrl } from '@domain/Profile';
 import { useAppTheme } from '@theme';
@@ -10,7 +11,7 @@ interface AvatarProps {
   name: string;
   /** Path in the private `avatars` bucket; null shows the initials. */
   path: string | null | undefined;
-  size?: 'large' | 'small';
+  size?: 'large' | 'small' | number;
 }
 
 export function nameInitials(name: string): string {
@@ -27,8 +28,14 @@ export function nameInitials(name: string): string {
  */
 export function Avatar({ name, path, size = 'small' }: AvatarProps) {
   const theme = useAppTheme();
-  const url = useAvatarUrl(path);
-  const px = size === 'large' ? theme.size.avatar : theme.size.avatarSmall;
+  const [failedThumbnailPath, setFailedThumbnailPath] = useState<string | null>(null);
+  const thumbnailPath = path?.replace('/avatar-', '/thumb-');
+  const wantsThumbnail = size !== 'large' && !!path && thumbnailPath !== path && failedThumbnailPath !== thumbnailPath;
+  const thumbUrl = useAvatarUrl(thumbnailPath, wantsThumbnail);
+  const useThumbnail = wantsThumbnail && !thumbUrl.isError;
+  const fullUrl = useAvatarUrl(path, !useThumbnail);
+  const url = useThumbnail ? thumbUrl : fullUrl;
+  const px = typeof size === 'number' ? size : size === 'large' ? theme.size.avatar : theme.size.avatarSmall;
   return (
     <Box
       width={px}
@@ -44,7 +51,7 @@ export function Avatar({ name, path, size = 'small' }: AvatarProps) {
       accessibilityLabel={path ? `Foto de ${name}` : `Iniciais de ${name}`}
     >
       {url.data ? (
-        <Image source={{ uri: url.data, cacheKey: path ?? undefined }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={0} />
+        <Image source={{ uri: url.data, cacheKey: path ?? undefined }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={0} onError={() => setFailedThumbnailPath(thumbnailPath ?? null)} />
       ) : (
         <Text variant={size === 'large' ? 'title' : 'bodyStrong'} color="accent">
           {nameInitials(name)}

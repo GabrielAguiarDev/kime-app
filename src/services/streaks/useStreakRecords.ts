@@ -38,7 +38,7 @@ export function useStreakRecords() {
   const { userId } = useSession();
   const { active, isStaff } = useActiveGym();
   const { settings } = useWaterSettings();
-  const water = useWaterStreak(userId, settings?.timeZone, settings?.goalMl ?? null);
+  const water = useWaterStreak(userId, settings?.timeZone, settings?.goalMl ?? null, settings?.isLimit);
   const training = useTrainingStreak(isStaff ? undefined : active?.gymId, userId);
   const [, rerender] = useState(0);
 

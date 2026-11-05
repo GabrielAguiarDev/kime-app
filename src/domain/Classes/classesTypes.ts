@@ -41,6 +41,7 @@ export interface Checkin {
 /** A check-in as listed for the professor, with the student's name. */
 export interface AcademyCheckin extends Checkin {
   fullName: string;
+  avatarPath: string | null;
 }
 
 /** Belt colors of the design-system palette (2.4), stored as keys. */

@@ -10,7 +10,7 @@ struct WaterEntry: TimelineEntry {
     case signedOut
     /// No bottle configured: the button cannot work, open the bottle setup.
     case noBottle
-    case ready(totalMl: Int, goalMl: Int?, bottleMl: Int)
+    case ready(totalMl: Int, goalMl: Int?, bottleMl: Int, isLimit: Bool)
   }
 
   let date: Date
@@ -19,7 +19,7 @@ struct WaterEntry: TimelineEntry {
 
 struct WaterProvider: TimelineProvider {
   func placeholder(in context: Context) -> WaterEntry {
-    WaterEntry(date: Date(), state: .ready(totalMl: 1_500, goalMl: 2_500, bottleMl: 500))
+    WaterEntry(date: Date(), state: .ready(totalMl: 1_500, goalMl: 2_500, bottleMl: 500, isLimit: false))
   }
 
   func getSnapshot(in context: Context, completion: @escaping (WaterEntry) -> Void) {
@@ -38,7 +38,7 @@ struct WaterProvider: TimelineProvider {
     guard let config = WaterStore.config() else { return WaterEntry(date: date, state: .signedOut) }
     guard let bottle = config.bottleMl else { return WaterEntry(date: date, state: .noBottle) }
     let total = WaterStore.total(for: config, on: date)
-    return WaterEntry(date: date, state: .ready(totalMl: total, goalMl: config.goal(on: date), bottleMl: bottle))
+    return WaterEntry(date: date, state: .ready(totalMl: total, goalMl: config.goal(on: date), bottleMl: bottle, isLimit: config.isLimit(on: date)))
   }
 }
 
@@ -84,12 +84,12 @@ struct WaterWidgetView: View {
     case .noBottle:
       EmptyMessage(text: "Configure sua garrafa", showBottle: true)
         .widgetURL(URL(string: "kimi://agua/configurar"))
-    case let .ready(total, goal, bottle):
+    case let .ready(total, goal, bottle, isLimit):
       Group {
         if family == .systemMedium {
-          MediumLayout(totalMl: total, goalMl: goal, bottleMl: bottle)
+          MediumLayout(totalMl: total, goalMl: goal, bottleMl: bottle, isLimit: isLimit)
         } else {
-          SmallLayout(totalMl: total, goalMl: goal, bottleMl: bottle)
+          SmallLayout(totalMl: total, goalMl: goal, bottleMl: bottle, isLimit: isLimit)
         }
       }
       .widgetURL(URL(string: "kimi://agua"))
@@ -122,18 +122,19 @@ private struct SmallLayout: View {
   let totalMl: Int
   let goalMl: Int?
   let bottleMl: Int
+  let isLimit: Bool
 
   var body: some View {
     VStack(alignment: .leading, spacing: KimiTokens.Space.s8) {
       HStack(spacing: KimiTokens.Space.s8) {
-        WaterRingView(totalMl: totalMl, goalMl: goalMl, diameter: KimiTokens.Size.widgetRing)
+        WaterRingView(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit, diameter: KimiTokens.Size.widgetRing)
         VStack(alignment: .leading, spacing: 0) {
           Text(formatMl(totalMl))
             .font(KimiTokens.Typography.displayLg)
             .minimumScaleFactor(0.5)
             .lineLimit(1)
             .foregroundStyle(KimiTokens.Colors.text)
-          GoalCaption(totalMl: totalMl, goalMl: goalMl)
+          GoalCaption(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit)
         }
       }
       Spacer(minLength: 0)
@@ -147,17 +148,18 @@ private struct MediumLayout: View {
   let totalMl: Int
   let goalMl: Int?
   let bottleMl: Int
+  let isLimit: Bool
 
   var body: some View {
     HStack(spacing: KimiTokens.Space.s16) {
-      WaterRingView(totalMl: totalMl, goalMl: goalMl, diameter: KimiTokens.Size.widgetRingMedium)
+      WaterRingView(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit, diameter: KimiTokens.Size.widgetRingMedium)
       VStack(alignment: .leading, spacing: KimiTokens.Space.s4) {
         Text("\(formatMl(totalMl)) ml")
           .font(KimiTokens.Typography.displayLg)
           .minimumScaleFactor(0.5)
           .lineLimit(1)
           .foregroundStyle(KimiTokens.Colors.text)
-        GoalCaption(totalMl: totalMl, goalMl: goalMl)
+        GoalCaption(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit)
         Spacer(minLength: 0)
         AddWaterButton(bottleMl: bottleMl)
       }
@@ -168,14 +170,16 @@ private struct MediumLayout: View {
 private struct GoalCaption: View {
   let totalMl: Int
   let goalMl: Int?
+  let isLimit: Bool
 
   var body: some View {
-    let reached = goalMl.map { totalMl >= $0 } ?? false
-    Text(goalMl.map { reached ? "Meta do dia batida" : "de \(formatMl($0)) ml" } ?? "Informe seu peso no app")
+    let over = isLimit && goalMl.map { totalMl > $0 } == true
+    let reached = goalMl.map { isLimit ? totalMl * 10 >= $0 * 9 && totalMl <= $0 : totalMl >= $0 } ?? false
+    Text(goalMl.map { over ? "Você passou do limite de hoje" : reached ? (isLimit ? "Limite do dia cumprido" : "Meta do dia batida") : "\(isLimit ? "Limite" : "Meta") de hoje: \(formatMl($0)) ml" } ?? "Informe seu peso no app")
       .font(KimiTokens.Typography.caption)
       .lineLimit(1)
       .minimumScaleFactor(0.8)
-      .foregroundStyle(reached ? KimiTokens.Colors.success : KimiTokens.Colors.textMuted)
+      .foregroundStyle(over ? KimiTokens.Colors.warning : reached ? KimiTokens.Colors.success : KimiTokens.Colors.textMuted)
   }
 }
 
@@ -201,11 +205,13 @@ private struct AddWaterButton: View {
 private struct WaterRingView: View {
   let totalMl: Int
   let goalMl: Int?
+  let isLimit: Bool
   let diameter: CGFloat
 
   var body: some View {
     let ratio = goalMl.flatMap { $0 > 0 ? min(Double(totalMl) / Double($0), 1) : nil } ?? 0
-    let reached = goalMl.map { totalMl >= $0 } ?? false
+    let over = isLimit && goalMl.map { totalMl > $0 } == true
+    let reached = goalMl.map { isLimit ? totalMl * 10 >= $0 * 9 && totalMl <= $0 : totalMl >= $0 } ?? false
     ZStack {
       Circle()
         .stroke(KimiTokens.Colors.border, lineWidth: KimiTokens.Size.widgetRingStroke)
@@ -213,7 +219,7 @@ private struct WaterRingView: View {
       Circle()
         .trim(from: 0, to: ratio)
         .stroke(
-          reached ? KimiTokens.Colors.success : KimiTokens.Colors.water,
+          over ? KimiTokens.Colors.warning : reached ? KimiTokens.Colors.success : KimiTokens.Colors.water,
           style: StrokeStyle(lineWidth: KimiTokens.Size.widgetRingStroke, lineCap: .butt)
         )
         .rotationEffect(.degrees(-90))

@@ -60,6 +60,7 @@ function toPendingRequest(row: PendingRequestRowApi): PendingRequest {
     email: row.email,
     role: row.role,
     requestedAt: row.requested_at,
+    avatarPath: row.avatar_path,
   };
 }
 

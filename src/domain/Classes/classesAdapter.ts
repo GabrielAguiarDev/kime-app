@@ -49,7 +49,7 @@ function toCheckin(row: CheckinRowApi): Checkin {
 }
 
 function toAcademyCheckin(row: AcademyCheckinRowApi): AcademyCheckin {
-  return { ...toCheckin(row), fullName: row.profile?.full_name || 'Sem nome' };
+  return { ...toCheckin(row), fullName: row.profile?.full_name || 'Sem nome', avatarPath: row.profile?.avatar_path ?? null };
 }
 
 function toModality(row: ModalityRowApi): Modality {

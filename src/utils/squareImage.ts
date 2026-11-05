@@ -18,6 +18,7 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
  */
 export async function prepareSquareImage(
   uri: string,
+  size: number = SQUARE_IMAGE_SIZE,
 ): Promise<{ bytes: ArrayBuffer; contentType: string; extension: string }> {
   const original = await ImageManipulator.manipulate(uri).renderAsync();
   const side = Math.min(original.width, original.height);
@@ -30,7 +31,7 @@ export async function prepareSquareImage(
       height: side,
     });
   }
-  context.resize({ width: SQUARE_IMAGE_SIZE, height: SQUARE_IMAGE_SIZE });
+  context.resize({ width: size, height: size });
   const image = await context.renderAsync();
   const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
   if (!result.base64) throw new Error('unknown');
