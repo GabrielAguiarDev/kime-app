@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Alert } from 'react-native';
 
-import { Box, Button, Card, CodeField, EmptyState, Screen, SelectionCard, Text, TextField } from '@components';
+import { Box, Button, Card, CodeField, EmptyState, Screen, SelectionCard, Text, TextButton, TextField } from '@components';
 import {
   isValidEmail,
   isValidOtp,
@@ -10,6 +10,7 @@ import {
   OTP_LENGTH,
   PASSWORD_MIN_LENGTH,
   useChangePassword,
+  useDeleteAccount,
   useRequestEmailChange,
   useVerifyEmailChange,
 } from '@domain/Auth';
@@ -25,6 +26,7 @@ import {
 } from '@domain/Profile';
 import { HEIGHT_RANGE_CM, parseDecimal, WEIGHT_RANGE_KG } from '@domain/Water';
 import { errorMessage } from '@infra';
+import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
 import { haptics } from '@utils/haptics';
 
@@ -63,6 +65,7 @@ export function MyDataScreen() {
           <PersonalSection key={profile.data.id} userId={userId} profile={profile.data} />
           <EmailSection email={email} />
           <PasswordSection email={email} hasPassword={hasPassword} />
+          <DeleteAccountSection avatarPath={profile.data.avatarPath} />
         </Box>
       ) : null}
     </Screen>
@@ -365,6 +368,39 @@ function PasswordSection({ email, hasPassword }: { email: string; hasPassword: b
           )
         }
       />
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------- delete account ---
+/**
+ * Deletes the account and every personal record (classes, water, weight,
+ * plans). An owner whose academy has other members must transfer it first; an
+ * academy where the owner is alone goes with the account.
+ */
+function DeleteAccountSection({ avatarPath }: { avatarPath: string | null }) {
+  const remove = useDeleteAccount();
+  const confirm = useConfirm();
+  const ask = async () => {
+    const ok = await confirm({
+      title: 'Excluir sua conta?',
+      message:
+        'Seu perfil, suas aulas, registros de água, peso e planos são apagados para sempre. Academias em que você é o único membro também são apagadas. Isso não pode ser desfeito.',
+      confirmLabel: 'Excluir conta',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    // Success signs out: the root guard takes the user to the start screen.
+    remove.mutate(avatarPath, { onError: (e) => Alert.alert('Excluir conta', errorMessage(e)) });
+  };
+  return (
+    <Box gap="s12">
+      <Text variant="captionCaps">Excluir conta</Text>
+      <Text variant="body" color="textMuted">
+        Apaga sua conta e todos os seus dados. Se você é proprietário de uma academia com outros membros, transfira a
+        academia antes.
+      </Text>
+      <TextButton title="Excluir conta" color="danger" disabled={remove.isPending} onPress={ask} />
     </Box>
   );
 }

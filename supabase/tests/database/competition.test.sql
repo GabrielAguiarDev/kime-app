@@ -135,13 +135,13 @@ select lives_ok(
 select throws_ok(
   $$ insert into public.weight_logs (athlete_id, logged_on, weight_kg) values (pg_temp.id('s'), current_date, 79) $$,
   '23505', null, 'one weigh-in per day');
-select is((select weight_kg from public.profiles where id = pg_temp.id('s')),
+select is((select weight_kg from public.get_profile_details(pg_temp.id('s'))),
   79.80::numeric(5, 2), 'the latest weigh-in becomes the profile weight');
 update public.weight_logs set weight_kg = 79.5 where athlete_id = pg_temp.id('s') and logged_on = current_date;
-select is((select weight_kg from public.profiles where id = pg_temp.id('s')),
+select is((select weight_kg from public.get_profile_details(pg_temp.id('s'))),
   79.50::numeric(5, 2), 'correcting the latest weigh-in updates the profile');
 delete from public.weight_logs where athlete_id = pg_temp.id('s') and logged_on = current_date;
-select is((select weight_kg from public.profiles where id = pg_temp.id('s')),
+select is((select weight_kg from public.get_profile_details(pg_temp.id('s'))),
   80.40::numeric(5, 2), 'deleting the latest weigh-in falls back to the previous one');
 
 select pg_temp.login(pg_temp.id('i'));

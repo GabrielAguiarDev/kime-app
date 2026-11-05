@@ -1007,6 +1007,16 @@ export type Database = {
           id: string
         }[]
       }
+      delete_my_account: { Args: never; Returns: undefined }
+      get_profile_details: {
+        Args: { p_user_id: string }
+        Returns: {
+          birth_date: string
+          height_cm: number
+          sex: string
+          weight_kg: number
+        }[]
+      }
       invite_competitor: {
         Args: { p_membership_id: string }
         Returns: undefined

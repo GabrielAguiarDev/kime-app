@@ -2,6 +2,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 
 import { profileService } from '@domain/Profile';
+import { profileApi } from '@domain/Profile/profileApi';
 
 import { authApi } from './authApi';
 import { normalizeEmail } from './authRules';
@@ -110,6 +111,20 @@ async function signOut(): Promise<void> {
   }
 }
 
+/**
+ * Account deletion. The profile photo is removed right after (best effort, the
+ * token is still valid then); an academy deleted with the account may leave
+ * its logo in the public bucket.
+ */
+async function deleteAccount(avatarPath: string | null): Promise<void> {
+  try {
+    await authApi.deleteAccount();
+  } catch (e) {
+    throw toAppError(e);
+  }
+  if (avatarPath) await profileApi.removeAvatarFile(avatarPath).catch(() => undefined);
+}
+
 async function requestEmailChange(newEmail: string): Promise<void> {
   try {
     await authApi.requestEmailChange(normalizeEmail(newEmail));
@@ -156,6 +171,7 @@ export const authService = {
   resendSignUpCode,
   signInWithApple,
   signOut,
+  deleteAccount,
   requestEmailChange,
   verifyEmailChange,
   changePassword,

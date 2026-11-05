@@ -28,7 +28,7 @@ insert into auth.users (id, email) values
 select pg_temp.login('40000000-0000-0000-0000-000000000001');
 update public.profiles set sex = 'female', birth_date = '1990-03-15', weight_kg = 70, height_cm = 170
 where id = '40000000-0000-0000-0000-000000000001';
-select is((select sex || '/' || birth_date::text from public.profiles where id = '40000000-0000-0000-0000-000000000001'),
+select is((select sex || '/' || birth_date::text from public.get_profile_details('40000000-0000-0000-0000-000000000001')),
   'female/1990-03-15', 'user saves own sex and birth date');
 select throws_ok($$ update public.profiles set sex = 'robot' where id = '40000000-0000-0000-0000-000000000001' $$,
   '23514', null, 'sex accepts only the known values');

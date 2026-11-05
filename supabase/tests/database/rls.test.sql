@@ -380,7 +380,8 @@ select pg_temp.login(pg_temp.id('t1'));
 select lives_ok(
   $$ update public.profiles set weight_kg = 70.5, height_cm = 175, bottle_ml = 750 where id = pg_temp.id('t1') $$,
   'user sets own weight, height and bottle');
-select is((select weight_kg::text || '/' || height_cm::text || '/' || bottle_ml from public.profiles where id = pg_temp.id('t1')),
+select is((select d.weight_kg::text || '/' || d.height_cm::text || '/' || p.bottle_ml
+           from public.profiles p, public.get_profile_details(p.id) d where p.id = pg_temp.id('t1')),
   '70.50/175.0/750', 'water setup saved');
 select throws_ok(
   $$ update public.profiles set bottle_ml = 20 where id = pg_temp.id('t1') $$,

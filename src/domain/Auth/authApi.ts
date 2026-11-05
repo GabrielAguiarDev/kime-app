@@ -43,6 +43,17 @@ async function signOut() {
   }
 }
 
+/**
+ * Deletes the account and everything personal (delete_my_account). Fails with
+ * owner_must_transfer while the user owns an academy with other members.
+ * The server session is gone with the user: only the local one is dropped.
+ */
+async function deleteAccount() {
+  const { error } = await supabase.rpc('delete_my_account');
+  if (error) throw error;
+  await supabase.auth.signOut({ scope: 'local' });
+}
+
 /** Starts an e-mail change: the new address receives a 6-digit code. */
 async function requestEmailChange(newEmail: string) {
   const { error } = await supabase.auth.updateUser({ email: newEmail });
@@ -77,6 +88,7 @@ export const authApi = {
   resendSignUpCode,
   signInWithIdToken,
   signOut,
+  deleteAccount,
   requestEmailChange,
   verifyEmailChange,
   getUser,
