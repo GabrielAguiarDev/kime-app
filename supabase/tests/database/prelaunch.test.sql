@@ -8,7 +8,7 @@ create extension if not exists pgtap with schema extensions;
 select set_config('search_path', concat_ws(',',
   (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
   'public', 'extensions'), true);
-select plan(21);
+select plan(23);
 
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -121,6 +121,8 @@ insert into public.memberships (academy_id, user_id, role, status) values
 select pg_temp.login(pg_temp.id('o'));
 select throws_ok($$ select public.delete_my_account() $$,
   '23514', 'owner_must_transfer', 'an owner with active members must transfer first');
+select throws_ok($$ select * from public.account_deletion_academies() $$,
+  '23514', 'owner_must_transfer', 'the pre-check says the same');
 
 select pg_temp.login(pg_temp.id('s'));
 select lives_ok($$ select public.delete_my_account() $$, 'a student deletes their account');
@@ -140,6 +142,8 @@ insert into public.memberships (academy_id, user_id, role, status) values
   (pg_temp.id('a2'), pg_temp.id('x'), 'student', 'pending');
 
 select pg_temp.login(pg_temp.id('o2'));
+select is((select array_agg(academy_id) from public.account_deletion_academies()),
+  array[pg_temp.id('a2')], 'the pre-check lists the academy that goes with the account');
 select lives_ok($$ select public.delete_my_account() $$,
   'an owner alone in their academy deletes the account (pending requests do not block)');
 select pg_temp.logout();

@@ -113,8 +113,7 @@ async function signOut(): Promise<void> {
 
 /**
  * Account deletion. The profile photo is removed right after (best effort, the
- * token is still valid then); an academy deleted with the account may leave
- * its logo in the public bucket.
+ * token is still valid then). Academy logos are removed before (authApi).
  */
 async function deleteAccount(avatarPath: string | null): Promise<void> {
   try {

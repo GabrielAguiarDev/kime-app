@@ -7,7 +7,14 @@ import {
   useModalityStats,
   useSchedules,
 } from '@domain/Classes';
-import { planClassReminders, planSignature } from '@domain/Reminders/reminderRules';
+import { Platform } from 'react-native';
+
+import {
+  MAX_REMINDERS_ANDROID,
+  MAX_REMINDERS_IOS,
+  planClassReminders,
+  planSignature,
+} from '@domain/Reminders/reminderRules';
 import { keyValueStorage } from '@infra';
 import {
   cancelScheduledNotifications,
@@ -64,7 +71,7 @@ export function useClassReminderSetting() {
 /**
  * Root: keeps the scheduled reminders in step with the active academy's
  * classes — 1 h before each class of the modalities the student trains, the
- * next 7 days, re-planned when the data changes (React Query refetches the
+ * next 30 days (iOS: at most 60 pending), re-planned when the data changes (React Query refetches the
  * academy's "today" and schedules when the app comes back to the foreground).
  * Everything is cancelled when the switch is off, for staff, or signed out.
  */
@@ -93,6 +100,7 @@ export function useClassReminders() {
           academyName: active.gymName,
           modalityIds,
           now: new Date(),
+          max: Platform.OS === 'ios' ? MAX_REMINDERS_IOS : MAX_REMINDERS_ANDROID,
         })
       : null;
   const signature = plan ? planSignature(plan) : null;

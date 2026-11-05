@@ -1,3 +1,4 @@
+import { LOGO_BUCKET } from '@domain/Gym/gymApi';
 import { supabase } from '@infra/supabase';
 
 import type { SignInInput, SignUpInput } from './authTypes';
@@ -44,11 +45,25 @@ async function signOut() {
 }
 
 /**
- * Deletes the account and everything personal (delete_my_account). Fails with
- * owner_must_transfer while the user owns an academy with other members.
+ * Deletes the account and everything personal (delete_my_account), and the
+ * logos of the academies deleted with it. Fails with owner_must_transfer
+ * while the user owns an academy with other members (nothing is deleted then).
  * The server session is gone with the user: only the local one is dropped.
  */
 async function deleteAccount() {
+  // 1. Which academies go with the account (raises owner_must_transfer first).
+  const academies = await supabase.rpc('account_deletion_academies');
+  if (academies.error) throw academies.error;
+  // 2. Their logo files, while the user is still the owner (SQL cannot delete storage files).
+  for (const { academy_id } of academies.data) {
+    const listed = await supabase.storage.from(LOGO_BUCKET).list(academy_id);
+    if (listed.error) throw listed.error;
+    if (listed.data.length > 0) {
+      const removed = await supabase.storage.from(LOGO_BUCKET).remove(listed.data.map((f) => `${academy_id}/${f.name}`));
+      if (removed.error) throw removed.error;
+    }
+  }
+  // 3. The account (and those academies).
   const { error } = await supabase.rpc('delete_my_account');
   if (error) throw error;
   await supabase.auth.signOut({ scope: 'local' });
