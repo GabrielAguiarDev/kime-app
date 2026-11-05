@@ -1,11 +1,11 @@
 import { useKeepAwake } from 'expo-keep-awake';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Box, Button, Icon, Text, type IconName } from '@components';
+import { Box, Button, ConfirmSheet, Icon, Text, type IconName } from '@components';
 import { formatClock, type TimerState } from '@domain/Timer';
-import { useConfirm } from '@services/confirm';
 import { pauseTimer, resumeTimer, skipTimer, stopTimer, useTimerSession, type TimerSession } from '@services/timer';
 import { useAppTheme, type ColorToken } from '@theme';
 import { haptics } from '@utils/haptics';
@@ -54,8 +54,10 @@ function nextLabel(session: TimerSession): string | null {
 export function TimerRunScreen() {
   useKeepAwake();
   const session = useTimerSession();
-  const confirm = useConfirm();
   const { colors } = useAppTheme();
+  // Local sheet: the app-wide one (useConfirm) lives under this full-screen
+  // modal, and iOS cannot present it from there.
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/timer'));
 
@@ -75,18 +77,14 @@ export function TimerRunScreen() {
   const look = lookOf(state, paused);
   const done = state.phase === 'done';
 
-  const end = async () => {
-    if (!done) {
-      const ok = await confirm({
-        title: 'Encerrar o timer?',
-        message: 'O treino em andamento para aqui.',
-        confirmLabel: 'Encerrar',
-        tone: 'danger',
-      });
-      if (!ok) return;
-    }
+  const finish = async () => {
+    setConfirmingEnd(false);
     await stopTimer();
     close();
+  };
+  const end = () => {
+    if (done) void finish();
+    else setConfirmingEnd(true);
   };
 
   return (
@@ -97,7 +95,7 @@ export function TimerRunScreen() {
           <Text variant="heading" color={look.fg} flex={1} numberOfLines={1}>
             {session.title}
           </Text>
-          <RoundButton icon="missed" label={done ? 'Fechar' : 'Encerrar timer'} color={look.fg} onPress={() => void end()} />
+          <RoundButton icon="missed" label={done ? 'Fechar' : 'Encerrar timer'} color={look.fg} onPress={end} />
         </Box>
 
         <Box flex={1} alignItems="center" justifyContent="center" gap="s8">
@@ -122,7 +120,7 @@ export function TimerRunScreen() {
         </Box>
 
         {done ? (
-          <Button title="Fechar" variant="secondary" onPress={() => void end()} />
+          <Button title="Fechar" variant="secondary" onPress={end} />
         ) : (
           <Box flexDirection="row" alignItems="center" justifyContent="space-evenly">
             <RoundButton icon="skipBack" label="Fase anterior" color={look.fg} onPress={() => skipTimer(-1)} />
@@ -141,6 +139,15 @@ export function TimerRunScreen() {
           </Box>
         )}
       </Box>
+      <ConfirmSheet
+        visible={confirmingEnd}
+        title="Encerrar o timer?"
+        message="O treino em andamento para aqui."
+        confirmLabel="Encerrar"
+        tone="danger"
+        onConfirm={() => void finish()}
+        onCancel={() => setConfirmingEnd(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -176,7 +183,7 @@ function RoundButton({
         justifyContent: 'center',
       })}
     >
-      <Icon name={icon} color={color} active size={big ? size.icon * 2 : size.icon} />
+      <Icon name={icon} color={color} active={big} size={big ? size.icon * 2 : size.icon} />
     </Pressable>
   );
 }
