@@ -26,6 +26,10 @@ const ScopedKeys = {
   waterGoalRecorded: 'kimi.waterGoalRecorded.v1',
   /** Streak records already celebrated (JSON {water, training}), per user (+ academy for training). */
   streakRecords: 'kimi.streakRecords.v1',
+  /** Class reminders switched on on this device ('on'), per user. */
+  classReminders: 'kimi.classReminders.v1',
+  /** Signature of the reminders last scheduled, per user (skip rescheduling when unchanged). */
+  classRemindersPlan: 'kimi.classRemindersPlan.v1',
 } as const;
 
 type ScopedKey = keyof typeof ScopedKeys;
@@ -39,4 +43,7 @@ export const keyValueStorage = {
   },
   getScoped: (key: ScopedKey, scope: string): string | null => Storage.getItemSync(scoped(key, scope)),
   setScoped: (key: ScopedKey, scope: string, value: string): void => Storage.setItemSync(scoped(key, scope), value),
+  removeScoped: (key: ScopedKey, scope: string): void => {
+    Storage.removeItemSync(scoped(key, scope));
+  },
 };

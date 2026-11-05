@@ -263,6 +263,12 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - **Recorde:** folha "Novo recorde." na Início (água primeiro, depois treino), uma vez por recorde novo ≥ 3; a primeira leitura só grava a base (o histórico não é comemorado). kv-store `streakRecords` por usuário (e academia no treino).
   - Ícones novos: `freeze` (Snowflake), `missed` (X), `open` (Circle).
 
+- [x] 9. Lembretes de aula (backlog, 2026-11-04). Decisão do usuário: notificação LOCAL (agendada no aparelho), 1 h antes de cada aula.
+  - `expo-notifications` 58.1.8; plugin com `enableRemoteNotifications: false` (sem entitlement de push). **Exige build novo.** Sem o módulo nativo (build antigo, Jest) a biblioteca nem é carregada (`requireOptionalNativeModule('ExpoNotificationScheduler')`) e o switch aparece desligado com "Disponível depois de atualizar o app".
+  - Regra pura `src/domain/Reminders/reminderRules.ts` (testada): próximos 7 dias do calendário da academia, só as aulas das modalidades que o aluno treina (`trainedModalities`; sem histórico, todas), `zonedTime` converte o horário da academia (fuso fixo `America/Sao_Paulo`) para o instante certo seja qual for o fuso do aparelho; no máximo 50 (o iOS guarda 64). Texto: "Aula em 1 hora" / "Jiu-Jitsu às 19:00 na {academia}."
+  - `useClassReminders` (raiz): reagenda tudo (cancel all + schedule) só quando a assinatura do plano muda (kv-store `classRemindersPlan` por usuário); cancela com o switch desligado, para staff e ao sair. `useClassReminderSetting`: switch em Perfil → Notificações (alunos), opt-in por aparelho; pede a permissão ao ligar; negada → alerta com "Abrir Ajustes".
+  - Limitação: o plano é refeito quando o app abre/volta; quem não abre o app por mais de 7 dias para de receber até abrir de novo.
+
 ## Backlog (depois da Fase 6)
 
 Ideias registradas pelo usuário em 2026-11-04. **Não implementar agora**: seguimos com as fases planejadas (4 → 6).

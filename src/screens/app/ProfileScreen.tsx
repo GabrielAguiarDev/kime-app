@@ -22,6 +22,7 @@ import { useSignOut } from '@domain/Auth';
 import { activeMemberships, membershipLabel, useLeaveGym, type Membership } from '@domain/Membership';
 import { useAvatarMutations, useMyProfile } from '@domain/Profile';
 import { errorMessage } from '@infra';
+import { ClassReminderSwitch } from '@screens/reminders/ClassReminderSwitch';
 import { useActiveGym } from '@services/activeGym';
 import { SIGN_OUT_CONFIRM, useConfirm } from '@services/confirm';
 import { useJoinRequestNotices } from '@services/joinRequests';
@@ -136,6 +137,12 @@ export function ProfileScreen() {
             {isOwner ? (
               <ManageCard title="Modalidades" icon="belt" onPress={() => router.push('/academy/modalities')} />
             ) : null}
+          </Section>
+        ) : null}
+
+        {!isStaff && active ? (
+          <Section title="Notificações">
+            <ClassReminderSwitch />
           </Section>
         ) : null}
 
