@@ -269,6 +269,13 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - `useClassReminders` (raiz): reagenda tudo (cancel all + schedule) só quando a assinatura do plano muda (kv-store `classRemindersPlan` por usuário); cancela com o switch desligado, para staff e ao sair. `useClassReminderSetting`: switch em Perfil → Notificações (alunos), opt-in por aparelho; pede a permissão ao ligar; negada → alerta com "Abrir Ajustes".
   - Limitação: o plano é refeito quando o app abre/volta; quem não abre o app por mais de 7 dias para de receber até abrir de novo.
 
+- [x] 10. Ranking da academia (backlog, 2026-11-04). Migration `20261105000600_academy_ranking` + 11 testes (`ranking.test.sql`, 472 no total).
+  - Só aulas CONFIRMADAS, alunos ATIVOS, por mês do calendário da academia; geral ou por modalidade (`checkins.modality_id`). Empates dividem a posição (`rank`). `academy_ranking(academia, mês, modalidade?)` e `academy_ranking_champions(academia, modalidade?)` (1º lugar, empates juntos, só meses encerrados), DEFINER, para qualquer membro ativo (aluno ou staff); fora da academia → `forbidden`.
+  - `profiles.show_in_ranking` (padrão ligado): Perfil → Preferências → "Aparecer no ranking" (alunos). Desligado tira a pessoa do ranking e do histórico de campeões (é calculado na hora).
+  - **Fotos:** colegas ativos passam a ver a foto de quem aparece no ranking (`private.is_ranked_classmate` na policy do bucket `avatars`). Decisão do agente: sem isso o ranking mostraria só iniciais. Quem sai do ranking volta a ter a foto restrita.
+  - Tela `/ranking`: mês (anterior/próximo, até o atual), Geral + modalidades, top 20 e a linha do próprio aluno abaixo de "…" quando estiver mais para baixo, troféu no 1º, pódio em destaque, aviso se o aluno saiu do ranking, e "Campeões" por mês. Entradas: aba Aulas ("Ranking da academia") e Alunos (botão "Ranking", staff).
+  - Perfil: a seção "Notificações" virou "Preferências" (lembrete das aulas + ranking).
+
 ## Backlog (depois da Fase 6)
 
 Ideias registradas pelo usuário em 2026-11-04. **Não implementar agora**: seguimos com as fases planejadas (4 → 6).

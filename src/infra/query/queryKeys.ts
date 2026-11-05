@@ -28,4 +28,6 @@ export enum QueryKeys {
   AthleteWater = 'AthleteWater',
   DietDays = 'DietDays',
   WaterDays = 'WaterDays',
+  Ranking = 'Ranking',
+  RankingChampions = 'RankingChampions',
 }

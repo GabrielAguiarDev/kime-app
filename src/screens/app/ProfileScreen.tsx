@@ -22,6 +22,7 @@ import { useSignOut } from '@domain/Auth';
 import { activeMemberships, membershipLabel, useLeaveGym, type Membership } from '@domain/Membership';
 import { useAvatarMutations, useMyProfile } from '@domain/Profile';
 import { errorMessage } from '@infra';
+import { RankingSwitch } from '@screens/ranking/RankingSwitch';
 import { ClassReminderSwitch } from '@screens/reminders/ClassReminderSwitch';
 import { useActiveGym } from '@services/activeGym';
 import { SIGN_OUT_CONFIRM, useConfirm } from '@services/confirm';
@@ -141,8 +142,9 @@ export function ProfileScreen() {
         ) : null}
 
         {!isStaff && active ? (
-          <Section title="Notificações">
+          <Section title="Preferências">
             <ClassReminderSwitch />
+            <RankingSwitch />
           </Section>
         ) : null}
 
