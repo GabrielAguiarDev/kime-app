@@ -7,6 +7,7 @@ import { ArrowsDownUp } from 'phosphor-react-native/src/icons/ArrowsDownUp';
 import { Barbell } from 'phosphor-react-native/src/icons/Barbell';
 import { Camera } from 'phosphor-react-native/src/icons/Camera';
 import { CalendarBlank } from 'phosphor-react-native/src/icons/CalendarBlank';
+import { CaretDownIcon as CaretDown } from 'phosphor-react-native/src/icons/CaretDown';
 import { CaretLeft } from 'phosphor-react-native/src/icons/CaretLeft';
 import { CaretRight } from 'phosphor-react-native/src/icons/CaretRight';
 import { Check } from 'phosphor-react-native/src/icons/Check';
@@ -63,6 +64,7 @@ const ICONS = {
   dragHandle: DotsSixVertical,
   chevronRight: CaretRight,
   chevronLeft: CaretLeft,
+  chevronDown: CaretDown,
   copy: Copy,
   diet: ForkKnife,
   done: Check,
