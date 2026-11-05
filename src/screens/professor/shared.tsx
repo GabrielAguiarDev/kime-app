@@ -50,7 +50,8 @@ export function SheetForm({
 }: {
   title: string;
   children: ReactNode;
-  actions: ReactNode;
+  /** Fixed at the bottom; omit for pick-and-close lists (tap outside / drag down closes). */
+  actions?: ReactNode;
   headerAction?: SheetHeaderAction;
   /** Long forms: the body scrolls in a taller area; the actions stay fixed at the bottom. */
   tall?: boolean;
@@ -90,7 +91,7 @@ export function SheetForm({
       >
         <Box gap="s16">{children}</Box>
       </ScrollView>
-      <Box gap="s12">{actions}</Box>
+      {actions ? <Box gap="s12">{actions}</Box> : null}
     </Box>
   );
 }

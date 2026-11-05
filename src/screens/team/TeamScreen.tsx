@@ -7,7 +7,6 @@ import {
   BeltChip,
   BottomSheet,
   Box,
-  Button,
   Card,
   EmptyState,
   FilterChips,
@@ -208,11 +207,7 @@ function MembersSection({
       />
 
       <BottomSheet visible={picking} onRequestClose={() => setPicking(false)}>
-        <SheetForm
-          title="Modalidade"
-          tall
-          actions={<Button title="Fechar" variant="secondary" onPress={() => setPicking(false)} />}
-        >
+        <SheetForm title="Modalidade" tall>
           {[{ id: null, name: 'Todas as modalidades' }, ...ctx.modalities].map((m) => (
             <SelectionCard
               key={m.id ?? 'all'}
