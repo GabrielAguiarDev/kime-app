@@ -1,4 +1,4 @@
--- Round timer presets: members read, staff write.
+-- Round timer presets: members read, the owner writes (instructors only use them).
 -- Run with: supabase test db
 begin;
 set local role postgres;
@@ -6,7 +6,7 @@ create extension if not exists pgtap with schema extensions;
 select set_config('search_path', concat_ws(',',
   (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
   'public', 'extensions'), true);
-select plan(8);
+select plan(11);
 
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -25,22 +25,24 @@ grant execute on function pg_temp.id(text) to public;
 insert into auth.users (id, email, raw_user_meta_data) values
   ('a0000000-0000-0000-0000-000000000001', 'o@tp.test', '{"full_name":"Dona"}'),
   ('a0000000-0000-0000-0000-000000000002', 's@tp.test', '{"full_name":"Aluno"}'),
-  ('a0000000-0000-0000-0000-000000000003', 'x@tp.test', '{"full_name":"Fora"}');
+  ('a0000000-0000-0000-0000-000000000003', 'x@tp.test', '{"full_name":"Fora"}'),
+  ('a0000000-0000-0000-0000-000000000004', 'i@tp.test', '{"full_name":"Instrutor"}');
 insert into t_ids values
   ('o', 'a0000000-0000-0000-0000-000000000001'), ('s', 'a0000000-0000-0000-0000-000000000002'),
-  ('x', 'a0000000-0000-0000-0000-000000000003');
+  ('x', 'a0000000-0000-0000-0000-000000000003'), ('i', 'a0000000-0000-0000-0000-000000000004');
 
 select pg_temp.login(pg_temp.id('o'));
 insert into t_ids values ('a1', public.create_academy('Kimi TP', array['Muay Thai']));
 set local role postgres;
 insert into public.memberships (academy_id, user_id, role, status)
-values (pg_temp.id('a1'), pg_temp.id('s'), 'student', 'active');
+values (pg_temp.id('a1'), pg_temp.id('s'), 'student', 'active'),
+       (pg_temp.id('a1'), pg_temp.id('i'), 'instructor', 'active');
 
 select pg_temp.login(pg_temp.id('o'));
 select lives_ok(
   $$ insert into public.timer_presets (academy_id, name, rounds, round_seconds, rest_seconds, warning_seconds, created_by)
      values (pg_temp.id('a1'), 'Sparring', 4, 120, 30, 10, pg_temp.id('o')) $$,
-  'staff save a preset');
+  'the owner saves a preset');
 select throws_ok(
   $$ insert into public.timer_presets (academy_id, name, rounds, round_seconds, rest_seconds, warning_seconds, created_by)
      values (pg_temp.id('a1'), ' sparring ', 3, 60, 0, 0, pg_temp.id('o')) $$,
@@ -49,7 +51,19 @@ select throws_ok(
   $$ insert into public.timer_presets (academy_id, name, rounds, round_seconds, rest_seconds, warning_seconds, created_by)
      values (pg_temp.id('a1'), 'Errado', 3, 30, 0, 30, pg_temp.id('o')) $$,
   '23514', null, 'the warning must be shorter than the round');
-select lives_ok($$ update public.timer_presets set rounds = 5 where name = 'Sparring' $$, 'staff edit');
+select lives_ok($$ update public.timer_presets set rounds = 5 where name = 'Sparring' $$, 'the owner edits');
+select lives_ok(
+  $$ update public.timer_presets set modality_id = (select id from public.academy_modalities where academy_id = pg_temp.id('a1'))
+     where name = 'Sparring' $$,
+  'a preset can belong to a modality');
+
+select pg_temp.login(pg_temp.id('i'));
+select throws_ok(
+  $$ insert into public.timer_presets (academy_id, name, rounds, round_seconds, rest_seconds, warning_seconds, created_by)
+     values (pg_temp.id('a1'), 'Do professor', 3, 60, 0, 0, pg_temp.id('i')) $$,
+  '42501', null, 'instructors do not save presets');
+update public.timer_presets set rounds = 9;
+select is((select rounds::int from public.timer_presets where name = 'Sparring'), 5, 'nor change them');
 
 select pg_temp.login(pg_temp.id('s'));
 select is((select rounds::int from public.timer_presets where name = 'Sparring'), 5, 'members read the presets');

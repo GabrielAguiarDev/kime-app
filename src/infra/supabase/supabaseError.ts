@@ -26,6 +26,7 @@ export type AppErrorCode =
   | 'diet_copy_same_day'
   | 'owner_must_transfer'
   | 'join_cooldown'
+  | 'already_present'
   | 'modality_in_use'
   | 'belt_in_use'
   | 'modality_has_history'
@@ -123,6 +124,8 @@ export function toAppError(error: unknown): AppError {
       break;
     // Only the name uniques get the "already exists" message; others stay generic.
     case '23505':
+      if (/checkins_user_id_schedule_id_class_date_key/.test(message)) return new AppError('already_present', error);
+      if (/timer_presets_one_per_modality_idx/.test(message)) return new AppError('duplicate_name', error);
       if (/timer_presets_academy_name_idx/.test(message)) return new AppError('duplicate_name', error);
       if (/weight_logs_one_per_day/.test(message)) return new AppError('weight_day_taken', error);
       if (/academy_modalities_academy_name_idx|modality_belts_name_idx/.test(message)) {
@@ -159,6 +162,7 @@ const MESSAGES: Record<AppErrorCode, string> = {
   water_plan_invalid: 'O plano de água precisa ter os 7 dias da semana.',
   owner_must_transfer:
     'Você é proprietário de uma academia com outros membros. Transfira a academia para um professor antes de excluir a conta.',
+  already_present: 'Este aluno já está na lista desta aula.',
   join_cooldown: 'Seu pedido para esta academia foi recusado. Você pode pedir de novo 24 horas depois da resposta.',
   diet_copy_same_day: 'Escolha outro dia para copiar.',
   weight_day_taken: 'Já existe um peso registrado neste dia.',
