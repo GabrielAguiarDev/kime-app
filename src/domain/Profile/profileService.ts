@@ -40,7 +40,6 @@ async function updateBodyAndBottle(userId: string, input: BodyAndBottle): Promis
   try {
     await profileApi.updateBodyAndBottle(userId, {
       weight_kg: input.weightKg,
-      height_cm: input.heightCm,
       bottle_ml: input.bottleMl,
     });
   } catch (e) {

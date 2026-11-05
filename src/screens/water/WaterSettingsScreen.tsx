@@ -9,7 +9,6 @@ import {
   BOTTLE_MAX_ML,
   BOTTLE_MIN_ML,
   BOTTLE_PRESETS,
-  HEIGHT_RANGE_CM,
   isValidBottle,
   ML_PER_KG,
   parseDecimal,
@@ -26,8 +25,9 @@ const presetLabel = (ml: number) => `${formatMl(ml)} ml`;
 const PRESET_LABELS = BOTTLE_PRESETS.map(presetLabel);
 
 /**
- * Perfil → Água (also the widget's "Configure sua garrafa"): weight, height and
- * bottle size. The daily goal is calculated from the weight.
+ * Sua garrafa (also the widget's "Configure sua garrafa"): bottle size and
+ * weight — the same weight as Meus dados (one profile field). The daily goal is
+ * calculated from it. Height is only in Meus dados.
  */
 export function WaterSettingsScreen() {
   const { userId } = useSession();
@@ -60,20 +60,14 @@ function initialBottle(bottleMl: number | null): { choice: string | null; other:
 function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: string; onDone: () => void }) {
   const save = useUpdateBodyAndBottle(userId);
   const [weight, setWeight] = useState(profile.weightKg ? String(profile.weightKg).replace('.', ',') : '');
-  const [height, setHeight] = useState(profile.heightCm ? String(profile.heightCm).replace('.', ',') : '');
   const start = initialBottle(profile.bottleMl);
   const [choice, setChoice] = useState<string | null>(start.choice);
   const [other, setOther] = useState(start.other);
 
   const weightKg = weight.trim() ? parseDecimal(weight) : null;
-  const heightCm = height.trim() ? parseDecimal(height) : null;
   const weightError =
     weight.trim() && (weightKg === null || weightKg < WEIGHT_RANGE_KG.min || weightKg > WEIGHT_RANGE_KG.max)
       ? `Informe um peso entre ${WEIGHT_RANGE_KG.min} e ${WEIGHT_RANGE_KG.max} kg.`
-      : undefined;
-  const heightError =
-    height.trim() && (heightCm === null || heightCm < HEIGHT_RANGE_CM.min || heightCm > HEIGHT_RANGE_CM.max)
-      ? `Informe uma altura entre ${HEIGHT_RANGE_CM.min} e ${HEIGHT_RANGE_CM.max} cm.`
       : undefined;
 
   const otherMl = other.trim() ? Number(other.trim()) : NaN;
@@ -85,11 +79,11 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
       : undefined;
 
   const goal = weightError ? null : autoDailyGoalMl(weightKg);
-  const valid = !weightError && !heightError && bottleMl !== null;
+  const valid = !weightError && bottleMl !== null;
 
   const submit = () =>
     save.mutate(
-      { weightKg: weightError ? null : weightKg, heightCm: heightError ? null : heightCm, bottleMl },
+      { weightKg: weightError ? null : weightKg, bottleMl },
       {
         onSuccess: () => {
           haptics.success();
@@ -128,7 +122,7 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
         </Box>
 
         <Box gap="s12">
-          <Text variant="captionCaps">Seu corpo</Text>
+          <Text variant="captionCaps">Seu peso</Text>
           <TextField
             label="Peso"
             value={weight}
@@ -137,18 +131,11 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
             unit="kg"
             errorMessage={weightError}
           />
-          <TextField
-            label="Altura"
-            value={height}
-            onChangeText={setHeight}
-            keyboardType="decimal-pad"
-            unit="cm"
-            errorMessage={heightError}
-          />
           <Text variant="body" color="textMuted">
             {goal
               ? `Sua meta diária: ${formatMl(goal)} ml (${ML_PER_KG} ml por kg).`
-              : `Com o peso, o Kimi calcula sua meta diária (${ML_PER_KG} ml por kg).`}
+              : `Com o peso, o Kimi calcula sua meta diária (${ML_PER_KG} ml por kg).`}{' '}
+            É o mesmo peso de Meus dados.
           </Text>
         </Box>
 
