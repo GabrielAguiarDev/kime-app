@@ -23,6 +23,8 @@ export interface TimerPreset extends TimerConfig {
   id: string;
   name: string;
   builtIn: boolean;
+  /** Academy preset of a modality (Início / presence "Timer" opens it). */
+  modalityId?: string | null;
 }
 
 /** "Prepare-se" before the first round. */

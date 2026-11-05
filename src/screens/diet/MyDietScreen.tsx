@@ -54,7 +54,7 @@ function DietWeek({ userId, today, onBack }: { userId: string; today: LocalDate;
           monday={monday}
           selected={selected}
           today={today}
-          daysWithMeals={daysWithMeals(meals.data ?? [])}
+          marked={daysWithMeals(meals.data ?? [])}
           onSelect={setSelected}
           onChangeWeek={(next) => {
             setMonday(next);

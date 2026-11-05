@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Alert } from 'react-native';
 
 import {
   Avatar,
@@ -17,6 +17,7 @@ import {
   Screen,
   SelectionCard,
   Text,
+  TextButton,
 } from '@components';
 import {
   beltName,
@@ -34,10 +35,13 @@ import {
   type ModalityBelt,
   type ModalityStats,
 } from '@domain/Classes';
-import { membershipLabel, useGymMembers, type GymMember } from '@domain/Membership';
+import { membershipLabel, useGymMembers, useRemoveMembership, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { CompetitorSection } from '@screens/competition/CompetitorSection';
 import { useActiveGym } from '@services/activeGym';
+import { useConfirm } from '@services/confirm';
+import { useSession } from '@services/session';
+import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
 import { formatDate, SheetForm } from './shared';
@@ -113,6 +117,7 @@ function StaffMemberDetail({ academyId, member }: { academyId: string; member: G
             {errorMessage(stats.error)}
           </Text>
         ) : null}
+        <RemoveMemberSection member={member} />
       </Box>
     </Screen>
   );
@@ -191,6 +196,8 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
             </Card>
           ))}
         </Box>
+
+        <RemoveMemberSection member={member} />
       </Box>
 
       <BottomSheet visible={sheetOpen} onRequestClose={() => setSheetOpen(false)}>
@@ -330,5 +337,39 @@ function AwardForm({
         </Text>
       ) : null}
     </SheetForm>
+  );
+}
+
+/**
+ * "Remover da academia", at the end in its own area (owner only; never the
+ * owner nor yourself). The list in Equipe has no remove button.
+ */
+function RemoveMemberSection({ member }: { member: GymMember }) {
+  const { isOwner } = useActiveGym();
+  const { userId } = useSession();
+  const remove = useRemoveMembership();
+  const confirm = useConfirm();
+  const { border } = useAppTheme();
+  if (!isOwner || member.role === 'owner' || member.userId === userId) return null;
+
+  const ask = async () => {
+    const ok = await confirm({
+      title: 'Remover da academia?',
+      message: `${member.fullName} perde o acesso à academia. O histórico de aulas fica guardado.`,
+      confirmLabel: 'Remover',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    remove.mutate(member.id, {
+      onSuccess: () => router.back(),
+      onError: (e) => Alert.alert('Remover', errorMessage(e)),
+    });
+  };
+
+  return (
+    <Box gap="s12" marginTop="s24" paddingTop="s24" borderTopWidth={border.width} borderColor="border">
+      <Text variant="captionCaps">Ações sensíveis</Text>
+      <TextButton title="Remover da academia" color="danger" disabled={remove.isPending} onPress={ask} />
+    </Box>
   );
 }

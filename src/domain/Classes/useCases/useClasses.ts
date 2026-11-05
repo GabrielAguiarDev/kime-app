@@ -177,6 +177,34 @@ export function useDecideCheckin(academyId: string) {
   });
 }
 
+/** Staff: "Marcar presença" — confirmed attendance for a student who forgot the check-in. */
+export function useMarkAttendance(academyId: string, markedBy: string) {
+  const onSuccess = useInvalidateDecisions(academyId);
+  return useMutation({
+    mutationFn: ({ scheduleId, date, userId }: { scheduleId: string; date: LocalDate; userId: string }) =>
+      service.markAttendance(academyId, scheduleId, date, userId, markedBy),
+    onSuccess,
+  });
+}
+
+/** Staff: check-ins between two dates (week summary). */
+export function useAcademyCheckinsBetween(academyId: string | undefined, from: LocalDate | undefined, to: LocalDate | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.AcademyCheckins, academyId, from, to],
+    queryFn: () => service.listCheckinsBetween(academyId!, from!, to!),
+    enabled: !!academyId && !!from && !!to,
+  });
+}
+
+/** Staff: classes given between two dates (week summary). */
+export function useClassSessionsBetween(academyId: string | undefined, from: LocalDate | undefined, to: LocalDate | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.ClassSessions, academyId, from, to],
+    queryFn: () => service.listSessionsBetween(academyId!, from!, to!),
+    enabled: !!academyId && !!from && !!to,
+  });
+}
+
 export function useConfirmAll(academyId: string) {
   const onSuccess = useInvalidateDecisions(academyId);
   return useMutation({

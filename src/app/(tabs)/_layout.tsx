@@ -19,7 +19,8 @@ function tabIcon(name: IconName) {
  * Tabs per role:
  *  - student:    Início, Aulas, Perfil
  *  - competitor: Início, Aulas, Competição, Perfil
- *  - staff (owner or professor): Início, Alunos, Confirmações, Perfil
+ *  - staff (owner or professor): Início, Aulas, Timer, Equipe, Perfil
+ *    (check-ins are confirmed in each class's attendance list; join requests are notices).
  */
 export default function TabsLayout() {
   const { isStaff, isCompetitor } = useActiveGym();
@@ -61,30 +62,31 @@ export default function TabsLayout() {
         name="home"
         options={{ title: 'Início', tabBarAccessibilityLabel: 'Início', tabBarIcon: tabIcon('home') }}
       />
-      <Tabs.Protected guard={!isStaff}>
-        <Tabs.Screen
-          name="classes"
-          options={{ title: 'Aulas', tabBarAccessibilityLabel: 'Aulas', tabBarIcon: tabIcon('calendar') }}
-        />
-      </Tabs.Protected>
-      <Tabs.Protected guard={isCompetitor}>
+      {/* Aulas: the student's progress, or the staff's classes and attendance (same tab, screen by role). */}
+      <Tabs.Screen
+        name="classes"
+        options={{ title: 'Aulas', tabBarAccessibilityLabel: 'Aulas', tabBarIcon: tabIcon('calendar') }}
+      />
+      <Tabs.Protected guard={isCompetitor && !isStaff}>
         <Tabs.Screen
           name="competition"
           options={{ title: 'Competição', tabBarAccessibilityLabel: 'Competição', tabBarIcon: tabIcon('trophy') }}
         />
       </Tabs.Protected>
+      {/* Timer: a tab for staff; students reach it from Aulas (no tab of their own). */}
+      <Tabs.Screen
+        name="timer"
+        options={{
+          title: 'Timer',
+          tabBarAccessibilityLabel: 'Timer',
+          tabBarIcon: tabIcon('timer'),
+          href: isStaff ? undefined : null,
+        }}
+      />
       <Tabs.Protected guard={isStaff}>
         <Tabs.Screen
-          name="students"
-          options={{ title: 'Alunos', tabBarAccessibilityLabel: 'Alunos', tabBarIcon: tabIcon('users') }}
-        />
-        <Tabs.Screen
-          name="confirmations"
-          options={{
-            title: 'Confirmações',
-            tabBarAccessibilityLabel: 'Confirmações',
-            tabBarIcon: tabIcon('confirmations'),
-          }}
+          name="team"
+          options={{ title: 'Equipe', tabBarAccessibilityLabel: 'Equipe', tabBarIcon: tabIcon('users') }}
         />
       </Tabs.Protected>
       <Tabs.Screen

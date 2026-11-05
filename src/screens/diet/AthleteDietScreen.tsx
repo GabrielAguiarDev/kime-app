@@ -120,7 +120,7 @@ function DietEditor({
           monday={monday}
           selected={selected}
           today={today}
-          daysWithMeals={daysWithMeals(all.filter((m) => m.academyId === academyId))}
+          marked={daysWithMeals(all.filter((m) => m.academyId === academyId))}
           onSelect={setSelected}
           onChangeWeek={changeWeek}
         />

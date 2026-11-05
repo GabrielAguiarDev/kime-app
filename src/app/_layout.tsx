@@ -120,11 +120,11 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="dieta" options={header} />
         <Stack.Screen name="ofensivas" options={header} />
         <Stack.Screen name="ranking" options={header} />
-        <Stack.Screen name="timer/index" options={header} />
         <Stack.Screen name="timer/run" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
       </Stack.Protected>
       <Stack.Protected guard={access.staff} redirectTo={redirectTo}>
-        <Stack.Screen name="academy/schedules" options={header} />
+        <Stack.Screen name="presenca" options={header} />
+        <Stack.Screen name="pedidos" options={header} />
         <Stack.Screen name="member/[membershipId]" options={header} />
         <Stack.Screen name="academy/championships" options={header} />
         <Stack.Screen name="academy/championship" options={header} />
@@ -134,6 +134,8 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
       </Stack.Protected>
       <Stack.Protected guard={access.owner} redirectTo={redirectTo}>
         <Stack.Screen name="academy/settings" options={header} />
+        <Stack.Screen name="academy/schedules" options={header} />
+        <Stack.Screen name="convites" options={header} />
         <Stack.Screen name="academy/modalities" options={header} />
         <Stack.Screen name="academy/belts" options={header} />
         <Stack.Screen name="academy/belts-order" options={header} />

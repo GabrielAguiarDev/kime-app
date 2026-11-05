@@ -26,7 +26,6 @@ import { useConfirm } from '@services/confirm';
 import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
-import { InviteCodesSection } from './InviteCodes';
 import { SheetForm } from './shared';
 
 /**
@@ -62,7 +61,6 @@ export function AcademySettingsScreen() {
             logoPath={settings.data.logoPath}
           />
           <NameSection key={settings.data.name} gymId={active.gymId} name={settings.data.name} />
-          <InviteCodesSection gymId={active.gymId} gymName={active.gymName} />
           <SensitiveSection gymId={active.gymId} gymName={active.gymName} />
         </Box>
       ) : null}
