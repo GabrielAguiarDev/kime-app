@@ -7,6 +7,7 @@ import {
   BeltChip,
   BottomSheet,
   Box,
+  Button,
   Card,
   EmptyState,
   FilterChips,
@@ -14,6 +15,7 @@ import {
   Icon,
   LoadError,
   Screen,
+  SelectionCard,
   Text,
   TextField,
 } from '@components';
@@ -28,6 +30,7 @@ import {
   type ModalityStats,
 } from '@domain/Classes';
 import { membershipLabel, splitMembers, useGymMembers, usePendingRequests, type GymMember } from '@domain/Membership';
+import { SheetForm } from '@screens/professor/shared';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 
@@ -174,20 +177,26 @@ function MembersSection({
     trainedModalities(ctx.modalities, ctx.stats.filter((s) => s.membershipId === m.id)).some((x) => x.id === modality);
   const shownStudents = students.filter((m) => (!onlyCompetitors || m.isCompetitor) && trains(m));
   const filtering = !!modality || onlyCompetitors;
+  const selectedModality = ctx.modalities.find((m) => m.id === modality) ?? null;
+  const [picking, setPicking] = useState(false);
 
   return (
     <Box gap="s24">
-      {/* One compact row; tapping a selected chip clears it. */}
+      {/* Always two chips, however many modalities: the list opens in a sheet. */}
       <FilterChips
         accessibilityLabel="Filtros"
         chips={[
           ...(ctx.modalities.length > 1
-            ? ctx.modalities.map((m) => ({
-                key: m.id,
-                label: m.name,
-                selected: modality === m.id,
-                onPress: () => onModality(modality === m.id ? null : m.id),
-              }))
+            ? [
+                {
+                  key: 'modality',
+                  label: selectedModality?.name ?? 'Todas as modalidades',
+                  selected: !!selectedModality,
+                  icon: 'chevronDown' as const,
+                  accessibilityLabel: `Modalidade: ${selectedModality?.name ?? 'todas'}. Trocar`,
+                  onPress: () => setPicking(true),
+                },
+              ]
             : []),
           {
             key: 'competitors',
@@ -197,6 +206,26 @@ function MembersSection({
           },
         ]}
       />
+
+      <BottomSheet visible={picking} onRequestClose={() => setPicking(false)}>
+        <SheetForm
+          title="Modalidade"
+          tall
+          actions={<Button title="Fechar" variant="secondary" onPress={() => setPicking(false)} />}
+        >
+          {[{ id: null, name: 'Todas as modalidades' }, ...ctx.modalities].map((m) => (
+            <SelectionCard
+              key={m.id ?? 'all'}
+              label={m.name}
+              selected={modality === m.id}
+              onPress={() => {
+                onModality(m.id);
+                setPicking(false);
+              }}
+            />
+          ))}
+        </SheetForm>
+      </BottomSheet>
 
       {!filtering ? (
         <Box gap="s8">
