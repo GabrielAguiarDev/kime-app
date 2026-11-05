@@ -85,8 +85,8 @@ export function CompetitorSection({ member }: { member: GymMember }) {
     <Section title="Equipe de competição">
       <Box gap="s12">
         <Text variant="body" color="textMuted">
-          Na equipe, o aluno recebe campeonatos, plano de água e dieta. Ao aceitar o convite, ele autoriza você a ver o
-          peso e os registros de água dele.
+          Na equipe, o aluno recebe campeonatos, plano de água e dieta. O convite chega no app dele e ele precisa
+          aceitar para entrar. Ao aceitar, ele autoriza você a ver o peso e os registros de água dele.
         </Text>
         <Button
           title="Convidar para a equipe"
