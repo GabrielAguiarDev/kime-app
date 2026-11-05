@@ -255,6 +255,7 @@ export type Database = {
           class_date: string
           created_at: string
           id: string
+          marked_by: string | null
           modality_id: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -268,6 +269,7 @@ export type Database = {
           class_date: string
           created_at?: string
           id?: string
+          marked_by?: string | null
           modality_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -281,6 +283,7 @@ export type Database = {
           class_date?: string
           created_at?: string
           id?: string
+          marked_by?: string | null
           modality_id?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -295,6 +298,13 @@ export type Database = {
             columns: ["academy_id"]
             isOneToOne: false
             referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkins_marked_by_fkey"
+            columns: ["marked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -767,6 +777,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          modality_id: string | null
           name: string
           rest_seconds: number
           round_seconds: number
@@ -779,6 +790,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          modality_id?: string | null
           name: string
           rest_seconds: number
           round_seconds: number
@@ -791,6 +803,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          modality_id?: string | null
           name?: string
           rest_seconds?: number
           round_seconds?: number
@@ -812,6 +825,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timer_presets_modality_id_fkey"
+            columns: ["modality_id"]
+            isOneToOne: false
+            referencedRelation: "academy_modalities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timer_presets_modality_id_fkey"
+            columns: ["modality_id"]
+            isOneToOne: false
+            referencedRelation: "modality_class_stats"
+            referencedColumns: ["modality_id"]
           },
         ]
       }
