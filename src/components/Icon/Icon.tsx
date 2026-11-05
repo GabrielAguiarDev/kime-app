@@ -10,6 +10,7 @@ import { CalendarBlank } from 'phosphor-react-native/src/icons/CalendarBlank';
 import { CaretLeft } from 'phosphor-react-native/src/icons/CaretLeft';
 import { CaretRight } from 'phosphor-react-native/src/icons/CaretRight';
 import { Check } from 'phosphor-react-native/src/icons/Check';
+import { CircleIcon as Circle } from 'phosphor-react-native/src/icons/Circle';
 import { CheckCircle } from 'phosphor-react-native/src/icons/CheckCircle';
 import { Checks } from 'phosphor-react-native/src/icons/Checks';
 import { Clock } from 'phosphor-react-native/src/icons/Clock';
@@ -34,12 +35,14 @@ import { PencilSimple } from 'phosphor-react-native/src/icons/PencilSimple';
 import { Plus } from 'phosphor-react-native/src/icons/Plus';
 import { Prohibit } from 'phosphor-react-native/src/icons/Prohibit';
 import { ShareNetwork } from 'phosphor-react-native/src/icons/ShareNetwork';
+import { Snowflake } from 'phosphor-react-native/src/icons/Snowflake';
 import { Sun } from 'phosphor-react-native/src/icons/Sun';
 import { Trash } from 'phosphor-react-native/src/icons/Trash';
 import { Trophy } from 'phosphor-react-native/src/icons/Trophy';
 import { User } from 'phosphor-react-native/src/icons/User';
 import { Users } from 'phosphor-react-native/src/icons/Users';
 import { Warning } from 'phosphor-react-native/src/icons/Warning';
+import { X } from 'phosphor-react-native/src/icons/X';
 import { XCircle } from 'phosphor-react-native/src/icons/XCircle';
 
 import { useAppTheme, type ColorToken } from '@theme';
@@ -60,6 +63,9 @@ const ICONS = {
   done: Check,
   edit: PencilSimple,
   flame: Fire,
+  freeze: Snowflake,
+  missed: X,
+  open: Circle,
   locked: Lock,
   plus: Plus,
   deactivate: Prohibit,

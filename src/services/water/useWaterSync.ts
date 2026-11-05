@@ -16,7 +16,12 @@ export function useWaterSync() {
 
   useEffect(() => {
     if (!userId) return;
-    const refresh = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterToday, userId] });
+    const refresh = () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterToday, userId] }),
+        // The water streak reads the server totals.
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterDays, userId] }),
+      ]);
     const sync = () => {
       void refresh();
       waterService

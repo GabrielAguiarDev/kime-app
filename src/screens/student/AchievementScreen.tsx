@@ -5,13 +5,13 @@ import { BELT_COLOR_TOKEN, Box, Button, Mascot, Screen, Text } from '@components
 import {
   beltName,
   beltNeedsDarkText,
-  checkinStreak,
   isBeltColorKey,
   useAcademyToday,
   useMemberStats,
   useMyCheckins,
   type BeltLook,
 } from '@domain/Classes';
+import { trainingStreak } from '@domain/Streaks';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 import { useAppTheme, type ColorToken } from '@theme';
@@ -34,7 +34,12 @@ export function AchievementScreen() {
 
   const own = stats.data?.find((s) => s.userId === userId);
   const total = own?.confirmedTotal ?? Number(value ?? 0);
-  const streak = today.data ? checkinStreak(checkins.data ?? [], today.data) : 0;
+  const streak = today.data
+    ? trainingStreak(
+        (checkins.data ?? []).filter((c) => c.status === 'confirmed').map((c) => c.classDate),
+        today.data,
+      ).current
+    : 0;
   const belt: BeltLook | null =
     kind === 'belt' && isBeltColorKey(beltPrimary)
       ? { primary: beltPrimary, tip: isBeltColorKey(beltTip) ? beltTip : null }

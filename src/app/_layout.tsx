@@ -18,7 +18,7 @@ import { useCountdownWidget } from "@services/competition";
 import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
 import { ConfirmProvider } from "@services/confirm";
 import { useConsumePendingCode } from "@services/entry";
-import { useWaterSync, useWidgetConfig } from "@services/water";
+import { useRecordWaterGoal, useWaterSync, useWidgetConfig } from "@services/water";
 import { SessionProvider, useSession } from "@services/session";
 import { fontAssets, useSchemeTheme } from "@theme";
 
@@ -82,6 +82,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   useWaterSync();
   useWidgetConfig();
   useCountdownWidget();
+  useRecordWaterGoal();
 
   // Gate only the boot. After that the Stack stays mounted; screens show their
   // own loading state (e.g. memberships loading right after sign-in).
@@ -115,6 +116,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="agua/configurar" options={header} />
         <Stack.Screen name="conta/dados" options={header} />
         <Stack.Screen name="dieta" options={header} />
+        <Stack.Screen name="ofensivas" options={header} />
       </Stack.Protected>
       <Stack.Protected guard={access.staff} redirectTo={redirectTo}>
         <Stack.Screen name="academy/schedules" options={header} />

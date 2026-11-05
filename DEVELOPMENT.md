@@ -1,7 +1,7 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: Fase 7 (pré-lançamento) — 2026-11-04
+> Última atualização: Backlog — ofensivas — 2026-11-04
 
 ## 1. Visão geral
 
@@ -254,6 +254,14 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - **Dados do corpo** (peso, altura, sexo, nascimento): o cliente não lê mais essas colunas de `profiles` (grant só nas colunas públicas). `get_profile_details(user)` devolve para o próprio usuário ou para staff de academia em que ele é COMPETIDOR (aceitou o convite); senão, zero linhas. `profileApi.getById` junta as duas leituras (campos nulos quando não pode ler). Escrita continua igual.
   - **Pedido recusado:** `request_join` recusa com `join_cooldown` por 24 h depois da decisão (o código de professor não é gasto).
   - **Limite no `lookup_invite_code`** (anônimo): 20 consultas SEM resultado por IP em 15 min → `rate_limited`. IP de `cf-connecting-ip` / `x-real-ip` / primeiro `x-forwarded-for`; sem cabeçalhos (SQL, testes) não limita. Tabela `private.code_lookup_failures` (limpa as do IP com mais de 1 dia a cada falha). A função virou VOLATILE.
+
+- [x] 8. Ofensivas (backlog, 2026-11-04). Decisões do usuário: congelamento POR CONQUISTA (1 a cada 7 dias seguidos de água / 4 semanas seguidas de treino, no máximo 2 de cada, usado sozinho); lembretes = notificação local 1 h antes de cada aula (item seguinte).
+  - **Regra** (`src/domain/Streaks/streakRules.ts`, testada): calculada SÓ do histórico (`computeStreak`), sem estado guardado: mesmo resultado em qualquer aparelho. Do primeiro período cumprido até o atual: cumprido soma (e a cada N ganha congelamento); perdido gasta um congelamento ("congelado", a ofensiva mantém o valor) ou zera; o período ATUAL nunca quebra enquanto não terminou. Recorde = maior sequência.
+  - **Água** (diária, todos): o dia conta quando o total chega à meta DAQUELE dia. Migration `20261105000500_water_streak`: `water_goal_days` (o app grava a meta do dia, `useRecordWaterGoal` na raiz, uma vez por dia+valor via kv-store) e `my_water_days()` (total por dia no fuso do perfil + meta do dia, senão a última anterior, senão a primeira). O app junta com os totais do aparelho (`waterService.localDayTotals`, inclui widget/não sincronizados; vence o maior). Sem peso (meta nula) o dia não conta. Enquanto o histórico do servidor não chega, a ofensiva fica nula (não mostra valor errado).
+  - **Treino** (semanal, alunos, por academia): semana com aula confirmada; substituiu `checkinStreak` na barra da Início e na tela de conquista.
+  - **Telas:** `/ofensivas` (cards Água e Treino: chama acesa = período cumprido, contorno = ainda falta, apagada = sem ofensiva; últimos 7 dias/semanas com chama / gelo / X / círculo; congelamentos guardados; recorde; explicação). A chama da barra da Início abre `/ofensivas`; na tela de Água, "N dias seguidos" abaixo do anel.
+  - **Recorde:** folha "Novo recorde." na Início (água primeiro, depois treino), uma vez por recorde novo ≥ 3; a primeira leitura só grava a base (o histórico não é comemorado). kv-store `streakRecords` por usuário (e academia no treino).
+  - Ícones novos: `freeze` (Snowflake), `missed` (X), `open` (Circle).
 
 ## Backlog (depois da Fase 6)
 

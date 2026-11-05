@@ -11,6 +11,7 @@ import { formatMl } from '@screens/water/format';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 import { useJoinRequestNotices } from '@services/joinRequests';
+import { useStreakRecords } from '@services/streaks';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
 
 export function HomeScreen() {
@@ -23,6 +24,7 @@ export function HomeScreen() {
   const { settings: waterSettings } = useWaterSettings();
   const { data: water } = useWaterDay(userId, waterSettings?.timeZone);
   const goalFeedback = useWaterGoalFeedback(userId, water?.date, water?.totalMl, waterSettings?.goalMl);
+  const record = useStreakRecords();
 
   return (
     <Screen
@@ -53,6 +55,22 @@ export function HomeScreen() {
             message={`${formatMl(water.totalMl)} ml hoje.`}
             actionLabel="Continuar"
             onAction={goalFeedback.dismiss}
+          />
+        ) : record.notice ? (
+          <FeedbackSheet
+            tone="accent"
+            icon="flame"
+            title="Novo recorde."
+            message={
+              record.notice.kind === 'water'
+                ? `${record.notice.count} dias seguidos batendo a meta de água.`
+                : `${record.notice.count} semanas seguidas treinando.`
+            }
+            actionLabel="Ver ofensivas"
+            onAction={() => {
+              record.dismiss();
+              router.push('/ofensivas');
+            }}
           />
         ) : rejection.notice ? (
           <FeedbackSheet
