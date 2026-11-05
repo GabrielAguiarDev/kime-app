@@ -37,6 +37,8 @@ import {
 } from '@domain/Classes';
 import { membershipLabel, useGymMembers, useRemoveMembership, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
+import { StudentModalityEnrollments } from '@screens/ranking/StudentModalityEnrollments';
+import { StudentClassEnrollments } from '@screens/ranking/StudentClassEnrollments';
 import { CompetitorSection } from '@screens/competition/CompetitorSection';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
@@ -175,6 +177,10 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
             stats={own.find((s) => s.modalityId === selected.id)}
           />
         ) : null}
+
+        <StudentModalityEnrollments academyId={academyId} membershipId={member.id} />
+
+        <StudentClassEnrollments academyId={academyId} membershipId={member.id} />
 
         <CompetitorSection member={member} />
 

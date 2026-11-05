@@ -250,100 +250,135 @@ export type Database = {
         ]
       }
       checkins: {
-        Row: {
-          academy_id: string
-          class_date: string
-          created_at: string
-          id: string
-          marked_by: string | null
-          modality_id: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          schedule_id: string | null
-          status: Database["public"]["Enums"]["checkin_status"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          academy_id: string
-          class_date: string
-          created_at?: string
-          id?: string
-          marked_by?: string | null
-          modality_id?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          schedule_id?: string | null
-          status?: Database["public"]["Enums"]["checkin_status"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          academy_id?: string
-          class_date?: string
-          created_at?: string
-          id?: string
-          marked_by?: string | null
-          modality_id?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          schedule_id?: string | null
-          status?: Database["public"]["Enums"]["checkin_status"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "checkins_academy_id_fkey"
-            columns: ["academy_id"]
-            isOneToOne: false
-            referencedRelation: "academies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "checkins_marked_by_fkey"
-            columns: ["marked_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "checkins_modality_fkey"
-            columns: ["modality_id"]
-            isOneToOne: false
-            referencedRelation: "academy_modalities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "checkins_modality_fkey"
-            columns: ["modality_id"]
-            isOneToOne: false
-            referencedRelation: "modality_class_stats"
-            referencedColumns: ["modality_id"]
-          },
-          {
-            foreignKeyName: "checkins_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "checkins_schedule_id_academy_id_fkey"
-            columns: ["schedule_id", "academy_id"]
-            isOneToOne: false
-            referencedRelation: "class_schedules"
-            referencedColumns: ["id", "academy_id"]
-          },
-          {
-            foreignKeyName: "checkins_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+          Row: {
+              academy_id: string;
+              class_date: string;
+              created_at: string;
+              id: string;
+              marked_by: string | null;
+              modality_id: string | null;
+              occurrence_schedule_id: string | null;
+              reviewed_at: string | null;
+              reviewed_by: string | null;
+              schedule_id: string | null;
+              status: Database["public"]['Enums']["checkin_status"];
+              updated_at: string;
+              user_id: string;
+          };
+          ComputedFields: never;
+          Insert: {
+              academy_id: string;
+              class_date: string;
+              created_at?: string;
+              id?: string;
+              marked_by?: string | null;
+              modality_id?: string | null;
+              occurrence_schedule_id?: string | null;
+              reviewed_at?: string | null;
+              reviewed_by?: string | null;
+              schedule_id?: string | null;
+              status?: Database["public"]['Enums']["checkin_status"];
+              updated_at?: string;
+              user_id: string;
+          };
+          Update: {
+              academy_id?: string;
+              class_date?: string;
+              created_at?: string;
+              id?: string;
+              marked_by?: string | null;
+              modality_id?: string | null;
+              occurrence_schedule_id?: string | null;
+              reviewed_at?: string | null;
+              reviewed_by?: string | null;
+              schedule_id?: string | null;
+              status?: Database["public"]['Enums']["checkin_status"];
+              updated_at?: string;
+              user_id?: string;
+          };
+          Relationships: [
+              {
+                  foreignKeyName: "checkins_academy_id_fkey";
+                  columns: [
+                      "academy_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "academies";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "checkins_marked_by_fkey";
+                  columns: [
+                      "marked_by"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "profiles";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "checkins_modality_fkey";
+                  columns: [
+                      "modality_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "academy_modalities";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "checkins_modality_fkey";
+                  columns: [
+                      "modality_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "modality_class_stats";
+                  referencedColumns: [
+                      "modality_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "checkins_reviewed_by_fkey";
+                  columns: [
+                      "reviewed_by"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "profiles";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "checkins_schedule_id_academy_id_fkey";
+                  columns: [
+                      "schedule_id",
+                      "academy_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "class_schedules";
+                  referencedColumns: [
+                      "id",
+                      "academy_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "checkins_user_id_fkey";
+                  columns: [
+                      "user_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "profiles";
+                  referencedColumns: [
+                      "id"
+                  ];
+              }
+          ];
+      };
+
       class_schedules: {
         Row: {
           academy_id: string
@@ -1021,6 +1056,320 @@ export type Database = {
           },
         ]
       }
+
+      student_class_enrollments: {
+          Row: {
+              created_at: string;
+              ends_on: string | null;
+              id: string;
+              membership_id: string;
+              modality_id: string | null;
+              occurrence_schedule_id: string;
+              schedule_id: string | null;
+              start_time: string;
+              starts_on: string;
+              weekday: number;
+          };
+          ComputedFields: never;
+          Insert: {
+              created_at?: string;
+              ends_on?: string | null;
+              id?: string;
+              membership_id: string;
+              modality_id?: string | null;
+              occurrence_schedule_id: string;
+              schedule_id?: string | null;
+              start_time: string;
+              starts_on: string;
+              weekday: number;
+          };
+          Update: {
+              created_at?: string;
+              ends_on?: string | null;
+              id?: string;
+              membership_id?: string;
+              modality_id?: string | null;
+              occurrence_schedule_id?: string;
+              schedule_id?: string | null;
+              start_time?: string;
+              starts_on?: string;
+              weekday?: number;
+          };
+          Relationships: [
+              {
+                  foreignKeyName: "student_class_enrollments_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "instructor_class_stats";
+                  referencedColumns: [
+                      "membership_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_class_enrollments_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "membership_class_stats";
+                  referencedColumns: [
+                      "membership_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_class_enrollments_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "memberships";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_class_enrollments_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "modality_class_stats";
+                  referencedColumns: [
+                      "membership_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_class_enrollments_modality_id_fkey";
+                  columns: [
+                      "modality_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "academy_modalities";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_class_enrollments_modality_id_fkey";
+                  columns: [
+                      "modality_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "modality_class_stats";
+                  referencedColumns: [
+                      "modality_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_class_enrollments_schedule_id_fkey";
+                  columns: [
+                      "schedule_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "class_schedules";
+                  referencedColumns: [
+                      "id"
+                  ];
+              }
+          ];
+      };
+
+      class_attendance_exceptions: {
+          Row: {
+              academy_id: string;
+              class_date: string;
+              id: string;
+              membership_id: string | null;
+              occurrence_schedule_id: string;
+              reason: string;
+              schedule_id: string | null;
+          };
+          ComputedFields: never;
+          Insert: {
+              academy_id: string;
+              class_date: string;
+              id?: string;
+              membership_id?: string | null;
+              occurrence_schedule_id: string;
+              reason: string;
+              schedule_id?: string | null;
+          };
+          Update: {
+              academy_id?: string;
+              class_date?: string;
+              id?: string;
+              membership_id?: string | null;
+              occurrence_schedule_id?: string;
+              reason?: string;
+              schedule_id?: string | null;
+          };
+          Relationships: [
+              {
+                  foreignKeyName: "class_attendance_exceptions_academy_id_fkey";
+                  columns: [
+                      "academy_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "academies";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "class_attendance_exceptions_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "instructor_class_stats";
+                  referencedColumns: [
+                      "membership_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "class_attendance_exceptions_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "membership_class_stats";
+                  referencedColumns: [
+                      "membership_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "class_attendance_exceptions_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "memberships";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "class_attendance_exceptions_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "modality_class_stats";
+                  referencedColumns: [
+                      "membership_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "class_attendance_exceptions_schedule_id_fkey";
+                  columns: [
+                      "schedule_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "class_schedules";
+                  referencedColumns: [
+                      "id"
+                  ];
+              }
+          ];
+      };
+
+      student_modality_enrollments: {
+          Row: {
+              created_at: string;
+              id: string;
+              membership_id: string;
+              modality_id: string;
+              status: string;
+              updated_at: string;
+          };
+          ComputedFields: never;
+          Insert: {
+              created_at?: string;
+              id?: string;
+              membership_id: string;
+              modality_id: string;
+              status: string;
+              updated_at?: string;
+          };
+          Update: {
+              created_at?: string;
+              id?: string;
+              membership_id?: string;
+              modality_id?: string;
+              status?: string;
+              updated_at?: string;
+          };
+          Relationships: [
+              {
+                  foreignKeyName: "student_modality_enrollments_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "instructor_class_stats";
+                  referencedColumns: [
+                      "membership_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_modality_enrollments_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "membership_class_stats";
+                  referencedColumns: [
+                      "membership_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_modality_enrollments_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "memberships";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_modality_enrollments_membership_id_fkey";
+                  columns: [
+                      "membership_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "modality_class_stats";
+                  referencedColumns: [
+                      "membership_id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_modality_enrollments_modality_id_fkey";
+                  columns: [
+                      "modality_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "academy_modalities";
+                  referencedColumns: [
+                      "id"
+                  ];
+              },
+              {
+                  foreignKeyName: "student_modality_enrollments_modality_id_fkey";
+                  columns: [
+                      "modality_id"
+                  ];
+                  isOneToOne: false;
+                  referencedRelation: "modality_class_stats";
+                  referencedColumns: [
+                      "modality_id"
+                  ];
+              }
+          ];
+      };
     }
     Views: {
       instructor_class_stats: {
@@ -1101,26 +1450,6 @@ export type Database = {
       }
     }
     Functions: {
-      academy_ranking: {
-        Args: { p_academy_id: string; p_modality_id?: string; p_month: string }
-        Returns: {
-          avatar_path: string
-          classes: number
-          full_name: string
-          position: number
-          user_id: string
-        }[]
-      }
-      academy_ranking_champions: {
-        Args: { p_academy_id: string; p_modality_id?: string }
-        Returns: {
-          avatar_path: string
-          classes: number
-          full_name: string
-          month: string
-          user_id: string
-        }[]
-      }
       academy_today: { Args: { p_academy_id: string }; Returns: string }
       account_deletion_academies: {
         Args: never
@@ -1243,6 +1572,62 @@ export type Database = {
         Args: { p_academy_id: string; p_membership_id: string }
         Returns: undefined
       }
+
+      set_student_class_enrollment: {
+          Args: {
+              p_enrolled: boolean;
+              p_membership_id: string;
+              p_schedule_id: string;
+          };
+          Returns: undefined;
+      };
+
+      record_my_water_goal: {
+          Args: Record<PropertyKey, never>;
+          Returns: undefined;
+      };
+
+      academy_ranking_facts: {
+          Args: {
+              p_academy_id: string;
+              p_from: string;
+              p_modality_id: string;
+              p_to: string;
+          };
+          Returns: {
+              attendance: Json;
+              avatar_path: string;
+              full_name: string;
+              hydration: Json;
+              modality_id: string;
+              period_from: string;
+              period_to: string;
+              today: string;
+              user_id: string;
+          }[];
+      };
+
+      set_student_modality_enrollment: {
+          Args: {
+              p_membership_id: string;
+              p_modality_id: string;
+              p_status: string;
+          };
+          Returns: undefined;
+      };
+
+      ranking_modalities: {
+          Args: {
+              p_academy_id: string;
+              p_from: string;
+              p_to: string;
+          };
+          Returns: {
+              modality_id: string;
+              name: string;
+              position: number;
+          }[];
+      };
     }
     Enums: {
       checkin_status: "pending" | "confirmed" | "rejected"

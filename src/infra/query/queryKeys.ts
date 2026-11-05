@@ -29,6 +29,8 @@ export enum QueryKeys {
   DietDays = 'DietDays',
   WaterDays = 'WaterDays',
   Ranking = 'Ranking',
-  RankingChampions = 'RankingChampions',
+  ClassEnrollments = 'ClassEnrollments',
+  ModalityEnrollments = 'ModalityEnrollments',
+  RankingModalities = 'RankingModalities',
   TimerPresets = 'TimerPresets',
 }

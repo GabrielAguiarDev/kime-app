@@ -8,10 +8,8 @@ async function myWaterDays() {
 }
 
 /** Records the goal a day had (history keeps it when weight or plan change). */
-async function recordWaterGoal(userId: string, day: string, goalMl: number) {
-  const { error } = await supabase
-    .from('water_goal_days')
-    .upsert({ user_id: userId, day, goal_ml: goalMl }, { onConflict: 'user_id,day' });
+async function recordWaterGoal() {
+  const { error } = await supabase.rpc('record_my_water_goal');
   if (error) throw error;
 }
 

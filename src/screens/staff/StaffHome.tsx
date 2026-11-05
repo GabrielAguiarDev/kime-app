@@ -13,6 +13,7 @@ import {
   useAcademyToday,
   useClassSessionsBetween,
   useSchedules,
+  useModalities,
   WEEKDAY_LABELS,
   weekdayOf,
   weekStart,
@@ -21,7 +22,7 @@ import {
 } from '@domain/Classes';
 import { countdownLabel, daysBetween, formatLocalDate, upcomingChampionships, useChampionships } from '@domain/Competition';
 import { usePendingRequests } from '@domain/Membership';
-import { classesLabel, monthStart, useRanking } from '@domain/Ranking';
+import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { useActiveGym } from '@services/activeGym';
 
 /** Academy calendar (fixed time zone, see academies.timezone). */
@@ -210,14 +211,16 @@ function Notices({ academyId, today }: { academyId: string; today: string }) {
   );
 }
 
-/** Classes given and attendances this week (Monday–today), and the month's top 3. */
+/** Classes given and attendances this week (Monday–today), and the top 3 of the first modality. */
 function WeekSummary({ academyId, today }: { academyId: string; today: string }) {
   const from = weekStart(today);
   const sessions = useClassSessionsBetween(academyId, from, today);
   const checkins = useAcademyCheckinsBetween(academyId, from, today);
-  const ranking = useRanking(academyId, monthStart(today), null);
+  const modalities = useModalities(academyId);
+  const modality = modalities.data?.[0];
+  const ranking = useRanking(academyId, modality?.id, rankingPeriod(today));
   const attendances = (checkins.data ?? []).filter((c) => c.status === 'confirmed').length;
-  const top = (ranking.data ?? []).slice(0, 3);
+  const top = (ranking.data ?? []).filter((e) => e.status === 'ranked').slice(0, 3);
 
   return (
     <Box gap="s12">
@@ -234,12 +237,12 @@ function WeekSummary({ academyId, today }: { academyId: string; today: string })
           </Card>
         </Box>
       </Box>
-      <Card gap="s12" onPress={() => router.push('/ranking')} accessibilityLabel="Ranking do mês. Abrir o ranking">
-        <Text variant="captionCaps">Ranking do mês</Text>
-        {ranking.isLoading ? <ActivityIndicator /> : null}
+      <Card gap="s12" onPress={() => router.push('/ranking')} accessibilityLabel="Ranking por modalidade. Abrir o ranking">
+        <Text variant="captionCaps">{modality ? `Ranking · ${modality.name}` : 'Ranking por modalidade'}</Text>
+        {modalities.isLoading || ranking.isLoading ? <ActivityIndicator /> : null}
         {ranking.data && top.length === 0 ? (
           <Text variant="body" color="textMuted">
-            Nenhuma aula confirmada neste mês.
+            Nenhum aluno classificado ainda.
           </Text>
         ) : null}
         {top.map((e) => (
@@ -251,7 +254,7 @@ function WeekSummary({ academyId, today }: { academyId: string; today: string })
             <Text variant="bodyStrong" flex={1} numberOfLines={1}>
               {e.fullName}
             </Text>
-            <Text variant="caption">{classesLabel(e.classes)}</Text>
+            <Text variant="caption">{e.rankingScore.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pontos</Text>
           </Box>
         ))}
       </Card>

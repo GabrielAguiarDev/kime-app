@@ -24,7 +24,7 @@ export function useRecordWaterGoal() {
     const value = `${day}:${goalMl}`;
     if (keyValueStorage.getScoped('waterGoalRecorded', userId) === value) return;
     streakApi
-      .recordWaterGoal(userId, day, goalMl)
+      .recordWaterGoal()
       .then(() => keyValueStorage.setScoped('waterGoalRecorded', userId, value))
       .catch(() => undefined);
   }, [level, userId, timeZone, goalMl]);
