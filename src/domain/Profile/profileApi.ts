@@ -9,7 +9,7 @@ async function getById(userId: string) {
   const [profile, details] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, bottle_ml, timezone, avatar_path, show_in_ranking')
+      .select('id, full_name, bottle_ml, timezone, avatar_path, show_in_ranking, show_checkins_to_peers')
       .eq('id', userId)
       .single(),
     supabase.rpc('get_profile_details', { p_user_id: userId }).maybeSingle(),
@@ -52,8 +52,8 @@ async function updatePersonalData(
 export const AVATAR_BUCKET = 'avatars';
 
 /** A new file on every change: no stale cached image under the same name. */
-async function uploadAvatar(userId: string, bytes: ArrayBuffer, contentType: string, extension: string) {
-  const path = `${userId}/avatar-${Date.now()}.${extension}`;
+async function uploadAvatar(userId: string, bytes: ArrayBuffer, contentType: string, extension: string, path?: string) {
+  path ??= `${userId}/avatar-${Date.now()}.${extension}`;
   const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(path, bytes, { contentType, upsert: false });
   if (error) throw error;
   return path;
@@ -63,6 +63,12 @@ async function setShowInRanking(userId: string, show: boolean) {
   const { data, error } = await supabase.from('profiles').update({ show_in_ranking: show }).eq('id', userId).select('id');
   if (error) throw error;
   if (data.length === 0) throw new Error('forbidden');
+}
+
+async function setShowCheckinsToPeers(userId: string, show: boolean) {
+  const { data, error } = await supabase.from('profiles').update({ show_checkins_to_peers: show }).eq('id', userId).select('id');
+  if (error) throw error;
+  if (!data.length) throw new Error('forbidden');
 }
 
 async function setAvatarPath(userId: string, path: string | null) {
@@ -77,6 +83,13 @@ async function removeAvatarFile(path: string) {
 }
 
 /** Signed URL (RLS: own photo, or staff of an academy where the user has a membership). */
+async function signedAvatarUrls(paths: string[], expiresInSeconds: number) {
+  if (!paths.length) return [];
+  const { data, error } = await supabase.storage.from(AVATAR_BUCKET).createSignedUrls(paths, expiresInSeconds);
+  if (error) throw error;
+  return data;
+}
+
 async function signedAvatarUrl(path: string, expiresInSeconds: number) {
   const { data, error } = await supabase.storage.from(AVATAR_BUCKET).createSignedUrl(path, expiresInSeconds);
   if (error) throw error;
@@ -102,6 +115,8 @@ export const profileApi = {
   setAvatarPath,
   removeAvatarFile,
   setShowInRanking,
+  setShowCheckinsToPeers,
   signedAvatarUrl,
+  signedAvatarUrls,
 };
 export type ProfileRowApi = Awaited<ReturnType<typeof getById>>;

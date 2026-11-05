@@ -25,7 +25,7 @@ export function StreaksScreen() {
   const { settings } = useWaterSettings();
   // Subscribes to today's logs: the water streak re-reads the device on each log.
   useWaterDay(userId, settings?.timeZone);
-  const water = useWaterStreak(userId, settings?.timeZone, settings?.goalMl ?? null);
+  const water = useWaterStreak(userId, settings?.timeZone, settings?.goalMl ?? null, settings?.isLimit);
   const training = useTrainingStreak(isStaff ? undefined : active?.gymId, userId);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -38,9 +38,9 @@ export function StreaksScreen() {
             unit="day"
             streak={water.streak}
             rule={WATER_STREAK_RULE}
-            doneText="Meta de hoje batida."
-            pendingText="Bata a meta de água hoje para manter."
-            emptyText={settings?.goalMl ? 'Bata a meta de água hoje para começar.' : 'Informe seu peso para ter uma meta de água.'}
+            doneText={settings?.isLimit ? "Limite de hoje cumprido." : "Meta de hoje batida."}
+            pendingText={settings?.isLimit ? "Fique entre 90% e 100% do limite hoje para manter." : "Bata a meta de água hoje para manter."}
+            emptyText={settings?.goalMl ? (settings.isLimit ? 'Fique entre 90% e 100% do limite hoje para começar.' : 'Bata a meta de água hoje para começar.') : 'Informe seu peso para ter uma meta de água.'}
           />
         ) : water.isError ? (
           <LoadError title="Não foi possível carregar a ofensiva de água" onRetry={water.refetch} />
@@ -69,7 +69,7 @@ export function StreaksScreen() {
         <Box gap="s8">
           <Text variant="captionCaps">Congelamentos</Text>
           <Text variant="body" color="textMuted">
-            A cada 7 dias seguidos batendo a meta de água, e a cada 4 semanas seguidas treinando, você ganha um
+            A cada 7 dias seguidos cumprindo o objetivo de água, e a cada 4 semanas seguidas treinando, você ganha um
             congelamento (no máximo 2 de cada). Se perder um dia ou uma semana, ele é usado sozinho e a ofensiva continua.
           </Text>
           <Text variant="body" color="textMuted">

@@ -4,6 +4,8 @@ set local role postgres;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 select no_plan();
+grant usage on schema private to authenticated;
+grant execute on function private.ranking_facts_internal(uuid,uuid,date,date) to authenticated;
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$ begin
  perform set_config('role', 'authenticated', true);
  perform set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated')::text, true);
@@ -39,7 +41,7 @@ insert into public.student_modality_enrollments(membership_id,modality_id,status
 insert into private.modality_active_periods(enrollment_id,starts_at)
 select id,now()-interval '30 days' from public.student_modality_enrollments where membership_id=pg_temp.id('membership');
 create function pg_temp.facts() returns jsonb language sql as $$
-select to_jsonb(r) from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-1,private.academy_local_date(pg_temp.id('academy'))-1) r where r.user_id=pg_temp.id('student')$$;
+select to_jsonb(r) from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-1,private.academy_local_date(pg_temp.id('academy'))-1) r where r.user_id=pg_temp.id('student')$$;
 grant execute on function pg_temp.facts() to public;
 select pg_temp.login(pg_temp.id('student'));
 select is(jsonb_array_length(pg_temp.facts()->'attendance'),1,'attendance has one entry per eligible day');
@@ -74,13 +76,13 @@ values (pg_temp.id('student'),private.academy_local_date(pg_temp.id('academy'))-
 insert into public.water_logs(id,user_id,amount_ml,logged_at)
 values(gen_random_uuid(),pg_temp.id('student'),2000,((private.academy_local_date(pg_temp.id('academy'))-2)::timestamp+interval '12 hours') at time zone 'America/Sao_Paulo'),
 (gen_random_uuid(),pg_temp.id('student'),3000,((private.academy_local_date(pg_temp.id('academy'))-1)::timestamp+interval '12 hours') at time zone 'America/Sao_Paulo');
-select is((select hydration->-1->>'done' from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-28,private.academy_local_date(pg_temp.id('academy'))-1) where user_id=pg_temp.id('student')),'true','individual goal reached');
+select is((select hydration->-1->>'done' from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-28,private.academy_local_date(pg_temp.id('academy'))-1) where user_id=pg_temp.id('student')),'true','individual goal reached');
 update public.profiles set weight_kg=100 where id=pg_temp.id('student');
 select is(private.ranking_water_goal(pg_temp.id('student'),pg_temp.id('academy'),private.academy_local_date(pg_temp.id('academy'))-2),2000,'weight change preserves the earlier goal');
 select is(private.ranking_water_goal(pg_temp.id('student'),pg_temp.id('academy'),private.academy_local_date(pg_temp.id('academy'))-1),3000,'later day has its own goal');
 select is(private.ranking_water_goal(pg_temp.id('student'),pg_temp.id('academy'),private.academy_local_date(pg_temp.id('academy'))-3),null::integer,'unknown historical goal is not invented');
-select ok(not exists(select 1 from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-28,private.academy_local_date(pg_temp.id('academy'))-1) r, lateral jsonb_array_elements(r.hydration) d where (d->>'day')::date>=r.today),'today never appears as a completed or failed hydration day');
-select ok(not exists(select 1 from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-28,private.academy_local_date(pg_temp.id('academy'))-1) r,lateral jsonb_array_elements(r.hydration) d where d ? 'goal_ml' or d ? 'total_ml'),'classmates receive no weight, goal or consumption amounts');
+select ok(not exists(select 1 from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-28,private.academy_local_date(pg_temp.id('academy'))-1) r, lateral jsonb_array_elements(r.hydration) d where (d->>'day')::date>=r.today),'today never appears as a completed or failed hydration day');
+select ok(not exists(select 1 from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-28,private.academy_local_date(pg_temp.id('academy'))-1) r,lateral jsonb_array_elements(r.hydration) d where d ? 'goal_ml' or d ? 'total_ml'),'classmates receive no weight, goal or consumption amounts');
 select pg_temp.login(pg_temp.id('owner'));
 select lives_ok($$select public.set_student_class_enrollment(pg_temp.id('membership'),pg_temp.id('optional'),true)$$,'staff can explicitly enrol in a required class');
 select is((select starts_on from public.student_class_enrollments where schedule_id=pg_temp.id('optional')),private.academy_local_date(pg_temp.id('academy'))+1,'new obligation starts tomorrow, not retroactively');
@@ -92,12 +94,12 @@ select is((select goal_ml from public.water_goal_days where user_id=pg_temp.id('
 select pg_temp.logout();
 update public.profiles set show_in_ranking=false where id=pg_temp.id('student');
 select pg_temp.login(pg_temp.id('owner'));
-select is((select count(*)::int from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-28,private.academy_local_date(pg_temp.id('academy'))-1)),0,'privacy opt-out is preserved');
+select is((select count(*)::int from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-28,private.academy_local_date(pg_temp.id('academy'))-1)),0,'privacy opt-out is preserved');
 select pg_temp.login(pg_temp.id('other'));
-select throws_ok($$select * from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('modality'),private.academy_local_date(pg_temp.id('academy'))-28,private.academy_local_date(pg_temp.id('academy'))-1)$$,'42501','forbidden','outsider cannot read ranking facts');
+select ok(to_regprocedure('public.academy_ranking_facts(uuid,uuid,date,date)') is null,'raw ranking facts are no longer exposed');
 select throws_ok($$select public.set_student_class_enrollment(pg_temp.id('membership'),pg_temp.id('optional'),true)$$,'42501','forbidden','outsider cannot assign obligations');
 select pg_temp.login(pg_temp.id('owner'));
-select throws_ok($$select * from public.academy_ranking_facts(pg_temp.id('academy'),pg_temp.id('modality'),'2027-01-02','2026-01-01')$$,'22023','invalid_ranking_period','invalid custom period rejected');
+select throws_ok($$select * from private.ranking_facts_internal(pg_temp.id('academy'),pg_temp.id('modality'),'2027-01-02','2026-01-01')$$,'22023','invalid_ranking_period','invalid custom period rejected');
 select pg_temp.logout();
 update public.profiles set show_in_ranking=true where id=pg_temp.id('student');
 select pg_temp.login(pg_temp.id('student'));

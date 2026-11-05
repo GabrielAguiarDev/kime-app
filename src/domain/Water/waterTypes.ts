@@ -30,6 +30,7 @@ export interface WaterWidgetConfig {
    * closed. Missing on older configs and for non-competitors.
    */
   goalsByDate?: Record<string, number>;
+  limitsByDate?: Record<string, boolean>;
   /** IANA zone of the profile: defines "today". */
   timeZone: string;
 }

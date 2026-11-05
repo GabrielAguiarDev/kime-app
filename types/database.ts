@@ -455,17 +455,75 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_path": string | null,"birth_date": string | null,"bottle_ml": number | null,"created_at": string,"full_name": string,"height_cm": number | null,"id": string,"sex": string | null,"show_in_ranking": boolean,"timezone": string,"updated_at": string,"weight_kg": number | null
+                    "avatar_path": string | null,"birth_date": string | null,"bottle_ml": number | null,"created_at": string,"full_name": string,"height_cm": number | null,"id": string,"sex": string | null,"show_checkins_to_peers": boolean,"show_in_ranking": boolean,"timezone": string,"updated_at": string,"weight_kg": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"id": string,"sex"?: string | null,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
+                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"id": string,"sex"?: string | null,"show_checkins_to_peers"?: boolean,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
                   }
                   Update: {
-                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"id"?: string,"sex"?: string | null,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
+                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"id"?: string,"sex"?: string | null,"show_checkins_to_peers"?: boolean,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
                   }
                   Relationships: [
                     
+                  ]
+                },"ranking_details": {
+                  Row: {
+                    "academy_id": string,"attendance_rate": number,"confirmed_classes": number,"days_to_qualify": number,"eligible_days": number,"eligible_hydration_days": number,"hydration_goals_achieved": number,"hydration_rate": number,"modality_id": string,"protected_days": number,"user_id": string,"weekly_goal": number,"weeks": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "academy_id": string,"attendance_rate": number,"confirmed_classes": number,"days_to_qualify": number,"eligible_days": number,"eligible_hydration_days": number,"hydration_goals_achieved": number,"hydration_rate": number,"modality_id": string,"protected_days": number,"user_id": string,"weekly_goal": number,"weeks": number
+                  }
+                  Update: {
+                    "academy_id"?: string,"attendance_rate"?: number,"confirmed_classes"?: number,"days_to_qualify"?: number,"eligible_days"?: number,"eligible_hydration_days"?: number,"hydration_goals_achieved"?: number,"hydration_rate"?: number,"modality_id"?: string,"protected_days"?: number,"user_id"?: string,"weekly_goal"?: number,"weeks"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ranking_details_academy_id_modality_id_user_id_fkey"
+      columns: ["academy_id","modality_id","user_id"]
+isOneToOne: true
+      referencedRelation: "ranking_snapshots"
+      referencedColumns: ["academy_id","modality_id","user_id"]
+    }
+                  ]
+                },"ranking_snapshots": {
+                  Row: {
+                    "academy_id": string,"avatar_path": string | null,"full_name": string,"modality_id": string,"period_from": string,"period_to": string,"position": number | null,"score": number,"status": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "academy_id": string,"avatar_path"?: string | null,"full_name": string,"modality_id": string,"period_from": string,"period_to": string,"position"?: number | null,"score": number,"status": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "academy_id"?: string,"avatar_path"?: string | null,"full_name"?: string,"modality_id"?: string,"period_from"?: string,"period_to"?: string,"position"?: number | null,"score"?: number,"status"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ranking_snapshots_academy_id_fkey"
+      columns: ["academy_id"]
+isOneToOne: false
+      referencedRelation: "academies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ranking_snapshots_modality_id_fkey"
+      columns: ["modality_id"]
+isOneToOne: false
+      referencedRelation: "academy_modalities"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ranking_snapshots_modality_id_fkey"
+      columns: ["modality_id"]
+isOneToOne: false
+      referencedRelation: "modality_class_stats"
+      referencedColumns: ["modality_id"]
+    },{
+      foreignKeyName: "ranking_snapshots_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"student_class_enrollments": {
                   Row: {
@@ -789,12 +847,7 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "academy_ranking_facts":
-{ Args: { "p_academy_id": string,"p_from": string,"p_modality_id": string,"p_to": string }; Returns: {
-              "attendance": Json,"avatar_path": string,"full_name": string,"hydration": Json,"modality_id": string,"period_from": string,"period_to": string,"today": string,"user_id": string,"weekly_goal": number
-            }[]
-                           },
-"academy_today":
+            "academy_today":
 { Args: { "p_academy_id": string }; Returns: string
                            },
 "account_deletion_academies":
@@ -804,6 +857,11 @@ isOneToOne: false
                            },
 "approve_student":
 { Args: { "p_membership_id": string,"p_modality_ids": (string)[] }; Returns: undefined
+                           },
+"class_attendees":
+{ Args: { "p_class_date": string,"p_schedule_id": string }; Returns: {
+              "avatar_path": string,"belt_primary": string,"belt_tip": string,"full_name": string,"status": Database["public"]['Enums']["checkin_status"],"user_id": string
+            }[]
                            },
 "copy_diet_day":
 { Args: { "p_academy_id": string,"p_athlete_id": string,"p_from_date": string,"p_to_date": string }; Returns: number
@@ -832,7 +890,7 @@ isOneToOne: false
                            },
 "list_pending_requests":
 { Args: { "p_academy_id": string }; Returns: {
-              "email": string,"full_name": string,"membership_id": string,"requested_at": string,"role": Database["public"]['Enums']["membership_role"],"user_id": string
+              "avatar_path": string,"email": string,"full_name": string,"membership_id": string,"requested_at": string,"role": Database["public"]['Enums']["membership_role"],"user_id": string
             }[]
                            },
 "lookup_invite_code":
@@ -842,13 +900,16 @@ isOneToOne: false
                            },
 "my_water_days":
 { Args: Record<PropertyKey, never>; Returns: {
-              "day": string,"goal_ml": number,"total_ml": number
+              "day": string,"goal_ml": number,"is_limit": boolean,"total_ml": number
             }[]
                            },
 "ranking_modalities":
 { Args: { "p_academy_id": string,"p_from": string,"p_to": string }; Returns: {
               "modality_id": string,"name": string,"position": number
             }[]
+                           },
+"recalculate_ranking":
+{ Args: { "p_academy_id": string }; Returns: undefined
                            },
 "record_my_water_goal":
 { Args: Record<PropertyKey, never>; Returns: undefined

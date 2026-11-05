@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
-import { Box, Button, Card, Text } from '@components';
+import { Box, PersonRow } from '@components';
 import { useModalities } from '@domain/Classes';
 import { roleLabel, useApproveStudent, useDecideMembership, type PendingRequest } from '@domain/Membership';
 import { errorMessage } from '@infra';
@@ -15,7 +15,7 @@ import { ModalitiesSheet } from './ModalitiesSheet';
  * A join request: approve or reject (always asks first). A student is approved
  * with their modalities (sheet, at least one); a professor request asks first.
  */
-export function RequestCard({ request }: { request: PendingRequest }) {
+export function RequestCard({ request, last }: { request: PendingRequest; last?: boolean }) {
   const decide = useDecideMembership();
   const approveStudent = useApproveStudent();
   const confirm = useConfirm();
@@ -69,22 +69,13 @@ export function RequestCard({ request }: { request: PendingRequest }) {
   const busy = decide.isPending || approveStudent.isPending;
 
   return (
-    <Card gap="s12">
-      <Box gap="s4">
-        <Text variant="heading">{request.fullName}</Text>
-        <Text variant="caption">{request.email}</Text>
-        <Text variant="captionCaps" color={request.role === 'student' ? 'textMuted' : 'text'}>
-          Quer entrar como {roleLabel[request.role].toLowerCase()}
-        </Text>
-      </Box>
-      <Box flexDirection="row" gap="s12">
-        <Box flex={1}>
-          <Button title="Recusar" variant="secondary" disabled={busy} onPress={() => void confirmReject()} />
-        </Box>
-        <Box flex={1}>
-          <Button title="Aprovar" variant="primary" loading={busy} onPress={() => void confirmApprove()} />
-        </Box>
-      </Box>
+    <Box>
+      <PersonRow last={last} name={request.fullName} avatarPath={request.avatarPath}
+        secondary={`Quer entrar como ${roleLabel[request.role].toLowerCase()}`}
+        actions={[
+          { icon: 'trash', label: `Recusar ${request.fullName}`, onPress: () => void confirmReject(), disabled: busy },
+          { icon: 'check', label: `Aprovar ${request.fullName}`, onPress: () => void confirmApprove(), color: 'accent', disabled: busy },
+        ]} />
       <ModalitiesSheet
         visible={picking}
         title="Modalidades do aluno"
@@ -96,6 +87,6 @@ export function RequestCard({ request }: { request: PendingRequest }) {
         onConfirm={approveWith}
         onClose={() => setPicking(false)}
       />
-    </Card>
+    </Box>
   );
 }

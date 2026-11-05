@@ -61,13 +61,13 @@ private sealed interface WaterState {
   /** No bottle configured: the button cannot work, open the bottle setup. */
   data object NoBottle : WaterState
 
-  data class Ready(val totalMl: Int, val goalMl: Int?, val bottleMl: Int) : WaterState
+  data class Ready(val totalMl: Int, val goalMl: Int?, val bottleMl: Int, val isLimit: Boolean) : WaterState
 }
 
 private fun loadState(context: Context): Pair<WaterState, WaterStore.Config?> {
   val config = WaterStore.config(context) ?: return WaterState.SignedOut to null
   val bottle = config.bottleMl ?: return WaterState.NoBottle to config
-  return WaterState.Ready(WaterStore.totalForDay(context, config), config.goalOn(), bottle) to config
+  return WaterState.Ready(WaterStore.totalForDay(context, config), config.goalOn(), bottle, config.isLimitOn()) to config
 }
 
 /**
@@ -215,16 +215,18 @@ private fun MediumLayout(state: WaterState.Ready) {
 @Composable
 private fun GoalCaption(state: WaterState.Ready) {
   val goal = state.goalMl
-  val reached = goal != null && state.totalMl >= goal
+  val over = state.isLimit && goal != null && state.totalMl > goal
+  val reached = goal != null && if (state.isLimit) state.totalMl * 10 >= goal * 9 && state.totalMl <= goal else state.totalMl >= goal
   Text(
     text = when {
       goal == null -> "Informe seu peso no app"
-      reached -> "Meta do dia batida"
-      else -> "de ${formatMl(goal)} ml"
+      over -> "Você passou do limite de hoje"
+      reached -> if (state.isLimit) "Limite do dia cumprido" else "Meta do dia batida"
+      else -> "${if (state.isLimit) "Limite" else "Meta"} de hoje: ${formatMl(goal)} ml"
     },
     maxLines = 1,
     style = TextStyle(
-      color = if (reached) KimiTokens.Colors.success else KimiTokens.Colors.textMuted,
+      color = if (over) KimiTokens.Colors.warning else if (reached) KimiTokens.Colors.success else KimiTokens.Colors.textMuted,
       fontSize = KimiTokens.Typography.caption,
       fontWeight = FontWeight.Medium,
     ),
@@ -260,7 +262,9 @@ private fun Ring(state: WaterState.Ready, diameter: Dp) {
   val context = LocalContext.current
   val goal = state.goalMl
   val ratio = if (goal != null && goal > 0) (state.totalMl.toFloat() / goal).coerceIn(0f, 1f) else 0f
-  val fill = if (goal != null && state.totalMl >= goal) KimiTokens.Colors.success else KimiTokens.Colors.water
+  val over = state.isLimit && goal != null && state.totalMl > goal
+  val reached = goal != null && if (state.isLimit) state.totalMl * 10 >= goal * 9 && state.totalMl <= goal else state.totalMl >= goal
+  val fill = if (over) KimiTokens.Colors.warning else if (reached) KimiTokens.Colors.success else KimiTokens.Colors.water
   Image(
     provider = ImageProvider(ringBitmap(context, diameter, ratio, KimiTokens.Colors.border, fill)),
     contentDescription = null,

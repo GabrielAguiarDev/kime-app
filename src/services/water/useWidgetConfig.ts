@@ -28,6 +28,7 @@ export function useWidgetConfig() {
   const { data: profile } = useMyProfile(allowed ? userId : undefined);
   const planned = usePlannedWater(profile?.timeZone);
   const goalsKey = JSON.stringify(planned.byDate);
+  const limitsKey = JSON.stringify(planned.limitsByDate);
   const published = useRef(false);
 
   useEffect(() => {
@@ -42,12 +43,14 @@ export function useWidgetConfig() {
     if (!profile || planned.isLoading) return;
     published.current = true;
     const goalsByDate = JSON.parse(goalsKey) as Record<string, number>;
+    const limitsByDate = JSON.parse(limitsKey) as Record<string, boolean>;
     waterService.publishConfig({
       userId: userId!,
       bottleMl: profile.bottleMl,
       goalMl: dailyGoal({ weightKg: profile.weightKg }).goalMl,
       timeZone: profile.timeZone,
       ...(Object.keys(goalsByDate).length > 0 ? { goalsByDate } : {}),
+      ...(Object.keys(limitsByDate).length > 0 ? { limitsByDate } : {}),
     });
-  }, [allowed, userId, profile, membershipsLoading, membershipsError, planned.isLoading, goalsKey]);
+  }, [allowed, userId, profile, membershipsLoading, membershipsError, planned.isLoading, goalsKey, limitsKey]);
 }

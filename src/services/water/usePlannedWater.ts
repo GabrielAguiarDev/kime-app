@@ -1,4 +1,4 @@
-import { plannedMlByDate, useWaterPlans } from '@domain/Competition';
+import { plannedLimitsByDate, plannedMlByDate, useWaterPlans } from '@domain/Competition';
 import { localDate } from '@domain/Water';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
@@ -19,8 +19,11 @@ export function usePlannedWater(timeZone: string | undefined) {
   const today = timeZone ? localDate(new Date(), timeZone) : undefined;
 
   const byDate = competes && plans.data && today ? plannedMlByDate(plans.data, today, PLANNED_DAYS_AHEAD) : {};
+  const limitsByDate = competes && plans.data && today ? plannedLimitsByDate(plans.data, today, PLANNED_DAYS_AHEAD) : {};
   return {
     today,
+    limitsByDate,
+    isLimitToday: !!(today && limitsByDate[today]),
     byDate,
     plannedToday: today ? (byDate[today] ?? null) : null,
     /** Still loading the plan of a competitor (avoid publishing the automatic goal in between). */

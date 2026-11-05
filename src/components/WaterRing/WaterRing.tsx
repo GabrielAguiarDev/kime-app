@@ -1,6 +1,7 @@
 import { useReducedMotion } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
+import { waterDayState } from '@domain/Water';
 import { useAppTheme } from '@theme';
 import { useTweened } from '@utils/useTweened';
 
@@ -11,6 +12,7 @@ interface WaterRingProps {
   consumedMl: number;
   /** Null without a goal (no weight yet): only the total shows. */
   goalMl: number | null;
+  isLimit?: boolean;
   /** Diameter. Default tokens.size.waterRing. */
   size?: number;
   /** Ring only, without the ml in the center (small sizes, e.g. the widget preview). */
@@ -28,15 +30,15 @@ const FILL_MS = 700;
  * The fill grows / shrinks smoothly when the amount changes (instant with
  * "Reduce motion"); it opens already at the current value.
  */
-export function WaterRing({ consumedMl, goalMl, size, hideLabel = false }: WaterRingProps) {
+export function WaterRing({ consumedMl, goalMl, isLimit = false, size, hideLabel = false }: WaterRingProps) {
   const theme = useAppTheme();
   const diameter = size ?? theme.size.waterRing;
   const stroke = hideLabel ? theme.size.widgetRingStroke : theme.size.waterRingStroke;
   const radius = (diameter - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const ratio = goalMl && goalMl > 0 ? Math.min(Math.max(consumedMl / goalMl, 0), 1) : 0;
-  const goalReached = !!goalMl && goalMl > 0 && consumedMl >= goalMl;
-  const fill = goalReached ? theme.colors.success : theme.colors.water;
+  const state = waterDayState(consumedMl, goalMl, isLimit);
+  const fill = state === 'over' ? theme.colors.warning : state === 'done' ? theme.colors.success : theme.colors.water;
   const center = diameter / 2;
 
   const shown = useTweened(ratio, useReducedMotion(), FILL_MS);
@@ -52,7 +54,7 @@ export function WaterRing({ consumedMl, goalMl, size, hideLabel = false }: Water
       accessibilityValue={goalMl ? { min: 0, max: goalMl, now: Math.min(consumedMl, goalMl) } : undefined}
       accessibilityLabel={
         goalMl
-          ? `${formatMl(consumedMl)} de ${formatMl(goalMl)} ml${goalReached ? ', meta batida' : ''}`
+          ? `${formatMl(consumedMl)} de ${formatMl(goalMl)} ml${state === 'over' ? ', você passou do limite de hoje' : state === 'done' ? (isLimit ? ', limite cumprido' : ', meta batida') : ''}`
           : `${formatMl(consumedMl)} ml hoje`
       }
     >
@@ -76,7 +78,7 @@ export function WaterRing({ consumedMl, goalMl, size, hideLabel = false }: Water
       {hideLabel ? null : (
         <>
           <Text variant="displayLg">{formatMl(consumedMl)}</Text>
-          <Text variant="caption">{goalMl ? `de ${formatMl(goalMl)} ml` : 'ml hoje'}</Text>
+          <Text variant="caption">{goalMl ? `${isLimit ? 'Limite' : 'Meta'} de hoje: ${formatMl(goalMl)} ml` : 'ml hoje'}</Text>
         </>
       )}
     </Box>

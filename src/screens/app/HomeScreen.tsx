@@ -54,7 +54,7 @@ export function HomeScreen() {
   // The widget may have met the goal while the app was closed: celebrate it here once.
   const { settings: waterSettings } = useWaterSettings();
   const { data: water } = useWaterDay(userId, waterSettings?.timeZone);
-  const goalFeedback = useWaterGoalFeedback(userId, water?.date, water?.totalMl, waterSettings?.goalMl);
+  const goalFeedback = useWaterGoalFeedback(userId, water?.date, water?.totalMl, waterSettings?.goalMl, waterSettings?.isLimit);
   const record = useStreakRecords();
 
   return (
@@ -104,7 +104,7 @@ export function HomeScreen() {
           // TODO(motion): feedback sheet entering and leaving.
           <FeedbackSheet
             tone="water"
-            title="Meta do dia batida."
+            title={waterSettings?.isLimit ? "Limite do dia cumprido." : "Meta do dia batida."}
             message={`${formatMl(water.totalMl)} ml hoje.`}
             actionLabel="Continuar"
             onAction={goalFeedback.dismiss}
@@ -116,7 +116,7 @@ export function HomeScreen() {
             title="Novo recorde."
             message={
               record.notice.kind === 'water'
-                ? `${record.notice.count} dias seguidos batendo a meta de água.`
+                ? `${record.notice.count} dias seguidos cumprindo o objetivo de água.`
                 : `${record.notice.count} semanas seguidas treinando.`
             }
             actionLabel="Ver ofensivas"

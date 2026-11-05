@@ -18,6 +18,7 @@ const toProfile = (row: ProfileRowApi): Profile => ({
   sex: (row.sex as Sex | null) ?? null,
   birthDate: row.birth_date,
   showInRanking: row.show_in_ranking,
+  showCheckinsToPeers: row.show_checkins_to_peers,
 });
 
 async function getById(userId: string): Promise<Profile> {
@@ -69,13 +70,17 @@ async function changeAvatar(userId: string, uri: string, previousPath: string | 
   try {
     const { bytes, contentType, extension } = await prepareSquareImage(uri);
     const path = await profileApi.uploadAvatar(userId, bytes, contentType, extension);
+    const thumb = await prepareSquareImage(uri, 128);
+    const thumbPath = path.replace('/avatar-', '/thumb-');
+    try { await profileApi.uploadAvatar(userId, thumb.bytes, thumb.contentType, thumb.extension, thumbPath); }
+    catch (e) { await profileApi.removeAvatarFile(path).catch(() => undefined); throw e; }
     try {
       await profileApi.setAvatarPath(userId, path);
     } catch (e) {
-      await profileApi.removeAvatarFile(path).catch(() => undefined);
+      await Promise.all([profileApi.removeAvatarFile(path), profileApi.removeAvatarFile(thumbPath)]).catch(() => undefined);
       throw e;
     }
-    if (previousPath) await profileApi.removeAvatarFile(previousPath).catch(() => undefined);
+    if (previousPath) await Promise.all([profileApi.removeAvatarFile(previousPath), profileApi.removeAvatarFile(previousPath.replace('/avatar-', '/thumb-'))]).catch(() => undefined);
   } catch (e) {
     throw toAppError(e);
   }
@@ -84,7 +89,7 @@ async function changeAvatar(userId: string, uri: string, previousPath: string | 
 async function removeAvatar(userId: string, path: string): Promise<void> {
   try {
     await profileApi.setAvatarPath(userId, null);
-    await profileApi.removeAvatarFile(path).catch(() => undefined);
+    await Promise.all([profileApi.removeAvatarFile(path), profileApi.removeAvatarFile(path.replace('/avatar-', '/thumb-'))]).catch(() => undefined);
   } catch (e) {
     throw toAppError(e);
   }
@@ -96,6 +101,18 @@ async function setShowInRanking(userId: string, show: boolean): Promise<void> {
   } catch (e) {
     throw toAppError(e);
   }
+}
+
+async function setShowCheckinsToPeers(userId: string, show: boolean): Promise<void> {
+  try { await profileApi.setShowCheckinsToPeers(userId, show); }
+  catch (e) { throw toAppError(e); }
+}
+
+async function avatarUrls(paths: string[]): Promise<Map<string, string>> {
+  try {
+    const signed = await profileApi.signedAvatarUrls(paths, AVATAR_URL_TTL_SECONDS);
+    return new Map(signed.filter((item): item is typeof item & { path: string; signedUrl: string } => !!item.path && !!item.signedUrl).map((item) => [item.path, item.signedUrl]));
+  } catch (e) { throw toAppError(e); }
 }
 
 async function avatarUrl(path: string): Promise<string> {
@@ -114,5 +131,7 @@ export const profileService = {
   changeAvatar,
   removeAvatar,
   avatarUrl,
+  avatarUrls,
   setShowInRanking,
+  setShowCheckinsToPeers,
 };

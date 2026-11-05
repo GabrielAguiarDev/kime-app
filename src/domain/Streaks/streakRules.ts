@@ -1,3 +1,4 @@
+import { waterDayState } from '@domain/Water/waterGoal';
 import { addDays, weekStart } from '@domain/Classes/classesRules';
 import type { LocalDate } from '@domain/Classes/classesTypes';
 
@@ -96,11 +97,12 @@ export interface WaterDayTotal {
   totalMl: number;
   /** Goal of that day; null = unknown (no weight): the day cannot count. */
   goalMl: number | null;
+  isLimit?: boolean;
 }
 
 /** Water streak: a day counts when its total reaches its goal. */
 export function waterStreak(days: WaterDayTotal[], today: LocalDate): Streak {
-  const done = new Set(days.filter((d) => d.goalMl !== null && d.totalMl >= d.goalMl).map((d) => d.day));
+  const done = new Set(days.filter((d) => waterDayState(d.totalMl, d.goalMl, d.isLimit) === 'done').map((d) => d.day));
   const first = days.reduce<LocalDate | null>((min, d) => (min === null || d.day < min ? d.day : min), null);
   return computeStreak(first && first <= today ? dayRange(first, today) : [today], done, WATER_STREAK_RULE);
 }
@@ -121,13 +123,14 @@ export function mergeWaterDays(
   server: WaterDayTotal[],
   local: { day: LocalDate; totalMl: number }[],
   goalFor: (day: LocalDate) => number | null,
+  isLimitFor: (day: LocalDate) => boolean = () => false,
 ): WaterDayTotal[] {
   const byDay = new Map<LocalDate, WaterDayTotal>();
   for (const d of server) byDay.set(d.day, { ...d });
   for (const d of local) {
     const row = byDay.get(d.day);
     if (row) row.totalMl = Math.max(row.totalMl, d.totalMl);
-    else byDay.set(d.day, { day: d.day, totalMl: d.totalMl, goalMl: goalFor(d.day) });
+    else byDay.set(d.day, { day: d.day, totalMl: d.totalMl, goalMl: goalFor(d.day), isLimit: isLimitFor(d.day) });
   }
   return [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day));
 }

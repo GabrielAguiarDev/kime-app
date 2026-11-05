@@ -8,6 +8,7 @@ export interface WaterSettings {
   timeZone: string;
   bottleMl: number | null;
   goalMl: number | null;
+  isLimit: boolean;
   /** `plan`: today's goal comes from the professor's weekly plan. */
   goalSource: 'plan' | 'auto' | null;
 }
@@ -30,6 +31,7 @@ export function useWaterSettings() {
       timeZone: profile.data.timeZone,
       bottleMl: profile.data.bottleMl,
       goalMl: goal.goalMl,
+      isLimit: planned.isLimitToday,
       goalSource: goal.source,
     };
   } else {
@@ -42,6 +44,7 @@ export function useWaterSettings() {
         timeZone: cached.timeZone,
         bottleMl: cached.bottleMl,
         goalMl,
+        isLimit: !!cached.limitsByDate?.[today],
         goalSource: fromPlan ? 'plan' : goalMl === null ? null : 'auto',
       };
     }

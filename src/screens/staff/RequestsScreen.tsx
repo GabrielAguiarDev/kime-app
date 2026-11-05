@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { ActivityIndicator } from 'react-native';
 
-import { Box, EmptyState, LoadError, Screen } from '@components';
+import { Card, EmptyState, LoadError, Screen } from '@components';
 import { usePendingRequests } from '@domain/Membership';
 import { useActiveGym } from '@services/activeGym';
 
@@ -22,11 +22,9 @@ export function RequestsScreen() {
       {requests.data?.length === 0 ? (
         <EmptyState title="Nenhum pedido pendente." description="Quem entrar com o código da academia aparece aqui." />
       ) : null}
-      <Box gap="s12">
-        {requests.data?.map((request) => (
-          <RequestCard key={request.membershipId} request={request} />
-        ))}
-      </Box>
+      <Card>
+        {requests.data?.map((request, index) => <RequestCard key={request.membershipId} request={request} last={index === requests.data!.length - 1} />)}
+      </Card>
     </Screen>
   );
 }

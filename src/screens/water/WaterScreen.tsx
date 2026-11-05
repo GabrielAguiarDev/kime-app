@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert } from 'react-native';
 
 import { Box, Button, Card, EmptyState, FeedbackSheet, Icon, Screen, Text, TextButton, WaterRing } from '@components';
 import { useWaterStreak } from '@domain/Streaks';
-import { crossedGoal, useLogWater, useUndoWater, useWaterDay } from '@domain/Water';
+import { waterDayState, useLogWater, useUndoWater, useWaterDay } from '@domain/Water';
 import { errorMessage } from '@infra';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
 import { haptics } from '@utils/haptics';
@@ -25,8 +25,9 @@ export function WaterScreen() {
 
   const bottleMl = settings?.bottleMl ?? null;
   const goalMl = settings?.goalMl ?? null;
+  const isLimit = settings?.isLimit ?? false;
   const totalMl = day.data?.totalMl ?? 0;
-  const goalFeedback = useWaterGoalFeedback(userId, day.data?.date, day.data?.totalMl, goalMl);
+  const goalFeedback = useWaterGoalFeedback(userId, day.data?.date, day.data?.totalMl, goalMl, isLimit);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const settingsAction = {
@@ -76,7 +77,7 @@ export function WaterScreen() {
     haptics.water();
     logWater.mutate(bottleMl, {
       onSuccess: () => {
-        if (crossedGoal(totalMl, totalMl + bottleMl, goalMl)) haptics.success();
+        if (waterDayState(totalMl, goalMl, isLimit) !== 'done' && waterDayState(totalMl + bottleMl, goalMl, isLimit) === 'done') haptics.success();
       },
       onError: (e) => Alert.alert('Água', errorMessage(e)),
     });
@@ -94,7 +95,7 @@ export function WaterScreen() {
           // TODO(motion): feedback sheet entering and leaving.
           <FeedbackSheet
             tone="water"
-            title="Meta do dia batida."
+            title={isLimit ? "Limite do dia cumprido." : "Meta do dia batida."}
             message={`${formatMl(totalMl)} ml hoje.`}
             actionLabel="Continuar"
             onAction={goalFeedback.dismiss}
@@ -114,7 +115,8 @@ export function WaterScreen() {
     >
       <Box gap="s24">
         <Box alignItems="center" gap="s8">
-          <WaterRing consumedMl={totalMl} goalMl={goalMl} />
+          <WaterRing consumedMl={totalMl} goalMl={goalMl} isLimit={isLimit} />
+          {waterDayState(totalMl, goalMl, isLimit) === 'over' ? <Text variant="caption" color="warning">Você passou do limite de hoje</Text> : null}
           {goalMl === null ? (
             <TextButton
               title="Informe seu peso para calcular a meta"
@@ -122,7 +124,7 @@ export function WaterScreen() {
               onPress={() => router.push('/agua/configurar')}
             />
           ) : (
-            <WaterStreakLink userId={userId} timeZone={timeZone} goalMl={goalMl} />
+            <WaterStreakLink userId={userId} timeZone={timeZone} goalMl={goalMl} isLimit={isLimit} />
           )}
         </Box>
 
@@ -160,8 +162,8 @@ export function WaterScreen() {
 }
 
 /** "12 dias seguidos" under the ring: opens Ofensivas. */
-function WaterStreakLink({ userId, timeZone, goalMl }: { userId: string | undefined; timeZone: string | undefined; goalMl: number }) {
-  const { streak } = useWaterStreak(userId, timeZone, goalMl);
+function WaterStreakLink({ userId, timeZone, goalMl, isLimit }: { userId: string | undefined; timeZone: string | undefined; goalMl: number; isLimit: boolean }) {
+  const { streak } = useWaterStreak(userId, timeZone, goalMl, isLimit);
   if (!streak) return null;
   const n = streak.current;
   return (

@@ -171,7 +171,7 @@ async function listMyCheckins(academyId: string, userId: string) {
 async function listCheckinsOn(academyId: string, date: string) {
   const { data, error } = await supabase
     .from('checkins')
-    .select(`${CHECKIN_COLUMNS}, profile:profiles!checkins_user_id_fkey(full_name)`)
+    .select(`${CHECKIN_COLUMNS}, profile:profiles!checkins_user_id_fkey(full_name, avatar_path)`)
     .eq('academy_id', academyId)
     .eq('class_date', date)
     .order('created_at');
@@ -183,7 +183,7 @@ async function listCheckinsOn(academyId: string, date: string) {
 async function listCheckinsBetween(academyId: string, from: string, to: string) {
   const { data, error } = await supabase
     .from('checkins')
-    .select(`${CHECKIN_COLUMNS}, profile:profiles!checkins_user_id_fkey(full_name)`)
+    .select(`${CHECKIN_COLUMNS}, profile:profiles!checkins_user_id_fkey(full_name, avatar_path)`)
     .eq('academy_id', academyId)
     .gte('class_date', from)
     .lte('class_date', to);

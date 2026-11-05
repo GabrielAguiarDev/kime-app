@@ -6,6 +6,7 @@ import type { Modality } from '@domain/Classes';
 import { useSetStudentModalities, useSetStudentWeeklyGoal, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { ModalitiesSheet } from '@screens/staff/ModalitiesSheet';
+import { useConfirm } from '@services/confirm';
 import { haptics } from '@utils/haptics';
 
 import { GoalStepper, weeklyGoalLabel } from './GoalStepper';
@@ -18,6 +19,7 @@ import { SheetForm } from './shared';
  */
 export function StudentModalitiesSection({ member, modalities }: { member: GymMember; modalities: Modality[] }) {
   const setModalities = useSetStudentModalities();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
   const [goalFor, setGoalFor] = useState<Modality | null>(null);
 
@@ -26,7 +28,12 @@ export function StudentModalitiesSection({ member, modalities }: { member: GymMe
     return link ? [{ modality: m, link }] : [];
   });
 
-  const save = (modalityIds: string[]) =>
+  const save = async (modalityIds: string[]) => {
+    const removedCompetitor = member.modalities.find((m) => m.isCompetitor && !modalityIds.includes(m.modalityId));
+    if (removedCompetitor) {
+      const ok = await confirm({ title: 'Tirar modalidade?', message: `${member.fullName} também sai da equipe de competição desta modalidade.`, confirmLabel: 'Tirar modalidade', tone: 'danger' });
+      if (!ok) return;
+    }
     setModalities.mutate(
       { membershipId: member.id, modalityIds },
       {
@@ -37,6 +44,7 @@ export function StudentModalitiesSection({ member, modalities }: { member: GymMe
         onError: (e) => Alert.alert('Modalidades', errorMessage(e)),
       },
     );
+  };
 
   return (
     <Box gap="s12">

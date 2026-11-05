@@ -56,7 +56,10 @@ export function StudentHome() {
   const belt = selected?.usesBelts && own?.beltId ? (belts.data ?? []).find((b) => b.id === own.beltId) ?? null : null;
   const modalitySchedules = (schedules.data ?? []).filter((s) => s.modalityId === selected?.id);
   const list = checkins.data ?? [];
-  const pendingToday = list.some((c) => c.status === 'pending' && c.classDate === today.data);
+  // Only the selected modality: a pending check-in of another one does not talk here.
+  const pendingToday = list.some(
+    (c) => c.status === 'pending' && c.classDate === today.data && c.modalityId === selected?.id,
+  );
   const streak = trainingStreak(
     list.filter((c) => c.status === 'confirmed').map((c) => c.classDate),
     today.data,

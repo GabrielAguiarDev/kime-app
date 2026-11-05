@@ -372,3 +372,7 @@ Em formulários, escolhas viram cards tocáveis como as respostas do Duolingo, e
 ### 11.7 Sons
 
 Sons curtos (até 1 segundo) no registro de água, check-in confirmado e telas de conquista. Respeitam o modo silencioso do aparelho e podem ser desligados no Perfil. Desligados por padrão nos widgets.
+
+### Linha de pessoa (listas longas)
+
+Use `PersonRow` para listas de pessoas. Coloque as linhas em um único container `surface`, com divisores finos, sem card por pessoa. Cada linha tem aproximadamente 60 px de altura, padding vertical de 10 px, avatar circular de 40 px (iniciais em `surfaceRaised` quando não houver foto), nome em `bodyStrong` e informação secundária em `caption` (faixa, papel ou status). À direita, use ações circulares de ícone de 40 px ou chevron quando a linha abrir detalhes.

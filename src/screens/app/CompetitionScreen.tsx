@@ -106,7 +106,7 @@ export function CompetitionScreen() {
             today={today}
             autoGoalMl={autoDailyGoalMl(profile.data.weightKg)}
           />
-          <Text variant="caption">Dias com meta do professor substituem a meta automática, no app e no widget.</Text>
+          <Text variant="caption">Dias com plano do professor substituem a meta automática, no app e no widget.</Text>
         </Section>
 
         <Section

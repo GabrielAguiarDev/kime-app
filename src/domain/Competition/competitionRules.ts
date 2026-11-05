@@ -49,6 +49,20 @@ export function planInForce(plans: WaterPlan[], date: LocalDate): WaterPlan | nu
 }
 
 /** Staff target for a date, or null (automatic goal). */
+export function plannedIsLimitOn(plans: WaterPlan[], date: LocalDate): boolean {
+  const plan = planInForce(plans, date);
+  return !!plan?.targets[weekdayOf(date)] && !!plan.limits[weekdayOf(date)];
+}
+
+export function plannedLimitsByDate(plans: WaterPlan[], from: LocalDate, days: number): Record<LocalDate, boolean> {
+  const out: Record<LocalDate, boolean> = {};
+  for (let i = 0; i < days; i++) {
+    const date = addDays(from, i);
+    if (plannedIsLimitOn(plans, date)) out[date] = true;
+  }
+  return out;
+}
+
 export function plannedMlOn(plans: WaterPlan[], date: LocalDate): number | null {
   return planInForce(plans, date)?.targets[weekdayOf(date)] ?? null;
 }

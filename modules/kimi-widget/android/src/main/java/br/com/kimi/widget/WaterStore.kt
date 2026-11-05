@@ -34,9 +34,11 @@ object WaterStore {
     val goalMl: Int?,
     val timeZone: TimeZone,
     val goalsByDate: Map<String, Int> = emptyMap(),
+    val limitsByDate: Map<String, Boolean> = emptyMap(),
   ) {
     /** Goal of the local day of [now]: the professor's plan when there is one, else the automatic goal. */
     fun goalOn(now: Date = Date()): Int? = goalsByDate[WaterStore.dayKey(now, timeZone)] ?: goalMl
+    fun isLimitOn(now: Date = Date()): Boolean = limitsByDate[WaterStore.dayKey(now, timeZone)] == true
   }
 
   /**
@@ -63,12 +65,14 @@ object WaterStore {
     return try {
       val json = JSONObject(raw)
       val goals = json.optJSONObject("goalsByDate")
+      val limits = json.optJSONObject("limitsByDate")
       Config(
         userId = json.getString("userId"),
         bottleMl = if (json.isNull("bottleMl")) null else json.getInt("bottleMl"),
         goalMl = if (json.isNull("goalMl")) null else json.getInt("goalMl"),
         timeZone = TimeZone.getTimeZone(json.optString("timeZone", "America/Sao_Paulo")),
         goalsByDate = goals?.keys()?.asSequence()?.associateWith { goals.getInt(it) } ?: emptyMap(),
+        limitsByDate = limits?.keys()?.asSequence()?.associateWith { limits.getBoolean(it) } ?: emptyMap(),
       )
     } catch (e: Exception) {
       null

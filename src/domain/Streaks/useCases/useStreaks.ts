@@ -10,7 +10,7 @@ import { mergeWaterDays, trainingStreak, waterStreak, type WaterDayTotal } from 
 
 async function fetchWaterDays(): Promise<WaterDayTotal[]> {
   try {
-    return (await streakApi.myWaterDays()).map((r) => ({ day: r.day, totalMl: r.total_ml, goalMl: r.goal_ml }));
+    return (await streakApi.myWaterDays()).map((r) => ({ day: r.day, totalMl: r.total_ml, goalMl: r.goal_ml, isLimit: r.is_limit }));
   } catch (e) {
     throw toAppError(e);
   }
@@ -21,7 +21,7 @@ async function fetchWaterDays(): Promise<WaterDayTotal[]> {
  * last days (logs not synced yet, the widget's). Today uses `todayGoalMl`
  * (plan or automatic goal) so the flame lights as soon as the goal is reached.
  */
-export function useWaterStreak(userId: string | undefined, timeZone: string | undefined, todayGoalMl: number | null) {
+export function useWaterStreak(userId: string | undefined, timeZone: string | undefined, todayGoalMl: number | null, todayIsLimit = false) {
   const server = useQuery({
     queryKey: [QueryKeys.WaterDays, userId],
     queryFn: fetchWaterDays,
@@ -37,9 +37,10 @@ export function useWaterStreak(userId: string | undefined, timeZone: string | un
 
   const lastGoal = server.data.reduce<number | null>((g, d) => d.goalMl ?? g, null);
   const days = mergeWaterDays(
-    server.data.map((d) => (d.day === today ? { ...d, goalMl: todayGoalMl ?? d.goalMl } : d)),
+    server.data.map((d) => (d.day === today ? { ...d, goalMl: todayGoalMl ?? d.goalMl, isLimit: todayIsLimit } : d)),
     waterService.localDayTotals(userId, timeZone),
     (day) => (day === today ? todayGoalMl : lastGoal ?? todayGoalMl),
+    (day) => day === today && todayIsLimit,
   );
   return { streak: waterStreak(days, today), isLoading: server.isLoading, isError: server.isError, refetch };
 }

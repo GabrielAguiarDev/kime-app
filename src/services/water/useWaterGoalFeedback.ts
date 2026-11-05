@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import { keyValueStorage } from '@infra';
+import { waterDayState } from '@domain/Water';
 
 // Shared by every mounted screen (Início stays mounted under Água): dismissing
 // the sheet on one hides it everywhere at once.
@@ -26,9 +27,10 @@ export function useWaterGoalFeedback(
   day: string | undefined,
   totalMl: number | undefined,
   goalMl: number | null | undefined,
+  isLimit = false,
 ) {
   useSyncExternalStore(subscribe, getVersion);
-  const reached = !!goalMl && totalMl !== undefined && totalMl >= goalMl;
+  const reached = totalMl !== undefined && waterDayState(totalMl, goalMl, isLimit) === 'done';
   const seen = !!userId && !!day && keyValueStorage.getScoped('waterGoalCelebrated', userId) === day;
 
   const dismiss = () => {

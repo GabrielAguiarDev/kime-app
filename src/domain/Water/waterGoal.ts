@@ -33,3 +33,10 @@ export function dailyGoal({ weightKg, plannedMl }: DailyGoalInput): DailyGoal {
 export function goalOnDate(config: { goalMl: number | null; goalsByDate?: Record<string, number> }, date: string): number | null {
   return config.goalsByDate?.[date] ?? config.goalMl;
 }
+
+/** One rule for a daily goal or limit. Exact integer comparison avoids rounding at 90%. */
+export function waterDayState(totalMl: number, targetMl: number | null | undefined, isLimit = false): 'unconfigured' | 'progress' | 'done' | 'over' {
+  if (!targetMl || targetMl <= 0) return 'unconfigured';
+  if (isLimit && totalMl > targetMl) return 'over';
+  return (isLimit ? totalMl * 10 >= targetMl * 9 : totalMl >= targetMl) ? 'done' : 'progress';
+}
