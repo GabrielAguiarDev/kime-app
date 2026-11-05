@@ -1,0 +1,32 @@
+import { router } from 'expo-router';
+import { ActivityIndicator } from 'react-native';
+
+import { Box, EmptyState, LoadError, Screen } from '@components';
+import { usePendingRequests } from '@domain/Membership';
+import { useActiveGym } from '@services/activeGym';
+
+import { RequestCard } from './RequestCard';
+
+/** Staff: join requests waiting (from the Início notice and the Equipe banner). */
+export function RequestsScreen() {
+  const { active } = useActiveGym();
+  const requests = usePendingRequests(active?.gymId);
+  const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+  return (
+    <Screen nativeHeader title="Pedidos de entrada" onBack={back}>
+      {requests.isLoading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
+      {requests.isError ? (
+        <LoadError title="Não foi possível carregar os pedidos" onRetry={() => void requests.refetch()} />
+      ) : null}
+      {requests.data?.length === 0 ? (
+        <EmptyState title="Nenhum pedido pendente." description="Quem entrar com o código da academia aparece aqui." />
+      ) : null}
+      <Box gap="s12">
+        {requests.data?.map((request) => (
+          <RequestCard key={request.membershipId} request={request} />
+        ))}
+      </Box>
+    </Screen>
+  );
+}

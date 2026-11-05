@@ -4,7 +4,7 @@ import { useWindowDimensions } from 'react-native';
 
 import { AcademyLogo, Box, FeedbackSheet, HeaderButton, Screen, Text } from '@components';
 import { useWaterDay } from '@domain/Water';
-import { ProfessorHome } from '@screens/professor/ProfessorHome';
+import { StaffHome } from '@screens/staff/StaffHome';
 import { StudentHome } from '@screens/student/StudentHome';
 import { WaterCounter } from '@screens/water/WaterCounter';
 import { formatMl } from '@screens/water/format';
@@ -88,7 +88,7 @@ export function HomeScreen() {
         ) : undefined
       }
     >
-      {isStaff ? <ProfessorHome /> : <StudentHome />}
+      {isStaff ? <StaffHome /> : <StudentHome />}
     </Screen>
   );
 }

@@ -173,6 +173,31 @@ async function listCheckinsOn(academyId: string, date: string) {
   return data;
 }
 
+/** Staff: check-ins of the academy between two dates (week summary). */
+async function listCheckinsBetween(academyId: string, from: string, to: string) {
+  const { data, error } = await supabase
+    .from('checkins')
+    .select(`${CHECKIN_COLUMNS}, profile:profiles!checkins_user_id_fkey(full_name)`)
+    .eq('academy_id', academyId)
+    .gte('class_date', from)
+    .lte('class_date', to);
+  if (error) throw error;
+  return data;
+}
+
+/** Staff: an attendance already confirmed, for a student who forgot the check-in (RLS: staff, own academy). */
+async function markAttendance(academyId: string, scheduleId: string, date: string, userId: string, markedBy: string) {
+  const { error } = await supabase.from('checkins').insert({
+    academy_id: academyId,
+    schedule_id: scheduleId,
+    class_date: date,
+    user_id: userId,
+    status: 'confirmed',
+    marked_by: markedBy,
+  });
+  if (error) throw error;
+}
+
 async function createCheckin(academyId: string, userId: string, scheduleId: string, date: string) {
   const { error } = await supabase
     .from('checkins')
@@ -261,6 +286,17 @@ async function setSessionInstructor(sessionId: string, instructorId: string) {
   if (data.length === 0) throw new Error('forbidden');
 }
 
+async function listSessionsBetween(academyId: string, from: string, to: string) {
+  const { data, error } = await supabase
+    .from('class_sessions')
+    .select('id, schedule_id, class_date, instructor_id')
+    .eq('academy_id', academyId)
+    .gte('class_date', from)
+    .lte('class_date', to);
+  if (error) throw error;
+  return data;
+}
+
 async function listInstructorStats(academyId: string) {
   const { data, error } = await supabase
     .from('instructor_class_stats')
@@ -274,6 +310,7 @@ export const classesApi = {
   listSessionsOn,
   setSessionInstructor,
   listInstructorStats,
+  listSessionsBetween,
   academyToday,
   listSchedules,
   createSchedule,
@@ -293,6 +330,8 @@ export const classesApi = {
   reorderBelts,
   listMyCheckins,
   listCheckinsOn,
+  listCheckinsBetween,
+  markAttendance,
   createCheckin,
   cancelCheckin,
   decideCheckin,

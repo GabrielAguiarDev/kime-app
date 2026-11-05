@@ -15,21 +15,24 @@ function weekLabel(monday: LocalDate): string {
 
 /**
  * Week navigation (previous / next) and the seven days, Monday first. The
- * selected day gets the accent; days with meals are in `text`, empty ones in
- * `textMuted`; today is marked.
+ * selected day gets the accent; marked days (meals, classes…) are in `text`,
+ * the others in `textMuted`; today is marked. Used by the diet and by Aulas (staff).
  */
 export function DietWeekPicker({
   monday,
   selected,
   today,
-  daysWithMeals,
+  marked,
+  unmarkedLabel = 'sem refeições',
   onSelect,
   onChangeWeek,
 }: {
   monday: LocalDate;
   selected: LocalDate;
   today: LocalDate;
-  daysWithMeals: Set<LocalDate>;
+  marked: Set<LocalDate>;
+  /** Accessibility suffix of an unmarked day. */
+  unmarkedLabel?: string;
   onSelect: (date: LocalDate) => void;
   onChangeWeek: (monday: LocalDate) => void;
 }) {
@@ -57,7 +60,7 @@ export function DietWeekPicker({
       <Box flexDirection="row" gap="s4" accessibilityRole="tablist">
         {days.map((date) => {
           const isSelected = date === selected;
-          const hasMeals = daysWithMeals.has(date);
+          const hasMeals = marked.has(date);
           const isToday = date === today;
           const label = WEEKDAY_LABELS[weekdayOf(date)];
           return (
@@ -67,7 +70,7 @@ export function DietWeekPicker({
               accessibilityRole="tab"
               accessibilityState={{ selected: isSelected }}
               accessibilityLabel={`${label.long}, ${formatLocalDate(date)}${isToday ? ', hoje' : ''}${
-                hasMeals ? '' : ', sem refeições'
+                hasMeals ? '' : `, ${unmarkedLabel}`
               }`}
               style={{ flex: 1 }}
             >

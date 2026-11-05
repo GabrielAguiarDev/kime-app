@@ -30,6 +30,8 @@ const ScopedKeys = {
   classReminders: 'kimi.classReminders.v1',
   /** Signature of the reminders last scheduled, per user (skip rescheduling when unchanged). */
   classRemindersPlan: 'kimi.classRemindersPlan.v1',
+  /** Last round timer used (JSON {presetId, config}), per user + academy. */
+  timerLast: 'kimi.timerLast.v1',
 } as const;
 
 type ScopedKey = keyof typeof ScopedKeys;

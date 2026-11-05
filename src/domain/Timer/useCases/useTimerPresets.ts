@@ -17,7 +17,7 @@ async function list(academyId: string): Promise<TimerPreset[]> {
   return call(async () => {
     const { data, error } = await supabase
       .from('timer_presets')
-      .select('id, name, rounds, round_seconds, rest_seconds, warning_seconds')
+      .select('id, name, rounds, round_seconds, rest_seconds, warning_seconds, modality_id')
       .eq('academy_id', academyId)
       .order('name');
     if (error) throw error;
@@ -29,6 +29,7 @@ async function list(academyId: string): Promise<TimerPreset[]> {
       restSeconds: r.rest_seconds,
       warningSeconds: r.warning_seconds,
       builtIn: false,
+      modalityId: r.modality_id,
     }));
   });
 }
@@ -49,17 +50,21 @@ export function useTimerPresets(academyId: string | undefined) {
   });
 }
 
-/** Staff: save, overwrite and delete the academy's presets. */
+/** Owner: save, overwrite and delete the academy's presets (instructors only use them). */
 export function useTimerPresetMutations(academyId: string, userId: string) {
   const queryClient = useQueryClient();
   const onSuccess = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.TimerPresets, academyId] });
   return {
     create: useMutation({
-      mutationFn: ({ name, config }: { name: string; config: TimerConfig }) =>
+      mutationFn: ({ name, config, modalityId }: { name: string; config: TimerConfig; modalityId: string | null }) =>
         call(async () => {
-          const { error } = await supabase
-            .from('timer_presets')
-            .insert({ academy_id: academyId, name: name.trim(), created_by: userId, ...columns(config) });
+          const { error } = await supabase.from('timer_presets').insert({
+            academy_id: academyId,
+            name: name.trim(),
+            created_by: userId,
+            modality_id: modalityId,
+            ...columns(config),
+          });
           if (error) throw error;
         }),
       onSuccess,

@@ -18,7 +18,7 @@ import {
   Text,
   TextButton,
 } from '@components';
-import { useSignOut } from '@domain/Auth';
+import { useDeleteAccount, useSignOut } from '@domain/Auth';
 import { activeMemberships, membershipLabel, useLeaveGym, type Membership } from '@domain/Membership';
 import { useAvatarMutations, useMyProfile } from '@domain/Profile';
 import { errorMessage } from '@infra';
@@ -33,8 +33,8 @@ import { haptics } from '@utils/haptics';
 
 /**
  * Perfil: avatar (photo or initials; tap for camera / gallery / remove),
- * editable name and e-mail, then grouped sections — Academias,
- * Gestão da academia (staff) and Conta.
+ * editable name and e-mail, then grouped sections — Academias, Água (staff),
+ * Gestão da academia (owner), Preferências (students) and Conta.
  */
 export function ProfileScreen() {
   const { userId } = useSession();
@@ -125,20 +125,18 @@ export function ProfileScreen() {
         </Section>
 
         {isStaff ? (
+          <Section title="Água">
+            <ManageCard title="Garrafa, peso e altura" icon="drop" onPress={() => router.push('/agua/configurar')} />
+          </Section>
+        ) : null}
+
+        {isOwner ? (
           <Section title="Gestão da academia">
-            {isOwner ? (
-              <ManageCard
-                title="Configurações da academia"
-                icon="settings"
-                onPress={() => router.push('/academy/settings')}
-              />
-            ) : null}
-            <ManageCard title="Horários das aulas" icon="calendar" onPress={() => router.push('/academy/schedules')} />
+            <ManageCard title="Configurações da academia" icon="settings" onPress={() => router.push('/academy/settings')} />
+            <ManageCard title="Modalidades e faixas" icon="belt" onPress={() => router.push('/academy/modalities')} />
+            <ManageCard title="Horários" icon="calendar" onPress={() => router.push('/academy/schedules')} />
+            <ManageCard title="Convites" icon="share" onPress={() => router.push('/convites')} />
             <ManageCard title="Campeonatos" icon="trophy" onPress={() => router.push('/academy/championships')} />
-            <ManageCard title="Timer de rounds" icon="timer" onPress={() => router.push('/timer')} />
-            {isOwner ? (
-              <ManageCard title="Modalidades" icon="belt" onPress={() => router.push('/academy/modalities')} />
-            ) : null}
           </Section>
         ) : null}
 
@@ -161,6 +159,7 @@ export function ProfileScreen() {
               }
             }}
           />
+          {isStaff ? <DeleteAccountButton avatarPath={profile?.avatarPath ?? null} /> : null}
         </Section>
       </Box>
     </Screen>
@@ -319,7 +318,7 @@ function ManageCard({
   onPress,
 }: {
   title: string;
-  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'timer';
+  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'drop' | 'share';
   onPress: () => void;
 }) {
   return (
@@ -330,5 +329,28 @@ function ManageCard({
       </Text>
       <Icon name="chevronRight" color="textMuted" />
     </Card>
+  );
+}
+
+/** Staff: "Excluir conta" (the same flow as Meus dados). */
+function DeleteAccountButton({ avatarPath }: { avatarPath: string | null }) {
+  const remove = useDeleteAccount();
+  const confirm = useConfirm();
+  return (
+    <TextButton
+      title="Excluir conta"
+      color="danger"
+      disabled={remove.isPending}
+      onPress={async () => {
+        const ok = await confirm({
+          title: 'Excluir sua conta?',
+          message:
+            'Seu perfil e seus dados são apagados para sempre. Academias em que você é o único membro também são apagadas. Se a academia tiver outros membros, transfira-a antes.',
+          confirmLabel: 'Excluir conta',
+          tone: 'danger',
+        });
+        if (ok) remove.mutate(avatarPath, { onError: (e) => Alert.alert('Excluir conta', errorMessage(e)) });
+      }}
+    />
   );
 }

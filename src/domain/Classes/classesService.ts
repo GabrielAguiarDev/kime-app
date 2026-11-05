@@ -96,6 +96,19 @@ export const classesService = {
     call(async () => (await api.listMyCheckins(academyId, userId)).map(adapter.toCheckin)),
   listCheckinsOn: (academyId: string, date: LocalDate): Promise<AcademyCheckin[]> =>
     call(async () => (await api.listCheckinsOn(academyId, date)).map(adapter.toAcademyCheckin)),
+  listCheckinsBetween: (academyId: string, from: LocalDate, to: LocalDate): Promise<AcademyCheckin[]> =>
+    call(async () => (await api.listCheckinsBetween(academyId, from, to)).map(adapter.toAcademyCheckin)),
+  markAttendance: (academyId: string, scheduleId: string, date: LocalDate, userId: string, markedBy: string) =>
+    call(() => api.markAttendance(academyId, scheduleId, date, userId, markedBy)),
+  listSessionsBetween: (academyId: string, from: LocalDate, to: LocalDate): Promise<ClassSession[]> =>
+    call(async () =>
+      (await api.listSessionsBetween(academyId, from, to)).map((r) => ({
+        id: r.id,
+        scheduleId: r.schedule_id,
+        classDate: r.class_date,
+        instructorId: r.instructor_id,
+      })),
+    ),
   createCheckin: (academyId: string, userId: string, scheduleId: string, date: LocalDate) =>
     call(() => api.createCheckin(academyId, userId, scheduleId, date)),
   cancelCheckin: (id: string) => call(() => api.cancelCheckin(id)),

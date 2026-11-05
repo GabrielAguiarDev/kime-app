@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
-import { BottomSheet, Box, Button, Card, EmptyState, Icon, Screen, Text } from '@components';
+import { BottomSheet, Box, Button, Card, EmptyState, Icon, LoadError, Screen, Text } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import {
   countdownLabel,
@@ -25,20 +25,9 @@ import { Section } from './shared';
 /** Staff: championships of the academy (upcoming and past) and "Novo campeonato". */
 export function ChampionshipsScreen() {
   const { active } = useActiveGym();
-  const academyId = active?.gymId;
-  const today = useAcademyToday(academyId);
-  const championships = useChampionships(academyId);
-  const entries = useChampionshipEntries(academyId);
   const [creating, setCreating] = useState(false);
-
-  if (!academyId) return null;
-
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  const loading = today.isLoading || championships.isLoading;
-  const list = championships.data ?? [];
-  const upcoming = today.data ? upcomingChampionships(list, today.data) : [];
-  const past = today.data ? pastChampionships(list, today.data) : [];
-
+  if (!active) return null;
   return (
     <Screen
       nativeHeader
@@ -46,28 +35,50 @@ export function ChampionshipsScreen() {
       onBack={back}
       footer={<Button title="Novo campeonato" icon="plus" onPress={() => setCreating(true)} />}
     >
+      <ChampionshipsView academyId={active.gymId} />
+      <BottomSheet visible={creating} onRequestClose={() => setCreating(false)}>
+        <CreateChampionship academyId={active.gymId} onDone={() => setCreating(false)} />
+      </BottomSheet>
+    </Screen>
+  );
+}
+
+/**
+ * The championship list (also a segment of Equipe). `inlineCreate` puts
+ * "Novo campeonato" at the top (no fixed footer there).
+ */
+export function ChampionshipsView({ academyId, inlineCreate = false }: { academyId: string; inlineCreate?: boolean }) {
+  const today = useAcademyToday(academyId);
+  const championships = useChampionships(academyId);
+  const entries = useChampionshipEntries(academyId);
+  const [creating, setCreating] = useState(false);
+
+  const loading = today.isLoading || championships.isLoading;
+  const list = championships.data ?? [];
+  const upcoming = today.data ? upcomingChampionships(list, today.data) : [];
+  const past = today.data ? pastChampionships(list, today.data) : [];
+
+  return (
+    <Box gap="s24">
+      {inlineCreate ? (
+        <Button title="Novo campeonato" icon="plus" variant="secondary" onPress={() => setCreating(true)} />
+      ) : null}
       {loading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
       {championships.isError || today.isError ? (
-        <EmptyState
-          visual="icon"
-          icon="offline"
+        <LoadError
           title="Não foi possível carregar os campeonatos"
-          action={
-            <Button
-              title="Tentar de novo"
-              variant="secondary"
-              onPress={() => {
-                void championships.refetch();
-                void today.refetch();
-              }}
-            />
-          }
+          onRetry={() => {
+            void championships.refetch();
+            void today.refetch();
+          }}
         />
       ) : null}
 
       {!loading && championships.data && today.data ? (
         list.length === 0 ? (
           <EmptyState
+            visual="icon"
+            icon="trophy"
             title="Nenhum campeonato cadastrado."
             description="Cadastre o campeonato e inscreva os atletas da equipe. Eles veem a contagem regressiva no app e no widget."
           />
@@ -94,10 +105,12 @@ export function ChampionshipsScreen() {
         )
       ) : null}
 
-      <BottomSheet visible={creating} onRequestClose={() => setCreating(false)}>
-        <CreateChampionship academyId={academyId} onDone={() => setCreating(false)} />
-      </BottomSheet>
-    </Screen>
+      {inlineCreate ? (
+        <BottomSheet visible={creating} onRequestClose={() => setCreating(false)}>
+          <CreateChampionship academyId={academyId} onDone={() => setCreating(false)} />
+        </BottomSheet>
+      ) : null}
+    </Box>
   );
 }
 
