@@ -25,6 +25,8 @@ export interface TimerPreset extends TimerConfig {
   builtIn: boolean;
   /** Academy preset of a modality (Início / presence "Timer" opens it). */
   modalityId?: string | null;
+  /** Built-in only: the modality names it is made for. */
+  forModalities?: string[];
 }
 
 /** "Prepare-se" before the first round. */
@@ -39,11 +41,43 @@ export const LIMITS = {
 
 /** Ready-made presets (typical amateur/competition formats). */
 export const BUILT_IN_PRESETS: TimerPreset[] = [
-  { id: 'builtin:boxe', name: 'Boxe', rounds: 3, roundSeconds: 180, restSeconds: 60, warningSeconds: 10, builtIn: true },
-  { id: 'builtin:muay-thai', name: 'Muay Thai', rounds: 5, roundSeconds: 180, restSeconds: 120, warningSeconds: 10, builtIn: true },
-  { id: 'builtin:mma', name: 'MMA', rounds: 3, roundSeconds: 300, restSeconds: 60, warningSeconds: 10, builtIn: true },
-  { id: 'builtin:rola', name: 'Rola de jiu-jitsu', rounds: 6, roundSeconds: 300, restSeconds: 60, warningSeconds: 30, builtIn: true },
+  { id: 'builtin:boxe', name: 'Boxe', rounds: 3, roundSeconds: 180, restSeconds: 60, warningSeconds: 10, builtIn: true, forModalities: ['Boxe', 'Boxing'] },
+  { id: 'builtin:muay-thai', name: 'Muay Thai', rounds: 5, roundSeconds: 180, restSeconds: 120, warningSeconds: 10, builtIn: true, forModalities: ['Muay Thai'] },
+  { id: 'builtin:mma', name: 'MMA', rounds: 3, roundSeconds: 300, restSeconds: 60, warningSeconds: 10, builtIn: true, forModalities: ['MMA'] },
+  {
+    id: 'builtin:rola',
+    name: 'Rola de jiu-jitsu',
+    rounds: 6,
+    roundSeconds: 300,
+    restSeconds: 60,
+    warningSeconds: 30,
+    builtIn: true,
+    forModalities: ['Jiu-Jitsu', 'Jiu Jitsu', 'Jiujitsu', 'BJJ', 'No-Gi', 'No Gi'],
+  },
 ];
+
+const normalizeName = (name: string) =>
+  name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase();
+
+/** Built-in presets made for a modality name ("Jiu-Jitsu" → the rola preset). */
+export function builtInFor(modalityName: string): TimerPreset | undefined {
+  const target = normalizeName(modalityName);
+  return BUILT_IN_PRESETS.find((p) => p.forModalities?.some((m) => normalizeName(m) === target));
+}
+
+/**
+ * The built-in presets to offer: only those of modalities the academy has.
+ * An academy whose modalities match none (Judô, Karatê…) gets all of them.
+ */
+export function builtInsForAcademy(modalityNames: string[]): TimerPreset[] {
+  const ids = new Set(modalityNames.map((n) => builtInFor(n)?.id).filter((id): id is string => !!id));
+  const matching = BUILT_IN_PRESETS.filter((p) => ids.has(p.id));
+  return matching.length > 0 ? matching : BUILT_IN_PRESETS;
+}
 
 export type TimerPhase = 'prep' | 'round' | 'rest' | 'done';
 

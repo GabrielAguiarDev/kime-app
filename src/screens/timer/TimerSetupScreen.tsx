@@ -18,6 +18,8 @@ import {
 import { useModalities } from '@domain/Classes';
 import {
   BUILT_IN_PRESETS,
+  builtInFor,
+  builtInsForAcademy,
   describeConfig,
   formatClock,
   isValidConfig,
@@ -94,11 +96,15 @@ export function TimerSetupScreen() {
   const { active, isOwner } = useActiveGym();
   const academyId = active?.gymId;
   const presets = useTimerPresets(academyId);
+  const modalities = useModalities(academyId);
   const running = useTimerSession();
   const confirm = useConfirm();
   const scope = `${userId ?? ''}.${academyId ?? ''}`;
 
-  const all = [...(presets.data ?? []), ...BUILT_IN_PRESETS];
+  // Ready-made presets only for the academy's modalities (all of them when none matches).
+  const builtIns = builtInsForAcademy((modalities.data ?? []).map((m) => m.name));
+  const all = [...(presets.data ?? []), ...builtIns];
+  const loading = presets.isLoading || modalities.isLoading;
   const [picked, setPicked] = useState<TimerPreset | null>(null);
   const [fields, setFields] = useState<Fields | null>(null);
   const [appliedModality, setAppliedModality] = useState<string | undefined>(undefined);
@@ -106,16 +112,18 @@ export function TimerSetupScreen() {
 
   // Adjusted while rendering (React's "adjust state on prop change" pattern), not in effects.
   // First open: the last preset used (with its adjustments), else the first one.
-  if (!picked && !presets.isLoading) {
+  if (!picked && !loading) {
     const last = readLast(scope);
     const preset = (last && all.find((p) => p.id === last.presetId)) ?? all[0]!;
     setPicked(preset);
     setFields(toFields(last && last.presetId === preset.id ? last.config : preset));
   }
   // Coming from a class: that modality's preset, when the academy has one.
-  if (modalityParam && modalityParam !== appliedModality && presets.data) {
+  if (modalityParam && modalityParam !== appliedModality && presets.data && modalities.data) {
     setAppliedModality(modalityParam);
-    const preset = presets.data.find((p) => p.modalityId === modalityParam);
+    const name = modalities.data.find((m) => m.id === modalityParam)?.name;
+    // The academy's preset of the modality, else the ready-made one for it.
+    const preset = presets.data.find((p) => p.modalityId === modalityParam) ?? (name ? builtInFor(name) : undefined);
     if (preset) {
       setPicked(preset);
       setFields(toFields(preset));
@@ -216,7 +224,7 @@ export function TimerSetupScreen() {
 
         <Box gap="s12">
           <Text variant="captionCaps">Predefinições</Text>
-          {presets.isLoading ? <ActivityIndicator /> : null}
+          {loading ? <ActivityIndicator /> : null}
           {all.map((p) => (
             <SelectionCard
               key={p.id}
@@ -291,7 +299,7 @@ export function TimerSetupScreen() {
             config={config}
             changed={adjusted}
             onOpenSave={() => setSaving(true)}
-            onDeleted={() => pick(BUILT_IN_PRESETS[0]!)}
+            onDeleted={() => pick(all.find((p) => p.builtIn) ?? BUILT_IN_PRESETS[0]!)}
           />
         ) : null}
       </Box>
