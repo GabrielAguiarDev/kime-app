@@ -59,7 +59,8 @@ export function StaffHome() {
   const others = classesOn(all, today.data).filter((c) => c.id !== (next?.date === today.data ? next.schedule.id : ''));
 
   return (
-    <Box gap="s32">
+    // Same space above the first card as between the sections (the header has no large title here).
+    <Box gap="s32" paddingTop="s32">
       {all.length === 0 ? (
         <EmptyState
           title="Nenhum horário cadastrado."
