@@ -22,7 +22,10 @@
         ]
       },
       "infoPlist": {
-        "NSSupportsLiveActivities": true
+        "NSSupportsLiveActivities": true,
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -57,14 +60,6 @@
           "photosPermission": "O Kimi usa suas fotos para você escolher sua foto de perfil e a logo da academia.",
           "cameraPermission": "O Kimi usa a câmera para você tirar sua foto de perfil.",
           "microphonePermission": false
-        }
-      ],
-      [
-        "expo-audio",
-        {
-          "enableBackgroundPlayback": true,
-          "microphonePermission": false,
-          "recordAudioAndroid": false
         }
       ]
     ],

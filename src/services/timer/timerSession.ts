@@ -1,9 +1,9 @@
-import { AppState, Platform, type AppStateStatus } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import {
   elapsed,
   events,
-  eventsBetween,
+  nativePlan,
   pause,
   resume,
   seekTo,
@@ -16,28 +16,21 @@ import {
   type TimerEvent,
   type TimerState,
 } from '@domain/Timer';
-import { playTimerSound, startTimerAudio, stopTimerAudio } from '@infra/audio';
-import { cancelNotifications, scheduleTimerNotification } from '@infra/notifications';
-import { roundTimerActivity } from '@infra/widget';
+import { requestNotificationPermission } from '@infra/notifications';
+import { roundTimerNative } from '@infra/widget';
 
 /**
  * The running round timer (one at a time), outside React so it survives
- * navigation. Time comes from the clock (domain/Timer); a tick only refreshes
- * the screen, plays the sounds it crossed and updates the Live Activity.
+ * navigation. Time always comes from the clock (domain/Timer).
  *
- * Background / locked screen:
- *  - iOS: the audio session stays alive (silent loop + background audio), so
- *    ticks and bells go on; the Live Activity shows round and time left.
- *  - Android: JS may be paused, so the next bells are also scheduled as local
- *    notifications when the app leaves the foreground, and cancelled when it
- *    comes back.
+ * Sounds, the Live Activity (iOS) and the fixed notification (Android) are the
+ * NATIVE engine's job (modules/kimi-widget): every start / pause / resume /
+ * skip sends it the plan of what is ahead, and it plays the bells on time with
+ * the app in the background or the screen locked. JavaScript only draws the
+ * screen (a 200 ms tick while it is open).
  */
 
 const TICK_MS = 200;
-/** A tick after a long pause (app suspended) does not replay old sounds. */
-const STALE_SOUND_MS = 1500;
-/** Android fallback: how many upcoming bells become notifications. */
-const MAX_FALLBACK = 40;
 
 export interface TimerSession {
   title: string;
@@ -49,12 +42,12 @@ export interface TimerSession {
 }
 
 let session: TimerSession | null = null;
-let lastElapsed = 0;
 let ticker: ReturnType<typeof setInterval> | null = null;
-let activityKey = '';
-let fallbackIds: string[] = [];
-const listeners = new Set<() => void>();
 let appStateSub: { remove: () => void } | null = null;
+const listeners = new Set<() => void>();
+
+/** Sounds and background need the native engine (a new build). */
+export const timerSoundsAvailable = roundTimerNative.available;
 
 function emit() {
   listeners.forEach((l) => l());
@@ -71,39 +64,26 @@ export function getTimerSession(): TimerSession | null {
   return session;
 }
 
-function syncActivity(now: number) {
+/** Hands the native engine everything still ahead (replaces the previous plan). */
+function syncNative() {
   if (!session) return;
-  const s = session.state;
-  const seg = s.segmentIndex >= 0 ? session.segments[s.segmentIndex] : undefined;
-  const paused = session.clock.pausedAt !== null;
-  // Only on changes: the system counts the seconds down by itself.
-  const key = `${s.segmentIndex}|${s.warning}|${paused}|${paused ? 0 : session.clock.startedAt + session.clock.pausedTotalMs}`;
-  if (key === activityKey) return;
-  activityKey = key;
-  const endsAtMs = seg ? now + (seg.endMs - elapsed(session.clock, now)) : now;
-  roundTimerActivity.update({
-    title: session.title,
-    phase: s.phase,
-    round: s.round,
-    rounds: s.rounds,
-    endsAtMs,
-    paused,
-    remainingSeconds: Math.ceil(s.remainingMs / 1000),
-    warning: s.warning,
-  });
+  const now = Date.now();
+  const plan = nativePlan(
+    session.title,
+    session.config,
+    session.segments,
+    session.events,
+    elapsed(session.clock, now),
+    now,
+    session.clock.pausedAt !== null,
+  );
+  void roundTimerNative.sync(plan).catch(() => undefined);
 }
 
 function tick() {
   if (!session) return;
-  const now = Date.now();
-  const t = elapsed(session.clock, now);
-  const crossed = eventsBetween(session.events, lastElapsed, t).filter((e) => t - e.atMs < STALE_SOUND_MS);
-  lastElapsed = Math.max(lastElapsed, t);
-  // Several at once (e.g. round end + next start without rest): the last one wins.
-  const sound = crossed[crossed.length - 1];
-  if (sound) void playTimerSound(sound.sound).catch(() => undefined);
+  const t = elapsed(session.clock, Date.now());
   session = { ...session, state: stateAt(session.config, session.segments, t) };
-  syncActivity(now);
   if (session.state.phase === 'done') stopTicker();
   emit();
 }
@@ -118,51 +98,24 @@ function stopTicker() {
   ticker = null;
 }
 
-async function scheduleFallback() {
-  if (Platform.OS !== 'android' || !session || session.clock.pausedAt !== null) return;
-  const now = Date.now();
-  const t = elapsed(session.clock, now);
-  const upcoming = session.events.filter((e) => e.atMs > t && e.sound !== 'warning').slice(0, MAX_FALLBACK);
-  const ids: string[] = [];
-  for (const e of upcoming) {
-    const st = stateAt(session.config, session.segments, e.atMs);
-    const id = await scheduleTimerNotification({
-      at: new Date(now + (e.atMs - t)),
-      title: e.sound === 'roundStart' ? `Round ${st.round} começou` : `Fim do round ${stateAt(session.config, session.segments, e.atMs - 1).round}`,
-      body: session.title,
-      data: { kind: 'round-timer' },
-    }).catch(() => null);
-    if (id) ids.push(id);
-  }
-  fallbackIds = ids;
-}
-
-async function clearFallback() {
-  const ids = fallbackIds;
-  fallbackIds = [];
-  if (ids.length) await cancelNotifications(ids).catch(() => undefined);
-}
-
-function onAppState(next: AppStateStatus) {
-  if (!session) return;
-  if (next === 'active') {
-    void clearFallback();
-    tick();
-  } else if (next === 'background') {
-    void scheduleFallback();
-  }
-}
-
 export async function startTimer(title: string, config: TimerConfig): Promise<void> {
   await stopTimer();
+  // Android 13+: the fixed notification needs the permission (the bells play without it).
+  if (Platform.OS === 'android') await requestNotificationPermission().catch(() => false);
   const segments = timeline(config);
-  const now = Date.now();
-  const clock = startClock(now);
-  session = { title, config, segments, events: events(config, segments), clock, state: stateAt(config, segments, 0) };
-  lastElapsed = -1;
-  activityKey = '';
-  appStateSub = AppState.addEventListener('change', onAppState);
-  await startTimerAudio().catch(() => undefined);
+  session = {
+    title,
+    config,
+    segments,
+    events: events(config, segments),
+    clock: startClock(Date.now()),
+    state: stateAt(config, segments, 0),
+  };
+  // Back from the background: redraw at once (JS timers may have been paused).
+  appStateSub = AppState.addEventListener('change', (next) => {
+    if (next === 'active') tick();
+  });
+  syncNative();
   tick();
   startTicker();
 }
@@ -172,17 +125,18 @@ export function pauseTimer() {
   session = { ...session, clock: pause(session.clock, Date.now()) };
   stopTicker();
   tick();
+  syncNative();
 }
 
 export function resumeTimer() {
   if (!session || session.state.phase === 'done') return;
   session = { ...session, clock: resume(session.clock, Date.now()) };
-  lastElapsed = elapsed(session.clock, Date.now());
   tick();
+  syncNative();
   startTicker();
 }
 
-/** Jumps to the next (+1) or previous (-1) phase start, without sounds for what was skipped. */
+/** Jumps to the next (+1) or previous (-1) phase start. */
 export function skipTimer(direction: 1 | -1) {
   if (!session) return;
   const now = Date.now();
@@ -196,19 +150,17 @@ export function skipTimer(direction: 1 | -1) {
   } else {
     session = { ...session, clock: seekTo(session.clock, session.segments, target, now) };
   }
-  lastElapsed = elapsed(session.clock, now);
-  if (session.clock.pausedAt === null && !ticker) startTicker();
   tick();
+  syncNative();
+  if (session.clock.pausedAt === null && session.state.phase !== 'done' && !ticker) startTicker();
 }
 
 export async function stopTimer(): Promise<void> {
   stopTicker();
   appStateSub?.remove();
   appStateSub = null;
-  await clearFallback();
-  if (session) roundTimerActivity.end();
+  const hadSession = !!session;
   session = null;
-  activityKey = '';
   emit();
-  await stopTimerAudio().catch(() => undefined);
+  if (hadSession) await roundTimerNative.stop().catch(() => undefined);
 }

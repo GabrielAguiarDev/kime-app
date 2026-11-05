@@ -184,3 +184,57 @@ export function parseDuration(text: string): number | null {
   const m = /^(\d{1,3}):([0-5]\d)$/.exec(t);
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
+
+/** Plan for the native engine (modules/kimi-widget RoundTimerEngine / RoundTimerService): epoch ms. */
+export interface NativeTimerPlan {
+  title: string;
+  rounds: number;
+  paused: boolean;
+  current: { phase: TimerPhase; round: number; remainingSeconds: number; warning: boolean };
+  phases: { phase: Segment['phase']; round: number; startAtMs: number; endAtMs: number; warningAtMs: number | null }[];
+  sounds: { atMs: number; sound: TimerSound }[];
+}
+
+/**
+ * Everything still ahead of `elapsedMs`, as absolute instants from `now`: the
+ * native side plays and shows it without JavaScript (background, locked screen).
+ */
+export function nativePlan(
+  title: string,
+  c: TimerConfig,
+  segments: Segment[],
+  allEvents: TimerEvent[],
+  elapsedMs: number,
+  now: number,
+  paused: boolean,
+): NativeTimerPlan {
+  const state = stateAt(c, segments, elapsedMs);
+  const abs = (ms: number) => Math.round(now + (ms - elapsedMs));
+  return {
+    title,
+    rounds: c.rounds,
+    paused,
+    current: {
+      phase: state.phase,
+      round: state.round,
+      remainingSeconds: Math.ceil(state.remainingMs / 1000),
+      warning: state.warning,
+    },
+    phases: paused
+      ? []
+      : segments
+          .filter((s) => s.endMs > elapsedMs)
+          .map((s) => {
+            const length = s.endMs - s.startMs;
+            const warns = s.phase !== 'prep' && c.warningSeconds > 0 && c.warningSeconds * 1000 < length;
+            return {
+              phase: s.phase,
+              round: s.round,
+              startAtMs: abs(s.startMs),
+              endAtMs: abs(s.endMs),
+              warningAtMs: warns ? abs(s.endMs - c.warningSeconds * 1000) : null,
+            };
+          }),
+    sounds: paused ? [] : allEvents.filter((e) => e.atMs >= elapsedMs).map((e) => ({ atMs: abs(e.atMs), sound: e.sound })),
+  };
+}

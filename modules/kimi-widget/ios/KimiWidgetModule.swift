@@ -44,13 +44,15 @@ public class KimiWidgetModule: Module {
       WidgetCenter.shared.reloadAllTimelines()
     }
 
-    /// Round timer Live Activity: JSON {title, phase, round, rounds, endsAtMs, paused, remainingSeconds, warning}.
-    Function("startRoundTimerActivity") { (json: String) -> Bool in
-      RoundTimerActivityController.startOrUpdate(json)
-    }
+    /// Round timer: native engine (bells at exact instants + Live Activity), see RoundTimerEngine.
+    /// Every start / pause / resume / skip sends the new plan.
+    /// Main queue: the engine schedules and plays from there.
+    AsyncFunction("roundTimerSync") { (json: String) -> Bool in
+      RoundTimerEngine.shared.sync(json)
+    }.runOnQueue(.main)
 
-    Function("endRoundTimerActivity") {
-      RoundTimerActivityController.end()
-    }
+    AsyncFunction("roundTimerStop") {
+      RoundTimerEngine.shared.stop()
+    }.runOnQueue(.main)
   }
 }

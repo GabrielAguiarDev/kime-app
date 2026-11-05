@@ -40,6 +40,16 @@ class KimiWidgetModule : Module() {
         .mapValues { (_, value) -> value as String }
     }
 
+    /** Round timer: native engine (fixed notification + bells), same plan JSON as iOS. */
+    AsyncFunction("roundTimerSync") { json: String ->
+      RoundTimerService.sync(context, json)
+      true
+    }
+
+    AsyncFunction("roundTimerStop") {
+      RoundTimerService.stop(context)
+    }
+
     Function("reloadWidgets") {
       val ctx = context
       CoroutineScope(Dispatchers.Default).launch {

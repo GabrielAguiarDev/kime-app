@@ -1,4 +1,5 @@
-// Kimi widget module: shared storage (SharedPreferences) + the Jetpack Glance water widget.
+// Kimi widget module: shared storage (SharedPreferences), the Jetpack Glance widgets and the
+// round timer foreground service.
 // Glance needs the Compose compiler plugin, same setup as expo-dev-menu / expo-modules-core.
 buildscript {
   repositories {
@@ -29,5 +30,7 @@ android {
 
 dependencies {
   implementation "androidx.glance:glance-appwidget:1.1.1"
+  // NotificationCompat (round timer foreground notification).
+  implementation "androidx.core:core-ktx:1.13.1"
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2"
 }
