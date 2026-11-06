@@ -52,7 +52,16 @@ export function TeamScreen() {
   const [onlyCompetitors, setOnlyCompetitors] = useState(false);
   const [inviting, setInviting] = useState(false);
 
-  if (!active || !academyId) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!active || !academyId) {
+    return (
+      <Screen nativeHeader title="Equipe" bottomInset={false}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
 
   const q = query.trim().toLowerCase();
   const pending = requests.data?.length ?? 0;

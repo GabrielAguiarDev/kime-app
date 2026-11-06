@@ -56,13 +56,12 @@ export function useTimerPresetMutations(academyId: string, userId: string) {
   const onSuccess = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.TimerPresets, academyId] });
   return {
     create: useMutation({
-      mutationFn: ({ name, config, modalityId }: { name: string; config: TimerConfig; modalityId: string | null }) =>
+      mutationFn: ({ name, config }: { name: string; config: TimerConfig }) =>
         call(async () => {
           const { error } = await supabase.from('timer_presets').insert({
             academy_id: academyId,
             name: name.trim(),
             created_by: userId,
-            modality_id: modalityId,
             ...columns(config),
           });
           if (error) throw error;
@@ -92,4 +91,109 @@ export function useTimerPresetMutations(academyId: string, userId: string) {
       onSuccess,
     }),
   };
+}
+
+async function listPersonal(): Promise<TimerPreset[]> {
+  return call(async () => {
+    const { data, error } = await supabase
+      .from('personal_timer_presets')
+      .select('id, name, rounds, round_seconds, rest_seconds, warning_seconds')
+      .order('name');
+    if (error) throw error;
+    return data.map((r) => ({
+      id: r.id,
+      name: r.name,
+      rounds: r.rounds,
+      roundSeconds: r.round_seconds,
+      restSeconds: r.rest_seconds,
+      warningSeconds: r.warning_seconds,
+      builtIn: false,
+      personal: true,
+    }));
+  });
+}
+
+/** The user's own presets (RLS: only theirs), the same in every academy. */
+export function usePersonalTimerPresets(userId: string | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.PersonalTimerPresets, userId],
+    queryFn: listPersonal,
+    enabled: !!userId,
+  });
+}
+
+/** Anyone (student, instructor, owner): save, overwrite and delete their own presets. */
+export function usePersonalTimerPresetMutations(userId: string) {
+  const queryClient = useQueryClient();
+  const onSuccess = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.PersonalTimerPresets, userId] });
+  return {
+    create: useMutation({
+      mutationFn: ({ name, config }: { name: string; config: TimerConfig }) =>
+        call(async () => {
+          const { error } = await supabase.from('personal_timer_presets').insert({ name: name.trim(), ...columns(config) });
+          if (error) throw error;
+        }),
+      onSuccess,
+    }),
+    update: useMutation({
+      mutationFn: ({ id, name, config }: { id: string; name: string; config: TimerConfig }) =>
+        call(async () => {
+          const { data, error } = await supabase
+            .from('personal_timer_presets')
+            .update({ name: name.trim(), ...columns(config) })
+            .eq('id', id)
+            .select('id');
+          if (error) throw error;
+          if (data.length === 0) throw new Error('forbidden');
+        }),
+      onSuccess,
+    }),
+    remove: useMutation({
+      mutationFn: (id: string) =>
+        call(async () => {
+          const { data, error } = await supabase.from('personal_timer_presets').delete().eq('id', id).select('id');
+          if (error) throw error;
+          if (data.length === 0) throw new Error('forbidden');
+        }),
+      onSuccess,
+    }),
+  };
+}
+
+/** Ready-made presets the user removed from their list (`builtin:*` ids, on the profile). */
+export function useHiddenBuiltInPresets(userId: string | undefined) {
+  const queryClient = useQueryClient();
+  const key = [QueryKeys.HiddenTimerPresets, userId];
+  const query = useQuery({
+    queryKey: key,
+    queryFn: () =>
+      call(async () => {
+        const { data, error } = await supabase.from('profiles').select('hidden_timer_presets').eq('id', userId!).single();
+        if (error) throw error;
+        return data.hidden_timer_presets;
+      }),
+    enabled: !!userId,
+  });
+  const set = useMutation({
+    mutationFn: (ids: string[]) =>
+      call(async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({ hidden_timer_presets: ids })
+          .eq('id', userId!)
+          .select('id');
+        if (error) throw error;
+        if (data.length === 0) throw new Error('forbidden');
+      }),
+    // Optimistic: the chip leaves (or comes back) at once; rolled back on error.
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<string[]>(key);
+      queryClient.setQueryData(key, ids);
+      return { previous };
+    },
+    onError: (_e, _ids, context) => queryClient.setQueryData(key, context?.previous),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
+  return { hidden: query.data ?? [], isLoading: query.isLoading, set };
 }

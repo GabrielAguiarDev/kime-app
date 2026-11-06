@@ -28,7 +28,16 @@ export function ChampionshipsScreen() {
   const { active } = useActiveGym();
   const [creating, setCreating] = useState(false);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  if (!active) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!active) {
+    return (
+      <Screen nativeHeader title="Campeonatos" onBack={back}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
   return (
     <Screen
       nativeHeader

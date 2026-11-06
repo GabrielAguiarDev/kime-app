@@ -22,7 +22,6 @@ import { useSignOut } from '@domain/Auth';
 import { activeMemberships, membershipLabel, useLeaveGym, type Membership } from '@domain/Membership';
 import { useAvatarMutations, useMyProfile } from '@domain/Profile';
 import { errorMessage } from '@infra';
-import { CheckinPrivacySwitch } from '@screens/profile/CheckinPrivacySwitch';
 import { RankingSwitch } from '@screens/ranking/RankingSwitch';
 import { ClassReminderSwitch } from '@screens/reminders/ClassReminderSwitch';
 import { useActiveGym } from '@services/activeGym';
@@ -31,6 +30,7 @@ import { useJoinRequestNotices } from '@services/joinRequests';
 import { useSession } from '@services/session';
 import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
+import { squarePickerOptions } from '@utils/squareImage';
 
 /**
  * Perfil: avatar (photo or initials; tap for camera / gallery / remove),
@@ -155,7 +155,6 @@ export function ProfileScreen() {
         ) : null}
 
         <Section title="Conta">
-          <CheckinPrivacySwitch />
           <ManageCard title="Meus dados" icon="user" onPress={() => router.push('/conta/dados')} />
           <TextButton
             title="Sair da conta"
@@ -203,12 +202,7 @@ function ProfileHeader({
   const busy = avatar.change.isPending || avatar.remove.isPending;
 
   const pick = async (from: 'camera' | 'library') => {
-    const options: ImagePicker.ImagePickerOptions = {
-      mediaTypes: 'images',
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    };
+    const options = squarePickerOptions(from);
     if (from === 'camera') {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {

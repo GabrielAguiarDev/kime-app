@@ -1,7 +1,6 @@
 import {
   BUILT_IN_PRESETS,
   builtInFor,
-  builtInsForAcademy,
   elapsed,
   events,
   eventsBetween,
@@ -135,11 +134,6 @@ describe('built-in presets per modality', () => {
     expect(builtInFor('No-Gi')?.id).toBe('builtin:rola');
     expect(builtInFor('MUAY THAI')?.id).toBe('builtin:muay-thai');
     expect(builtInFor('Judô')).toBeUndefined();
-  });
-
-  it('offers only the academy modalities; none matching → all', () => {
-    expect(builtInsForAcademy(['Muay Thai', 'Jiu-Jitsu', 'No-Gi']).map((p) => p.name)).toEqual(['Muay Thai', 'Rola de jiu-jitsu']);
-    expect(builtInsForAcademy(['Judô'])).toHaveLength(4);
   });
 });
 

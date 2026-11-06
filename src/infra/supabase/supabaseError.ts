@@ -145,6 +145,7 @@ export function toAppError(error: unknown): AppError {
       if (/checkins_user_id_schedule_id_class_date_key/.test(message)) return new AppError('already_present', error);
       if (/timer_presets_one_per_modality_idx/.test(message)) return new AppError('duplicate_name', error);
       if (/timer_presets_academy_name_idx/.test(message)) return new AppError('duplicate_name', error);
+      if (/personal_timer_presets_user_name_idx/.test(message)) return new AppError('duplicate_name', error);
       if (/weight_logs_one_per_day/.test(message)) return new AppError('weight_day_taken', error);
       if (/academy_modalities_academy_name_idx|modality_belts_name_idx/.test(message)) {
         return new AppError('duplicate_name', error);

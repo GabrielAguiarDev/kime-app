@@ -20,7 +20,16 @@ type ModalityEditing = { mode: 'new' } | { mode: 'edit'; modality: Modality };
  */
 export function ModalitiesScreen() {
   const { active } = useActiveGym();
-  if (!active) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!active) {
+    return (
+      <Screen nativeHeader title="Modalidades" onBack={() => router.back()}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
   return <ModalitiesList gymId={active.gymId} />;
 }
 

@@ -18,7 +18,6 @@ const toProfile = (row: ProfileRowApi): Profile => ({
   sex: (row.sex as Sex | null) ?? null,
   birthDate: row.birth_date,
   showInRanking: row.show_in_ranking,
-  showCheckinsToPeers: row.show_checkins_to_peers,
 });
 
 async function getById(userId: string): Promise<Profile> {
@@ -103,11 +102,6 @@ async function setShowInRanking(userId: string, show: boolean): Promise<void> {
   }
 }
 
-async function setShowCheckinsToPeers(userId: string, show: boolean): Promise<void> {
-  try { await profileApi.setShowCheckinsToPeers(userId, show); }
-  catch (e) { throw toAppError(e); }
-}
-
 async function avatarUrls(paths: string[]): Promise<Map<string, string>> {
   try {
     const signed = await profileApi.signedAvatarUrls(paths, AVATAR_URL_TTL_SECONDS);
@@ -133,5 +127,4 @@ export const profileService = {
   avatarUrl,
   avatarUrls,
   setShowInRanking,
-  setShowCheckinsToPeers,
 };

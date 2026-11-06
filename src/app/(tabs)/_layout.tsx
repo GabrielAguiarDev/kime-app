@@ -76,14 +76,16 @@ export default function TabsLayout() {
           options={{ title: 'Competição', tabBarAccessibilityLabel: 'Competição', tabBarIcon: tabIcon('trophy') }}
         />
       </Tabs.Protected>
-      {/* Timer: a tab for staff; students reach it from Aulas (no tab of their own). */}
+      {/* Timer: a tab for staff; students reach it from Aulas (no tab of their own).
+          Hide only the button: `href: null` (SDK 58) marks the route hidden, which
+          redirects any navigation to it back home. */}
       <Tabs.Screen
         name="timer"
         options={{
           title: 'Timer',
           tabBarAccessibilityLabel: 'Timer',
           tabBarIcon: tabIcon('timer'),
-          href: isStaff ? undefined : null,
+          ...(isStaff ? null : { tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }),
         }}
       />
       <Tabs.Protected guard={isStaff}>

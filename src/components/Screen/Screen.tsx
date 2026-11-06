@@ -209,6 +209,11 @@ export function Screen({
  * its insets to the header (contentInsetAdjustmentBehavior="automatic").
  * Footer / feedback sheet float over the bottom (a later sibling, on `bg`),
  * and the content gets bottom room for them.
+ *
+ * Render it on the screen's FIRST render (a loading state inside it, never
+ * `return null` before it): iOS only offsets the scroll view below the large
+ * title when it exists as the screen appears. Mounted later, it starts at
+ * offset 0, hidden under the header (seen on a device, 2026-11-06).
  */
 function NativeHeaderScreen({
   children,

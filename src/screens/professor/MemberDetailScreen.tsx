@@ -57,7 +57,16 @@ export function MemberDetailScreen() {
   const { active } = useActiveGym();
   const members = useGymMembers(active?.gymId);
 
-  if (!active || !membershipId) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!active || !membershipId) {
+    return (
+      <Screen nativeHeader title="Membro" onBack={() => router.back()}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
 
   const member = members.data?.find((m) => m.id === membershipId);
 

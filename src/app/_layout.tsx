@@ -71,7 +71,7 @@ export default function RootLayout() {
  * Route access lives in ONE place: services/access (routeAccess). Every guard
  * below reads it and, when a screen is not allowed (in-app navigation, deep
  * link, widget, notification), redirects to the user's home for their state:
- *  - signed out                                → /start      (entry flow)
+ *  - signed out                                → /sign-in    (entry flow)
  *  - signed in, no approved membership/request → /academia   (code / create academy)
  *  - signed in, a pending request              → /aguardando (waiting screen)
  *  - approved membership                       → /home       (staff/owner screens also check the role)

@@ -68,7 +68,16 @@ export function AttendanceScreen() {
     />
   ) : undefined;
 
-  if (!academyId || !scheduleId || !date) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!academyId || !scheduleId || !date) {
+    return (
+      <Screen nativeHeader title="Presença" onBack={back}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
   if (schedules.isError || checkins.isError) {
     return (
       <Screen nativeHeader title="Presença" onBack={back}>

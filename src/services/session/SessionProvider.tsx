@@ -56,7 +56,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // Everything that belongs to a user dies with their session ("Sair da
   // conta" or an expired refresh token), including what the widgets show.
-  // Runs as an effect so screens unmount first; the guard then shows /start.
+  // Runs as an effect so screens unmount first; the guard then shows /sign-in.
   useEffect(() => {
     if (session) {
       signedInUser.current = session.user.id;

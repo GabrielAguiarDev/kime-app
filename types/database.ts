@@ -453,16 +453,30 @@ isOneToOne: false
       referencedColumns: ["id","academy_id"]
     }
                   ]
-                },"profiles": {
+                },"personal_timer_presets": {
                   Row: {
-                    "avatar_path": string | null,"birth_date": string | null,"bottle_ml": number | null,"created_at": string,"full_name": string,"height_cm": number | null,"id": string,"sex": string | null,"show_checkins_to_peers": boolean,"show_in_ranking": boolean,"timezone": string,"updated_at": string,"weight_kg": number | null
+                    "created_at": string,"id": string,"name": string,"rest_seconds": number,"round_seconds": number,"rounds": number,"updated_at": string,"user_id": string,"warning_seconds": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"id": string,"sex"?: string | null,"show_checkins_to_peers"?: boolean,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
+                    "created_at"?: string,"id"?: string,"name": string,"rest_seconds": number,"round_seconds": number,"rounds": number,"updated_at"?: string,"user_id"?: string,"warning_seconds": number
                   }
                   Update: {
-                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"id"?: string,"sex"?: string | null,"show_checkins_to_peers"?: boolean,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
+                    "created_at"?: string,"id"?: string,"name"?: string,"rest_seconds"?: number,"round_seconds"?: number,"rounds"?: number,"updated_at"?: string,"user_id"?: string,"warning_seconds"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"profiles": {
+                  Row: {
+                    "avatar_path": string | null,"birth_date": string | null,"bottle_ml": number | null,"created_at": string,"full_name": string,"height_cm": number | null,"hidden_timer_presets": string[],"id": string,"sex": string | null,"show_in_ranking": boolean,"timezone": string,"updated_at": string,"weight_kg": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"hidden_timer_presets"?: string[],"id": string,"sex"?: string | null,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
+                  }
+                  Update: {
+                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"hidden_timer_presets"?: string[],"id"?: string,"sex"?: string | null,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
                   }
                   Relationships: [
                     

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Pressable } from 'react-native';
 
-import { Box, Button, ChoiceRow, Icon, Text, TextField, type IconName } from '@components';
-import { useModalities } from '@domain/Classes';
+import { Box, Button, ChoiceRow, Icon, Text, TextButton, TextField, type IconName } from '@components';
 import {
   formatClock,
   stepConfig,
+  usePersonalTimerPresetMutations,
   useTimerPresetMutations,
   type TimerConfig,
   type TimerField,
@@ -102,7 +102,7 @@ function StepButton({ icon, label, disabled, onPress }: { icon: IconName; label:
   );
 }
 
-/** "Ajustar": changes for this session only; the owner can save them as a preset. */
+/** "Ajustar": changes for this session only; anyone can save them as a preset. */
 export function AdjustSheet({
   config,
   onChange,
@@ -110,7 +110,6 @@ export function AdjustSheet({
 }: {
   config: TimerConfig;
   onChange: (c: TimerConfig) => void;
-  /** Owner only. */
   onSaveAsPreset?: () => void;
 }) {
   return (
@@ -126,53 +125,55 @@ export function AdjustSheet({
   );
 }
 
-const NO_MODALITY = 'none';
+type Target = 'personal' | 'academy';
 
 /**
- * Owner: create a preset (from "+" or "Salvar como predefinição") or edit /
- * delete one (long press on its chip).
+ * Create a preset (from "+" or "Salvar como predefinição") or edit / delete
+ * one (long press on its chip). Anyone saves presets of their own, with any
+ * name; the owner may also save one for the whole academy.
  */
 export function PresetForm({
   academyId,
   userId,
+  canShare,
   initial,
   editing,
-  taken,
+  onRestoreBuiltIns,
   onSaved,
   onDeleted,
 }: {
-  academyId: string;
+  academyId: string | undefined;
   userId: string;
+  /** Owner: may save for the whole academy. */
+  canShare: boolean;
   initial: TimerConfig;
-  /** Editing this academy preset; creating when absent. */
+  /** Editing this saved preset; creating when absent. */
   editing?: TimerPreset;
-  /** Modalities that already have a preset (one per modality). */
-  taken: Set<string>;
-  onSaved: (name: string, config: TimerConfig) => void;
+  /** Creating, with ready-made presets removed: brings them all back. */
+  onRestoreBuiltIns?: () => void;
+  onSaved: (name: string, config: TimerConfig, personal: boolean) => void;
   onDeleted: () => void;
 }) {
-  const { create, update, remove } = useTimerPresetMutations(academyId, userId);
-  const modalities = useModalities(academyId);
+  const personalMutations = usePersonalTimerPresetMutations(userId);
+  const academyMutations = useTimerPresetMutations(academyId ?? '', userId);
   const confirm = useConfirm();
   const [name, setName] = useState(editing?.name ?? '');
   const [config, setConfig] = useState(initial);
-  const [modality, setModality] = useState<string>(NO_MODALITY);
+  const [target, setTarget] = useState<Target>(editing && !editing.personal ? 'academy' : 'personal');
+  const personal = target === 'personal' || !academyId;
+  const { create, update, remove } = personal ? personalMutations : academyMutations;
   const trimmed = name.trim();
-  const options = [
-    { value: NO_MODALITY, label: 'Nenhuma' },
-    ...(modalities.data ?? []).filter((m) => !taken.has(m.id)).map((m) => ({ value: m.id, label: m.name })),
-  ];
   const error = create.error ?? update.error ?? remove.error;
   const done = () => {
     haptics.success();
-    onSaved(trimmed, config);
+    onSaved(trimmed, config, personal);
   };
 
   const del = async () => {
     if (!editing) return;
     const ok = await confirm({
       title: 'Apagar predefinição?',
-      message: `"${editing.name}" sai da lista da academia.`,
+      message: personal ? `"${editing.name}" sai da sua lista.` : `"${editing.name}" sai da lista da academia.`,
       confirmLabel: 'Apagar',
       tone: 'danger',
     });
@@ -192,29 +193,36 @@ export function PresetForm({
           onPress={() =>
             editing
               ? update.mutate({ id: editing.id, name: trimmed, config }, { onSuccess: done })
-              : create.mutate(
-                  { name: trimmed, config, modalityId: modality === NO_MODALITY ? null : modality },
-                  { onSuccess: done },
-                )
+              : create.mutate({ name: trimmed, config }, { onSuccess: done })
           }
         />
       }
     >
       <Box gap="s24">
-        <TextField label="Nome" value={name} onChangeText={setName} maxLength={40} placeholder="Ex.: Sparring de quinta" />
+        <TextField label="Nome" value={name} onChangeText={setName} maxLength={40} placeholder="Ex.: Treino em casa" />
         <ConfigSteppers config={config} onChange={setConfig} />
-        {!editing && options.length > 1 ? (
+        {canShare && academyId && !editing ? (
           <Box gap="s8">
-            <Text variant="captionCaps">Usar nas aulas de</Text>
-            <ChoiceRow accessibilityLabel="Modalidade da predefinição" options={options} value={modality} onChange={setModality} />
-            <Text variant="caption">O botão Timer de uma aula dessa modalidade abre esta predefinição.</Text>
+            <Text variant="captionCaps">Quem vê</Text>
+            <ChoiceRow<Target>
+              accessibilityLabel="Quem vê a predefinição"
+              options={[
+                { value: 'personal', label: 'Só eu' },
+                { value: 'academy', label: 'Toda a academia' },
+              ]}
+              value={target}
+              onChange={setTarget}
+            />
           </Box>
         ) : null}
-        <Text variant="caption">Todos da academia veem esta predefinição.</Text>
+        <Text variant="caption">{personal ? 'Só você vê esta predefinição.' : 'Todos da academia veem esta predefinição.'}</Text>
         {error ? (
           <Text variant="caption" color="danger">
             {errorMessage(error)}
           </Text>
+        ) : null}
+        {onRestoreBuiltIns ? (
+          <TextButton title="Restaurar predefinições prontas" onPress={onRestoreBuiltIns} />
         ) : null}
       </Box>
     </SheetForm>

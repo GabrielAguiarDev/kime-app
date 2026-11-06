@@ -15,7 +15,6 @@ import {
   type ModalityBelt,
   type ModalityStats,
 } from '@domain/Classes';
-import { GraduationTrail } from '@screens/student/GraduationTrail';
 import { WeekSchedule } from '@screens/student/WeekSchedule';
 import { LinkRow } from '@screens/competition/shared';
 import { useActiveGym } from '@services/activeGym';
@@ -24,8 +23,8 @@ import { useSession } from '@services/session';
 
 /**
  * Aulas (student), for the modality picked in the Início header: the belt
- * progress and graduation trail (modalities with belts) or just the class
- * count (without belts); then the week's classes of that modality.
+ * progress (modalities with belts) or just the class count (without
+ * belts); then the week's classes of that modality.
  */
 export function ClassesScreen() {
   const { userId } = useSession();
@@ -58,29 +57,34 @@ export function ClassesScreen() {
         />
       ) : null}
       {!loading && !failed ? (
-        <Box gap="s32">
-          {selected ? (
-            <ModalityProgress
-              key={selected.id}
-              modality={selected}
-              belts={beltsOf(belts.data ?? [], selected.id)}
-              stats={ownModalities.find((s) => s.modalityId === selected.id)}
-              overallTotal={own?.confirmedTotal ?? 0}
-              showOverall={modalities.length > 1}
-            />
-          ) : (
-            <Card>
-              <BigCounter value={own?.confirmedTotal ?? 0} label="Aulas confirmadas" />
-            </Card>
-          )}
+        <Box gap="s24">
+          {/* Cards 16 apart: the tappable ones carry a 4pt bottom edge, so they sit 12 apart. */}
+          <Box gap="s16">
+            {selected ? (
+              <ModalityProgress
+                key={selected.id}
+                modality={selected}
+                belts={beltsOf(belts.data ?? [], selected.id)}
+                stats={ownModalities.find((s) => s.modalityId === selected.id)}
+                overallTotal={own?.confirmedTotal ?? 0}
+                showOverall={modalities.length > 1}
+              />
+            ) : (
+              <Card>
+                <BigCounter value={own?.confirmedTotal ?? 0} label="Aulas confirmadas" />
+              </Card>
+            )}
 
-          <LinkRow title="Timer de rounds" description="Rounds, descanso e sino" icon="timer" onPress={() => router.push('/timer')} />
-          <LinkRow
-            title="Ranking da academia"
-            description="Quem mais treinou no mês"
-            icon="trophy"
-            onPress={() => router.push('/ranking')}
-          />
+            <Box gap="s12">
+              <LinkRow title="Timer de rounds" description="Rounds, descanso e sino" icon="timer" onPress={() => router.push('/timer')} />
+              <LinkRow
+                title="Ranking da academia"
+                description="Quem mais treinou no mês"
+                icon="trophy"
+                onPress={() => router.push('/ranking')}
+              />
+            </Box>
+          </Box>
 
           <Box gap="s12">
             <Text variant="captionCaps">Horários da semana</Text>
@@ -128,36 +132,27 @@ function ModalityProgress({
   const progress = beltProgress(belts, current?.id ?? null, stats?.confirmedSinceBelt ?? 0);
 
   return (
-    <Box gap="s32">
-      <Card gap="s16">
-        {current ? <BeltChip belt={current} /> : <Text variant="caption">Sem faixa</Text>}
-        {progress.next && progress.required > 0 ? (
-          <ProgressBar
-            value={progress.done}
-            max={progress.required}
-            unit="aulas"
-            beltColor={progress.next.primary}
-            label={`Até a faixa ${beltName(progress.next).toLowerCase()}`}
-          />
-        ) : (
-          <Text variant="body" color="textMuted">
-            {progress.next
-              ? 'A academia ainda não definiu as aulas da próxima faixa.'
-              : belts.length
-                ? 'Você está na última faixa desta modalidade.'
-                : 'A academia ainda não cadastrou as faixas desta modalidade.'}
-          </Text>
-        )}
-        <BigCounter value={modalityTotal} label={`Aulas de ${modality.name}`} />
-        {overall}
-      </Card>
-
+    <Card gap="s16">
+      {current ? <BeltChip belt={current} /> : <Text variant="caption">Sem faixa</Text>}
       {progress.next && progress.required > 0 ? (
-        <Box gap="s12">
-          <Text variant="captionCaps">Trilha de graduação</Text>
-          <GraduationTrail required={progress.required} done={progress.done} nextBelt={progress.next} />
-        </Box>
-      ) : null}
-    </Box>
+        <ProgressBar
+          value={progress.done}
+          max={progress.required}
+          unit="aulas"
+          beltColor={progress.next.primary}
+          label={`Até a faixa ${beltName(progress.next).toLowerCase()}`}
+        />
+      ) : (
+        <Text variant="body" color="textMuted">
+          {progress.next
+            ? 'A academia ainda não definiu as aulas da próxima faixa.'
+            : belts.length
+              ? 'Você está na última faixa desta modalidade.'
+              : 'A academia ainda não cadastrou as faixas desta modalidade.'}
+        </Text>
+      )}
+      <BigCounter value={modalityTotal} label={`Aulas de ${modality.name}`} />
+      {overall}
+    </Card>
   );
 }
