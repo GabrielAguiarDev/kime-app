@@ -15,7 +15,8 @@ interface AvatarProps {
 }
 
 export function nameInitials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
+  // Only words that start with a letter: "Ana Lima (você)" → "AL", not "A(".
+  const words = name.trim().split(/\s+/).filter((w) => w[0]!.toLowerCase() !== w[0]!.toUpperCase());
   if (words.length === 0) return '?';
   const first = words[0]![0] ?? '';
   const last = words.length > 1 ? (words[words.length - 1]![0] ?? '') : '';

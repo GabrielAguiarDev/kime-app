@@ -10,7 +10,7 @@ export interface WaterSettings {
   goalMl: number | null;
   isLimit: boolean;
   /** `plan`: today's goal comes from the professor's weekly plan. */
-  goalSource: 'plan' | 'auto' | null;
+  goalSource: 'plan' | 'personal' | 'auto' | null;
 }
 
 /**
@@ -26,7 +26,7 @@ export function useWaterSettings() {
 
   let settings: WaterSettings | null = null;
   if (profile.data) {
-    const goal = dailyGoal({ weightKg: profile.data.weightKg, plannedMl: planned.plannedToday });
+    const goal = dailyGoal({ weightKg: profile.data.weightKg, personalMl: profile.data.personalWaterGoalMl, plannedMl: planned.plannedToday });
     settings = {
       timeZone: profile.data.timeZone,
       bottleMl: profile.data.bottleMl,

@@ -54,6 +54,13 @@ export function nextClass(schedules: ClassSchedule[], today: LocalDate, nowTime:
   return null;
 }
 
+/** "amanhã", "em 3 dias" (from `today` to a later `date`). */
+export function daysBetweenLabel(today: LocalDate, date: LocalDate): string {
+  const days = Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
+  if (days <= 0) return 'hoje';
+  return days === 1 ? 'amanhã' : `em ${days} dias`;
+}
+
 /** "começa em 40 min", "começa em 1 h 15 min", "em andamento". */
 export function startsInLabel(next: Pick<NextClass, 'status' | 'minutesUntil'>): string {
   if (next.status === 'live') return 'Em andamento';

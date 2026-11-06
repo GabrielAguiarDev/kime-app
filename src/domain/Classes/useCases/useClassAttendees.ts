@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase, toAppError } from '@infra/supabase';
 
 /** Server returns only the list fields and enforces modality, date and privacy. */
-export function useClassAttendees(scheduleId: string, date: string) {
+/** `enabled` false for past dates (the server only lists today and later). */
+export function useClassAttendees(scheduleId: string, date: string, enabled = true) {
   return useQuery({
     queryKey: ['classAttendees', scheduleId, date],
     queryFn: async () => {
@@ -11,6 +12,7 @@ export function useClassAttendees(scheduleId: string, date: string) {
       if (error) throw toAppError(error);
       return data;
     },
+    enabled,
     refetchInterval: 30_000,
   });
 }

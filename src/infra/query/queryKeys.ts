@@ -32,4 +32,6 @@ export enum QueryKeys {
   TimerPresets = 'TimerPresets',
   PersonalTimerPresets = 'PersonalTimerPresets',
   HiddenTimerPresets = 'HiddenTimerPresets',
+  Classmates = 'Classmates',
+  ChampionshipCompetitors = 'ChampionshipCompetitors',
 }

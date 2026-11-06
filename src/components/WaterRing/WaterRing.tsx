@@ -76,10 +76,19 @@ export function WaterRing({ consumedMl, goalMl, isLimit = false, size, hideLabel
         ) : null}
       </Svg>
       {hideLabel ? null : (
-        <>
-          <Text variant="displayLg">{formatMl(consumedMl)}</Text>
-          <Text variant="caption">{goalMl ? `${isLimit ? 'Limite' : 'Meta'} de hoje: ${formatMl(goalMl)} ml` : 'ml hoje'}</Text>
-        </>
+        <Box width={Math.max(0, diameter - stroke * 2 - 32)} alignItems="center" gap="s4">
+          <Text variant="displayLg" textAlign="center" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+            {formatMl(consumedMl)}
+          </Text>
+          <Text variant="caption" textAlign="center">
+            {goalMl ? `${isLimit ? 'Limite' : 'Meta'} de hoje` : 'ml hoje'}
+          </Text>
+          {goalMl ? (
+            <Text variant="bodyStrong" textAlign="center" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+              {formatMl(goalMl)} ml
+            </Text>
+          ) : null}
+        </Box>
       )}
     </Box>
   );

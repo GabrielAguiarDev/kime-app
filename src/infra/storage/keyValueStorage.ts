@@ -32,6 +32,8 @@ const ScopedKeys = {
   classRemindersPlan: 'kimi.classRemindersPlan.v1',
   /** Last round timer used (JSON {presetId, config}), per user + academy. */
   timerLast: 'kimi.timerLast.v1',
+  /** First day the water goal was met ('YYYY-MM-DD'), or 'seen' once the widget link was opened, per user. */
+  widgetHint: 'kimi.widgetHint.v1',
   /** Modality the student picked in the Início header, per user + academy. */
   selectedModality: 'kimi.selectedModality.v1',
 } as const;

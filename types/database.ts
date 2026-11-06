@@ -469,14 +469,14 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_path": string | null,"birth_date": string | null,"bottle_ml": number | null,"created_at": string,"full_name": string,"height_cm": number | null,"hidden_timer_presets": string[],"id": string,"sex": string | null,"show_in_ranking": boolean,"timezone": string,"updated_at": string,"weight_kg": number | null
+                    "avatar_path": string | null,"birth_date": string | null,"personal_water_goal_ml": number | null,"bottle_ml": number | null,"created_at": string,"full_name": string,"height_cm": number | null,"hidden_timer_presets": string[],"id": string,"sex": string | null,"show_in_ranking": boolean,"timezone": string,"updated_at": string,"weight_kg": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"hidden_timer_presets"?: string[],"id": string,"sex"?: string | null,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
+                    "avatar_path"?: string | null,"birth_date"?: string | null,"personal_water_goal_ml"?: number | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"hidden_timer_presets"?: string[],"id": string,"sex"?: string | null,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
                   }
                   Update: {
-                    "avatar_path"?: string | null,"birth_date"?: string | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"hidden_timer_presets"?: string[],"id"?: string,"sex"?: string | null,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
+                    "avatar_path"?: string | null,"birth_date"?: string | null,"personal_water_goal_ml"?: number | null,"bottle_ml"?: number | null,"created_at"?: string,"full_name"?: string,"height_cm"?: number | null,"hidden_timer_presets"?: string[],"id"?: string,"sex"?: string | null,"show_in_ranking"?: boolean,"timezone"?: string,"updated_at"?: string,"weight_kg"?: number | null
                   }
                   Relationships: [
                     
@@ -872,9 +872,19 @@ isOneToOne: false
 "approve_student":
 { Args: { "p_membership_id": string,"p_modality_ids": (string)[] }; Returns: undefined
                            },
+"championship_competitors":
+{ Args: { "p_championship_id": string }; Returns: {
+              "avatar_path": string | null,"belt_primary": string | null,"belt_tip": string | null,"full_name": string,"user_id": string
+            }[]
+                           },
 "class_attendees":
 { Args: { "p_class_date": string,"p_schedule_id": string }; Returns: {
               "avatar_path": string,"belt_primary": string,"belt_tip": string,"full_name": string,"status": Database["public"]['Enums']["checkin_status"],"user_id": string
+            }[]
+                           },
+"classmates":
+{ Args: { "p_academy_id": string }; Returns: {
+              "avatar_path": string | null,"full_name": string,"member_since": string,"modalities": Json,"role": Database["public"]['Enums']["membership_role"],"user_id": string
             }[]
                            },
 "copy_diet_day":

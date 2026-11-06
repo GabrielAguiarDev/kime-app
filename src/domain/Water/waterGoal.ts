@@ -3,7 +3,7 @@
  *
  * Automatic goal: 35 ml per kg of body weight (spec 4.3).
  * When the professor's weekly plan has a target for today (competitors), it
- * replaces the automatic goal (`plannedMl`).
+ * replaces the personal goal and then the automatic goal (`plannedMl`).
  */
 export const ML_PER_KG = 35;
 
@@ -16,20 +16,22 @@ export interface DailyGoalInput {
   weightKg: number | null | undefined;
   /** Professor's plan for today (competitors). */
   plannedMl?: number | null;
+  personalMl?: number | null;
 }
 
 export interface DailyGoal {
   goalMl: number | null;
-  source: 'plan' | 'auto' | null;
+  source: 'plan' | 'personal' | 'auto' | null;
 }
 
-export function dailyGoal({ weightKg, plannedMl }: DailyGoalInput): DailyGoal {
+export function dailyGoal({ weightKg, plannedMl, personalMl }: DailyGoalInput): DailyGoal {
   if (plannedMl && plannedMl > 0) return { goalMl: plannedMl, source: 'plan' };
+  if (personalMl && Number.isInteger(personalMl) && personalMl > 0) return { goalMl: personalMl, source: 'personal' };
   const auto = autoDailyGoalMl(weightKg);
   return auto === null ? { goalMl: null, source: null } : { goalMl: auto, source: 'auto' };
 }
 
-/** Goal of a date from a published widget config: the plan's when there is one, else the automatic one. */
+/** Goal of a date from a published widget config: the plan's when there is one, else the personal/automatic fallback. */
 export function goalOnDate(config: { goalMl: number | null; goalsByDate?: Record<string, number> }, date: string): number | null {
   return config.goalsByDate?.[date] ?? config.goalMl;
 }

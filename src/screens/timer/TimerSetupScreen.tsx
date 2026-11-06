@@ -49,7 +49,7 @@ const FALLBACK: TimerPreset = { ...BUILT_IN_PRESETS[0]!, id: 'fallback', name: '
 type Sheet = { kind: 'adjust' } | { kind: 'create' } | { kind: 'edit'; preset: TimerPreset };
 
 /**
- * Timer (tab for staff; students open it from Aulas). Check and start in a
+ * Timer (a tab for everyone). Check and start in a
  * few seconds: preset chips on top (the last one used is selected), the
  * round length in the middle, "Ajustar" for this session, and a big round
  * start button within thumb reach. Chips: the user's own presets, the

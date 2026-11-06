@@ -30,11 +30,14 @@ import { useActiveModality, type LinkedModality } from '@services/activeModality
 import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
 
-/** How many weigh-ins the tab lists (the rest stays in the history). */
+const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+/** How many weigh-ins the screen lists (the rest stays in the history). */
 const WEIGHTS_SHOWN = 8;
 
 /**
- * Competição (competitors of the selected modality): countdown to the next
+ * Competição (stack screen, also the countdown widget's kimi://competition;
+ * opened from Água → "Peso e campeonatos"), competitors of the selected modality: countdown to the next
  * championship of that modality, its other championships, the professor's
  * water plan of the week, weight log (per athlete, every modality), and
  * "Sair da equipe" of the selected modality.
@@ -52,14 +55,14 @@ export function CompetitionScreen() {
   const queries = [profile, championships, plans, weights];
   if (queries.some((q) => q.isLoading)) {
     return (
-      <Screen nativeHeader title="Competição" bottomInset={false}>
+      <Screen nativeHeader title="Competição" onBack={back}>
         <ActivityIndicator accessibilityLabel="Carregando" />
       </Screen>
     );
   }
   if (queries.some((q) => q.isError) || !profile.data || !userId || !active || !selected) {
     return (
-      <Screen nativeHeader title="Competição" bottomInset={false}>
+      <Screen nativeHeader title="Competição" onBack={back}>
         <EmptyState
           visual="icon"
           icon="offline"
@@ -77,7 +80,7 @@ export function CompetitionScreen() {
   const weightLogs = sortWeights(weights.data ?? []);
 
   return (
-    <Screen nativeHeader title="Competição" bottomInset={false}>
+    <Screen nativeHeader title="Competição" onBack={back}>
       <Box gap="s32">
         {next ? (
           <NextChampionship championship={next} today={today} />
@@ -155,7 +158,7 @@ export function CompetitionScreen() {
   );
 }
 
-function TodayDiet({ userId, today }: { userId: string; today: string }) {
+export function TodayDiet({ userId, today }: { userId: string; today: string }) {
   const meals = useDietMeals(userId, today, today);
   const ofDay = mealsOn(meals.data ?? [], today);
   return (

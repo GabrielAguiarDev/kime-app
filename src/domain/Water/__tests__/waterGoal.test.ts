@@ -18,3 +18,15 @@ describe('daily water goal', () => {
     expect(dailyGoal({ weightKg: null, plannedMl: 4000 })).toEqual({ goalMl: 4000, source: 'plan' });
   });
 });
+
+ describe('personal goal priority', () => {
+  it('uses a personal goal without weight', () => {
+    expect(dailyGoal({ weightKg: null, personalMl: 3000 })).toEqual({ goalMl: 3000, source: 'personal' });
+  });
+  it('keeps the professor above the personal goal', () => {
+    expect(dailyGoal({ weightKg: 70, personalMl: 3000, plannedMl: 1500 })).toEqual({ goalMl: 1500, source: 'plan' });
+  });
+  it('returns to weight when the personal goal is cleared', () => {
+    expect(dailyGoal({ weightKg: 70, personalMl: null })).toEqual({ goalMl: 2450, source: 'auto' });
+  });
+ });

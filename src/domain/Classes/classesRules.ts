@@ -93,6 +93,12 @@ export function isClassMilestone(total: number): boolean {
   return total === 10 || total === 25 || total === 50 || (total >= 100 && total % 100 === 0);
 }
 
+/** Next milestone after `total` (10, 25, 50, 100, then every 100). */
+export function nextClassMilestone(total: number): number {
+  for (const m of [10, 25, 50]) if (total < m) return m;
+  return (Math.floor(total / 100) + 1) * 100;
+}
+
 /** Highest milestone reached when the total went from `previous` to `current`, if any. */
 export function milestoneCrossed(previous: number, current: number): number | null {
   for (let n = current; n > previous; n--) {

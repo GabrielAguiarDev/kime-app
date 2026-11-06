@@ -5,6 +5,7 @@ export interface Profile {
   heightCm: number | null;
   /** Null until the bottle is set up (the water widget needs it). */
   bottleMl: number | null;
+  personalWaterGoalMl?: number | null;
   /** IANA zone: defines "today" for water. */
   timeZone: string;
   /** Photo in the private `avatars` bucket; null = initials. */
@@ -32,4 +33,5 @@ export interface PersonalData {
 export interface BodyAndBottle {
   weightKg: number | null;
   bottleMl: number | null;
+  personalWaterGoalMl?: number | null;
 }
