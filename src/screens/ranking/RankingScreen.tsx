@@ -45,7 +45,17 @@ export function RankingScreen() {
  * Always one modality. Students follow the modality selected in the Início
  * header; owner and professor pick one (default: the first).
  */
-export function RankingView({ academyId }: { academyId: string }) {
+export function RankingView({
+  academyId,
+  onOpenMember,
+  hideOwnBelow = false,
+}: {
+  academyId: string;
+  /** Student: a classmate's row opens their profile (the own row keeps its numbers). */
+  onOpenMember?: (userId: string) => void;
+  /** The own row is pinned by the parent: not repeated below the list. */
+  hideOwnBelow?: boolean;
+}) {
   const { userId } = useSession();
   const profile = useMyProfile(userId);
   const { isStaff } = useActiveGym();
@@ -147,8 +157,8 @@ export function RankingView({ academyId }: { academyId: string }) {
         {ranking.isLoading ? <ActivityIndicator accessibilityLabel="Carregando ranking" /> : null}
         {ranking.isError ? <LoadError title="Não foi possível carregar o ranking" onRetry={() => void ranking.refetch()} /> : null}
         {ranking.data?.length === 0 ? <EmptyState visual="icon" icon="trophy" title="Nenhum aluno no ranking." /> : null}
-        {rows.length ? <Card>{rows.map((e, index) => <RankingRow last={index === rows.length - 1} key={`${e.modalityId}:${e.userId}`} entry={e} isSelf={e.userId === userId} />)}</Card> : null}
-        {own ? (
+        {rows.length ? <Card>{rows.map((e, index) => <RankingRow last={index === rows.length - 1} key={`${e.modalityId}:${e.userId}`} entry={e} isSelf={e.userId === userId} onOpen={onOpenMember} />)}</Card> : null}
+        {own && !hideOwnBelow ? (
           <>
             <Text variant="caption" textAlign="center">
               …
@@ -164,12 +174,26 @@ export function RankingView({ academyId }: { academyId: string }) {
 const points = (value: number) => value.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 const percent = (rate: number) => `${Math.round(rate * 100)}%`;
 
-/** Colleagues: position, photo, name and score only. The student's own row opens their numbers. */
-function RankingRow({ entry: e, isSelf, last }: { entry: RankingEntry; isSelf: boolean; last?: boolean }) {
+/**
+ * Colleagues: position, photo, name and score only (`onOpen`: tap opens their
+ * profile). The student's own row opens their numbers.
+ */
+export function RankingRow({
+  entry: e,
+  isSelf,
+  last,
+  onOpen,
+}: {
+  entry: RankingEntry;
+  isSelf: boolean;
+  last?: boolean;
+  onOpen?: (userId: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const head = <PersonRow last={last} name={`${e.fullName}${isSelf ? ' (você)' : ''}`} avatarPath={e.avatarPath}
     leading={<Text variant="counter" color="textMuted">{e.position ?? '–'}</Text>}
-    trailing={<Text variant="counter">{points(e.rankingScore)}</Text>} />;
+    trailing={<Text variant="counter">{points(e.rankingScore)}</Text>}
+    onPress={!isSelf && onOpen ? () => onOpen(e.userId) : undefined} />;
   if (!isSelf) return head;
   return (
     <Pressable

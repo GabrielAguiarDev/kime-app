@@ -8,11 +8,16 @@ import { errorMessage } from '@infra';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
 import { haptics } from '@utils/haptics';
 
+import { useActiveModality } from '@services/activeModality';
+
 import { formatMl, formatTime } from './format';
+import { AddWidgetLink, CompetitorWater, LastDaysBars, WaterStreakCard } from './WaterSections';
 
 /**
  * Water of today (profile time zone): ring (3.4), "+{garrafa} ML" water button,
- * today's logs (from the app and the widget) and undo of the last one.
+ * today's logs (from the app and the widget) and undo of the last one; the
+ * last 7 days in bars, the water streak and its freezes; for competitors the
+ * professor's plan of the week and today's diet; "Adicionar widget" at the end.
  * Bottle, weight and height: settings icon at the top-right.
  */
 export function WaterScreen() {
@@ -28,6 +33,9 @@ export function WaterScreen() {
   const isLimit = settings?.isLimit ?? false;
   const totalMl = day.data?.totalMl ?? 0;
   const goalFeedback = useWaterGoalFeedback(userId, day.data?.date, day.data?.totalMl, goalMl, isLimit);
+  const water = useWaterStreak(userId, timeZone, goalMl, isLimit);
+  const { modalities } = useActiveModality();
+  const competes = modalities.some((m) => m.link.isCompetitor);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const settingsAction = {
@@ -123,9 +131,7 @@ export function WaterScreen() {
               fullWidth={false}
               onPress={() => router.push('/agua/configurar')}
             />
-          ) : (
-            <WaterStreakLink userId={userId} timeZone={timeZone} goalMl={goalMl} isLimit={isLimit} />
-          )}
+          ) : null}
         </Box>
 
         <Box gap="s12">
@@ -156,23 +162,12 @@ export function WaterScreen() {
             />
           ) : null}
         </Box>
+
+        {day.data ? <LastDaysBars days={water.days} today={day.data.date} /> : null}
+        {water.streak ? <WaterStreakCard streak={water.streak} /> : null}
+        {competes && userId && day.data ? <CompetitorWater userId={userId} today={day.data.date} /> : null}
+        <AddWidgetLink />
       </Box>
     </Screen>
-  );
-}
-
-/** "12 dias seguidos" under the ring: opens Ofensivas. */
-function WaterStreakLink({ userId, timeZone, goalMl, isLimit }: { userId: string | undefined; timeZone: string | undefined; goalMl: number; isLimit: boolean }) {
-  const { streak } = useWaterStreak(userId, timeZone, goalMl, isLimit);
-  if (!streak) return null;
-  const n = streak.current;
-  return (
-    <TextButton
-      title={n > 0 ? `${n} ${n === 1 ? 'dia seguido' : 'dias seguidos'}` : 'Ofensiva de água'}
-      icon="flame"
-      fullWidth={false}
-      onPress={() => router.push('/ofensivas')}
-      accessibilityLabel={`Ofensiva de água: ${n} ${n === 1 ? 'dia seguido' : 'dias seguidos'}. Ver ofensivas`}
-    />
   );
 }

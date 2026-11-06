@@ -9,7 +9,7 @@ async function getById(userId: string) {
   const [profile, details] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, bottle_ml, timezone, avatar_path, show_in_ranking')
+      .select('id, full_name, bottle_ml, personal_water_goal_ml, timezone, avatar_path, show_in_ranking')
       .eq('id', userId)
       .single(),
     supabase.rpc('get_profile_details', { p_user_id: userId }).maybeSingle(),
@@ -92,7 +92,7 @@ async function signedAvatarUrl(path: string, expiresInSeconds: number) {
 
 async function updateBodyAndBottle(
   userId: string,
-  patch: { weight_kg: number | null; bottle_ml: number | null },
+  patch: { weight_kg: number | null; bottle_ml: number | null; personal_water_goal_ml?: number | null },
 ) {
   // RLS: own profile only. Zero rows means it did not apply.
   const { data, error } = await supabase.from('profiles').update(patch).eq('id', userId).select('id');

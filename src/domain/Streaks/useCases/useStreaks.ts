@@ -32,7 +32,7 @@ export function useWaterStreak(userId: string | undefined, timeZone: string | un
   const refetch = () => void server.refetch();
   // Without the server history the streak would be wrong (and a record baseline too).
   if (!userId || !timeZone || !today || !server.data) {
-    return { streak: null, isLoading: server.isLoading, isError: server.isError, refetch };
+    return { streak: null, days: [] as WaterDayTotal[], isLoading: server.isLoading, isError: server.isError, refetch };
   }
 
   const lastGoal = server.data.reduce<number | null>((g, d) => d.goalMl ?? g, null);
@@ -42,7 +42,8 @@ export function useWaterStreak(userId: string | undefined, timeZone: string | un
     (day) => (day === today ? todayGoalMl : lastGoal ?? todayGoalMl),
     (day) => day === today && todayIsLimit,
   );
-  return { streak: waterStreak(days, today), isLoading: server.isLoading, isError: server.isError, refetch };
+  // `days`: per-day totals and goals (server + device), oldest first.
+  return { streak: waterStreak(days, today), days, isLoading: server.isLoading, isError: server.isError, refetch };
 }
 
 /** Training streak in an academy: weeks with at least one confirmed class (academy calendar). */

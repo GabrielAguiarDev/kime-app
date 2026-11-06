@@ -124,8 +124,17 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="agua/configurar" options={header} />
         <Stack.Screen name="conta/dados" options={header} />
         <Stack.Screen name="dieta" options={header} />
+        <Stack.Screen name="aula" options={header} />
+        <Stack.Screen name="peso" options={header} />
+        <Stack.Screen name="graduacao" options={header} />
         <Stack.Screen name="ofensivas" options={header} />
         <Stack.Screen name="ranking" options={header} />
+        {/* Student app: competition (also the countdown widget, kimi://competition), championships, classmates. */}
+        <Stack.Screen name="competition" options={header} />
+        <Stack.Screen name="campeonato" options={header} />
+        <Stack.Screen name="campeonatos" options={header} />
+        <Stack.Screen name="colega/[userId]" options={header} />
+        <Stack.Screen name="agua/widget" options={header} />
         <Stack.Screen name="timer/run" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
       </Stack.Protected>
       <Stack.Protected guard={access.staff} redirectTo={redirectTo}>

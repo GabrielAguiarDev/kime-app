@@ -13,6 +13,7 @@ const toProfile = (row: ProfileRowApi): Profile => ({
   weightKg: toNumber(row.weight_kg),
   heightCm: toNumber(row.height_cm),
   bottleMl: row.bottle_ml,
+  personalWaterGoalMl: row.personal_water_goal_ml,
   timeZone: row.timezone,
   avatarPath: row.avatar_path,
   sex: (row.sex as Sex | null) ?? null,
@@ -41,6 +42,7 @@ async function updateBodyAndBottle(userId: string, input: BodyAndBottle): Promis
     await profileApi.updateBodyAndBottle(userId, {
       weight_kg: input.weightKg,
       bottle_ml: input.bottleMl,
+      personal_water_goal_ml: input.personalWaterGoalMl,
     });
   } catch (e) {
     throw toAppError(e);

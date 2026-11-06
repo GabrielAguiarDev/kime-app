@@ -1,4 +1,4 @@
-import { plannedLimitsByDate, plannedMlByDate, useWaterPlans } from '@domain/Competition';
+import { planInForce, plannedLimitsByDate, plannedMlByDate, useWaterPlans } from '@domain/Competition';
 import { localDate } from '@domain/Water';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
@@ -22,6 +22,8 @@ export function usePlannedWater(timeZone: string | undefined) {
   const limitsByDate = competes && plans.data && today ? plannedLimitsByDate(plans.data, today, PLANNED_DAYS_AHEAD) : {};
   return {
     today,
+    isError: competes && plans.isError,
+    isLocked: !!(competes && plans.data && today && Object.values(planInForce(plans.data, today)?.targets ?? {}).some((ml) => ml !== null)),
     limitsByDate,
     isLimitToday: !!(today && limitsByDate[today]),
     byDate,

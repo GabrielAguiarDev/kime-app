@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-
 import { useWindowDimensions } from 'react-native';
 
 import { AcademyLogo, Box, FeedbackSheet, HeaderButton, HeaderMenu, Icon, Screen, Text } from '@components';

@@ -47,7 +47,7 @@ export function useWidgetConfig() {
     waterService.publishConfig({
       userId: userId!,
       bottleMl: profile.bottleMl,
-      goalMl: dailyGoal({ weightKg: profile.weightKg }).goalMl,
+      goalMl: dailyGoal({ weightKg: profile.weightKg, personalMl: profile.personalWaterGoalMl }).goalMl,
       timeZone: profile.timeZone,
       ...(Object.keys(goalsByDate).length > 0 ? { goalsByDate } : {}),
       ...(Object.keys(limitsByDate).length > 0 ? { limitsByDate } : {}),

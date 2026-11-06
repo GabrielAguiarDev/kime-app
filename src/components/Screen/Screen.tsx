@@ -67,6 +67,7 @@ export function Screen({
     return (
       <NativeHeaderScreen
         title={title}
+        scrollable={scrollable}
         onBack={onBack}
         topAction={topAction}
         headerLeft={headerLeft}
@@ -223,10 +224,11 @@ function NativeHeaderScreen({
   headerLeft,
   headerRight,
   largeTitle = true,
+  scrollable = true,
   footer,
   feedback,
   bottomInset = true,
-}: Omit<ScreenProps, "nativeHeader" | "scrollable">) {
+}: Omit<ScreenProps, "nativeHeader">) {
   const { bottom } = useSafeAreaInsets();
   const { spacing, colors } = useAppTheme();
   const [bottomHeight, setBottomHeight] = useState(0);
@@ -256,7 +258,7 @@ function NativeHeaderScreen({
           headerRight: right ? () => right : undefined,
         }}
       />
-      <ScrollView
+      {scrollable ? <ScrollView
         style={{ flex: 1, backgroundColor: colors.bg }}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
@@ -273,7 +275,7 @@ function NativeHeaderScreen({
         }}
       >
         {children}
-      </ScrollView>
+      </ScrollView> : children}
       {bottomContent ? (
         <Box
           position="absolute"
