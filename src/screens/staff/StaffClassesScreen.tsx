@@ -45,7 +45,16 @@ export function StaffClassesScreen() {
     <HeaderButton icon="settings" accessibilityLabel="Horários das aulas" onPress={() => router.push('/academy/schedules')} />
   ) : undefined;
 
-  if (!academyId) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!academyId) {
+    return (
+      <Screen nativeHeader title="Aulas" bottomInset={false}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
   if (today.isError || schedules.isError) {
     return (
       <Screen nativeHeader title="Aulas" bottomInset={false} headerRight={headerRight}>

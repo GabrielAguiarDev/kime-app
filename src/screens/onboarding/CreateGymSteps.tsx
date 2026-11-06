@@ -21,6 +21,7 @@ import {
 } from '@domain/Gym';
 import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
+import { squarePickerOptions } from '@utils/squareImage';
 
 // ---------------------------------------------------------------- plans ---
 export function PlanStep({
@@ -118,7 +119,7 @@ export function NameStep({ name, onName, onSubmit }: { name: string; onName: (n:
 /** Same crop as Configurações (square); the upload happens once the academy exists. */
 export function LogoStep({ name, logoUri, onLogo }: { name: string; logoUri: string | null; onLogo: (uri: string) => void }) {
   const pick = async (from: 'camera' | 'library') => {
-    const options: ImagePicker.ImagePickerOptions = { mediaTypes: 'images', allowsEditing: true, aspect: [1, 1], quality: 1 };
+    const options = squarePickerOptions(from);
     if (from === 'camera') {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {

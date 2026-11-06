@@ -9,7 +9,7 @@ async function getById(userId: string) {
   const [profile, details] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, bottle_ml, timezone, avatar_path, show_in_ranking, show_checkins_to_peers')
+      .select('id, full_name, bottle_ml, timezone, avatar_path, show_in_ranking')
       .eq('id', userId)
       .single(),
     supabase.rpc('get_profile_details', { p_user_id: userId }).maybeSingle(),
@@ -65,12 +65,6 @@ async function setShowInRanking(userId: string, show: boolean) {
   if (data.length === 0) throw new Error('forbidden');
 }
 
-async function setShowCheckinsToPeers(userId: string, show: boolean) {
-  const { data, error } = await supabase.from('profiles').update({ show_checkins_to_peers: show }).eq('id', userId).select('id');
-  if (error) throw error;
-  if (!data.length) throw new Error('forbidden');
-}
-
 async function setAvatarPath(userId: string, path: string | null) {
   const { data, error } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', userId).select('id');
   if (error) throw error;
@@ -115,7 +109,6 @@ export const profileApi = {
   setAvatarPath,
   removeAvatarFile,
   setShowInRanking,
-  setShowCheckinsToPeers,
   signedAvatarUrl,
   signedAvatarUrls,
 };

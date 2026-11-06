@@ -5,8 +5,8 @@ import { Box, Button, Screen, Text, TextButton, TextField } from '@components';
 import { isValidEmail, isValidPassword, normalizeEmail, PASSWORD_MIN_LENGTH, useSignUp } from '@domain/Auth';
 import { errorMessage } from '@infra';
 import { AcademyCard } from '@screens/entry/AcademyCard';
-import { backToStart } from '@screens/entry/StartScreen';
 
+import { backToSignIn } from './backToSignIn';
 import { usePendingAcademy } from './usePendingAcademy';
 
 export function SignUpScreen() {
@@ -23,7 +23,7 @@ export function SignUpScreen() {
   return (
     <Screen
       title="Criar conta"
-      onBack={backToStart}
+      onBack={backToSignIn}
       footer={
         <>
           <Button

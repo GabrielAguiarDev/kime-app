@@ -56,7 +56,16 @@ export function SchedulesScreen() {
   // Confirmations open after the form sheet is gone (one modal at a time).
   const afterClose = useRef<(() => void) | null>(null);
 
-  if (!active) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!active) {
+    return (
+      <Screen nativeHeader title="Horários das aulas" onBack={() => router.back()}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
 
   const list = schedules.data ?? [];
   const groups = groupSchedules(list);

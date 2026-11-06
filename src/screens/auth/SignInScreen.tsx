@@ -5,7 +5,6 @@ import { Box, Button, Screen, Text, TextButton, TextField } from '@components';
 import { isValidEmail, normalizeEmail, useSignIn } from '@domain/Auth';
 import { AppError, errorMessage } from '@infra';
 import { AcademyCard } from '@screens/entry/AcademyCard';
-import { backToStart } from '@screens/entry/StartScreen';
 import { entryPath } from '@services/entry';
 
 import { AppleSignInButton } from './AppleSignInButton';
@@ -21,9 +20,9 @@ export function SignInScreen() {
   const canSubmit = isValidEmail(email) && password.length > 0;
 
   return (
-    // Back returns to the previous step (code or first screen) to switch paths.
+    // First screen when signed out (no back); pushed from the code screen, back returns to it.
     <Screen
-      onBack={backToStart}
+      onBack={router.canGoBack() ? () => router.back() : undefined}
       footer={
         <>
           <Button

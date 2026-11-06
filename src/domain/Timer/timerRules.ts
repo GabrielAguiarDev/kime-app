@@ -19,10 +19,12 @@ export interface TimerConfig {
 }
 
 export interface TimerPreset extends TimerConfig {
-  /** Built-in presets have a fixed id (`builtin:*`); the academy's ones the row id. */
+  /** Built-in presets have a fixed id (`builtin:*`); saved ones the row id. */
   id: string;
   name: string;
   builtIn: boolean;
+  /** Saved by the user for themself (any role); only they see it. */
+  personal?: boolean;
   /** Academy preset of a modality (Início / presence "Timer" opens it). */
   modalityId?: string | null;
   /** Built-in only: the modality names it is made for. */
@@ -67,16 +69,6 @@ const normalizeName = (name: string) =>
 export function builtInFor(modalityName: string): TimerPreset | undefined {
   const target = normalizeName(modalityName);
   return BUILT_IN_PRESETS.find((p) => p.forModalities?.some((m) => normalizeName(m) === target));
-}
-
-/**
- * The built-in presets to offer: only those of modalities the academy has.
- * An academy whose modalities match none (Judô, Karatê…) gets all of them.
- */
-export function builtInsForAcademy(modalityNames: string[]): TimerPreset[] {
-  const ids = new Set(modalityNames.map((n) => builtInFor(n)?.id).filter((id): id is string => !!id));
-  const matching = BUILT_IN_PRESETS.filter((p) => ids.has(p.id));
-  return matching.length > 0 ? matching : BUILT_IN_PRESETS;
 }
 
 export type TimerPhase = 'prep' | 'round' | 'rest' | 'done';

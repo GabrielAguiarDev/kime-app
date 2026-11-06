@@ -15,7 +15,16 @@ export function BeltOrderScreen() {
   const modalities = useModalities(active?.gymId);
   const belts = useBelts(active?.gymId);
 
-  if (!active) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!active) {
+    return (
+      <Screen nativeHeader title="Ordenar faixas" onBack={() => router.back()}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
   const modality = modalities.data?.find((m) => m.id === modalidade);
   const list = modality ? beltsOf(belts.data ?? [], modality.id) : [];
   const loading = modalities.isLoading || belts.isLoading;

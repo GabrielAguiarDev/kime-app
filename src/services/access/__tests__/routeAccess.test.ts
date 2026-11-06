@@ -26,7 +26,7 @@ describe('routeAccess (guard)', () => {
   it('1. no session: only the entry flow, home is the first screen', () => {
     expect(routeAccess(input({ signedIn: false, hasApprovedMembership: false }))).toEqual({
       level: 'signedOut',
-      home: '/start',
+      home: '/sign-in',
       auth: true,
       onboarding: false,
       noAcademy: false,
@@ -100,7 +100,7 @@ describe('routeAccess (guard)', () => {
   });
 
   it('exposes the home of each level', () => {
-    expect(ACCESS_HOME).toEqual({ signedOut: '/start', noAcademy: '/academia', pendingApproval: '/aguardando', member: '/home' });
+    expect(ACCESS_HOME).toEqual({ signedOut: '/sign-in', noAcademy: '/academia', pendingApproval: '/aguardando', member: '/home' });
   });
 });
 

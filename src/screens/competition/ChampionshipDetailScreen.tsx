@@ -32,7 +32,16 @@ export function ChampionshipDetailScreen() {
   const championships = useChampionships(academyId);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-  if (!academyId || !id) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!academyId || !id) {
+    return (
+      <Screen nativeHeader title=" " onBack={back}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
   const championship = championships.data?.find((c) => c.id === id);
 
   if (championships.isLoading) {

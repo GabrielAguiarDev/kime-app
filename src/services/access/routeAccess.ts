@@ -7,7 +7,7 @@ import type { Href } from 'expo-router';
  * flags with `redirectTo`). Sign-in, sign-up and reopening the app land on the
  * home of the new level the same way.
  *
- *  - signedOut        → only the entry flow (start, code, sign-in/up); home = /start
+ *  - signedOut        → only the entry flow (sign-in/up, code, verify e-mail); home = /sign-in
  *  - noAcademy        → signed in, no approved membership and no pending
  *                       request: academy code (student) or create academy /
  *                       professor code (professor), signed in; home = /academia
@@ -57,7 +57,7 @@ export interface RouteAccess {
 }
 
 export const ACCESS_HOME: Record<AccessLevel, Href> = {
-  signedOut: '/start',
+  signedOut: '/sign-in',
   noAcademy: '/academia',
   pendingApproval: '/aguardando',
   member: '/home',

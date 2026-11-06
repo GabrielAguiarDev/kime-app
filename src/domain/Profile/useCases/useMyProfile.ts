@@ -103,11 +103,3 @@ export function useSetShowInRanking(userId: string | undefined) {
       ]),
   });
 }
-
-export function useSetShowCheckinsToPeers(userId: string | undefined) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (show: boolean) => profileService.setShowCheckinsToPeers(userId!, show),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] }),
-  });
-}

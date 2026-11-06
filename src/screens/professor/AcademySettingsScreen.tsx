@@ -25,6 +25,7 @@ import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
 import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
+import { squarePickerOptions } from '@utils/squareImage';
 
 import { SheetForm } from './shared';
 
@@ -39,7 +40,16 @@ export function AcademySettingsScreen() {
   const { active } = useActiveGym();
   const settings = useGymSettings(active?.gymId);
 
-  if (!active) return null;
+  // Always render the Screen (its ScrollView) on the first render: iOS only
+  // places a scroll view under the large-title header when it is there as the
+  // screen appears; mounted later it starts hidden under the header.
+  if (!active) {
+    return (
+      <Screen nativeHeader title="Configurações da academia" onBack={() => router.back()}>
+        <ActivityIndicator accessibilityLabel="Carregando" />
+      </Screen>
+    );
+  }
 
   return (
     <Screen nativeHeader title="Configurações da academia" onBack={() => router.back()}>
@@ -92,12 +102,7 @@ function LogoSection({
   const pendingSource = useRef<'camera' | 'library' | null>(null);
 
   const pick = async (from: 'camera' | 'library') => {
-    const options: ImagePicker.ImagePickerOptions = {
-      mediaTypes: 'images',
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    };
+    const options = squarePickerOptions(from);
     if (from === 'camera') {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {

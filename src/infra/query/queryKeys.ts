@@ -30,4 +30,6 @@ export enum QueryKeys {
   Ranking = 'Ranking',
   RankingModalities = 'RankingModalities',
   TimerPresets = 'TimerPresets',
+  PersonalTimerPresets = 'PersonalTimerPresets',
+  HiddenTimerPresets = 'HiddenTimerPresets',
 }

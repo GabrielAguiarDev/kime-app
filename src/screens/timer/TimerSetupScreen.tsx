@@ -5,11 +5,13 @@ import { ActivityIndicator, Pressable, ScrollView } from 'react-native';
 import { BottomSheet, Box, Button, Card, Icon, RoundButton, Screen, Text } from '@components';
 import { useModalities } from '@domain/Classes';
 import {
+  BUILT_IN_PRESETS,
   builtInFor,
-  builtInsForAcademy,
   formatClock,
   sameConfig,
   summaryLine,
+  useHiddenBuiltInPresets,
+  usePersonalTimerPresets,
   useTimerPresets,
   type TimerConfig,
   type TimerPreset,
@@ -41,14 +43,19 @@ function readLastPresetId(scope: string): string | null {
   }
 }
 
+/** Every preset removed: the timer still opens, with the first ready-made config. */
+const FALLBACK: TimerPreset = { ...BUILT_IN_PRESETS[0]!, id: 'fallback', name: 'Timer' };
+
 type Sheet = { kind: 'adjust' } | { kind: 'create' } | { kind: 'edit'; preset: TimerPreset };
 
 /**
  * Timer (tab for staff; students open it from Aulas). Check and start in a
  * few seconds: preset chips on top (the last one used is selected), the
  * round length in the middle, "Ajustar" for this session, and a big round
- * start button within thumb reach. The owner creates presets with "+" and
- * edits / deletes them with a long press on the chip.
+ * start button within thumb reach. Chips: the user's own presets, the
+ * academy's, then the ready-made ones. Anyone creates presets of their own
+ * with "+" (the owner may share one with the academy) and edits / deletes
+ * them with a long press on the chip.
  */
 export function TimerSetupScreen() {
   const { modality: modalityParam } = useLocalSearchParams<{ modality?: string }>();
@@ -56,15 +63,16 @@ export function TimerSetupScreen() {
   const { active, isOwner } = useActiveGym();
   const academyId = active?.gymId;
   const presets = useTimerPresets(academyId);
+  const personalPresets = usePersonalTimerPresets(userId);
+  const hiddenBuiltIns = useHiddenBuiltInPresets(userId);
   const modalities = useModalities(academyId);
   const running = useTimerSession();
   const confirm = useConfirm();
   const scope = `${userId ?? ''}.${academyId ?? ''}`;
 
-  // Ready-made presets only for the academy's modalities (all of them when none matches).
-  const builtIns = builtInsForAcademy((modalities.data ?? []).map((m) => m.name));
-  const all = [...(presets.data ?? []), ...builtIns];
-  const loading = presets.isLoading || modalities.isLoading;
+  const builtIns = BUILT_IN_PRESETS.filter((p) => !hiddenBuiltIns.hidden.includes(p.id));
+  const all = [...(personalPresets.data ?? []), ...(presets.data ?? []), ...builtIns];
+  const loading = presets.isLoading || personalPresets.isLoading || hiddenBuiltIns.isLoading || modalities.isLoading;
   const [picked, setPicked] = useState<TimerPreset | null>(null);
   const [config, setConfig] = useState<TimerConfig | null>(null);
   const [appliedModality, setAppliedModality] = useState<string | undefined>(undefined);
@@ -75,7 +83,7 @@ export function TimerSetupScreen() {
   // First open: the last preset used, else the first one.
   if (!picked && !loading) {
     const lastId = readLastPresetId(scope);
-    const preset = all.find((p) => p.id === lastId) ?? all[0]!;
+    const preset = all.find((p) => p.id === lastId) ?? all[0] ?? FALLBACK;
     setPicked(preset);
     setConfig(toConfig(preset));
   }
@@ -99,10 +107,25 @@ export function TimerSetupScreen() {
     );
   }
 
-  // Just saved: the academy list brings it back with its real id.
-  const selected = picked.id.startsWith('new:') ? (presets.data?.find((p) => p.name === picked.name) ?? picked) : picked;
+  // Just saved: the list brings it back with its real id.
+  const selected = picked.id.startsWith('new:')
+    ? (all.find((p) => !p.builtIn && !!p.personal === !!picked.personal && p.name === picked.name) ?? picked)
+    : picked;
   const adjusted = !sameConfig(config, selected);
-  const canManage = isOwner && !!academyId && !!userId;
+  // Saved presets: edit / delete (the academy's only by the owner). Ready-made: remove from the list.
+  const canEdit = (p: TimerPreset) => p.builtIn || (!p.id.startsWith('new:') && (!!p.personal || isOwner));
+
+  const removeBuiltIn = async (p: TimerPreset) => {
+    const ok = await confirm({
+      title: 'Remover predefinição?',
+      message: `"${p.name}" sai da sua lista. Para trazer de volta, toque em + e depois em "Restaurar predefinições prontas".`,
+      confirmLabel: 'Remover',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    hiddenBuiltIns.set.mutate([...hiddenBuiltIns.hidden, p.id]);
+    if (p.id === selected.id) pick(all.find((o) => o.id !== p.id) ?? FALLBACK);
+  };
 
   const pick = (p: TimerPreset) => {
     setPicked(p);
@@ -143,8 +166,9 @@ export function TimerSetupScreen() {
           presets={all}
           selectedId={selected.id}
           onPick={pick}
-          onLongPress={canManage ? (p) => openSheet({ kind: 'edit', preset: p }) : undefined}
-          onCreate={canManage ? () => openSheet({ kind: 'create' }) : undefined}
+          canEdit={canEdit}
+          onLongPress={(p) => (p.builtIn ? void removeBuiltIn(p) : openSheet({ kind: 'edit', preset: p }))}
+          onCreate={userId ? () => openSheet({ kind: 'create' }) : undefined}
         />
 
         {running && running.state.phase !== 'done' ? (
@@ -193,21 +217,29 @@ export function TimerSetupScreen() {
           <AdjustSheet
             config={config}
             onChange={setConfig}
-            onSaveAsPreset={canManage ? () => setSheet({ kind: 'create' }) : undefined}
+            onSaveAsPreset={userId ? () => setSheet({ kind: 'create' }) : undefined}
           />
         ) : null}
-        {(sheet?.kind === 'create' || sheet?.kind === 'edit') && academyId && userId ? (
+        {(sheet?.kind === 'create' || sheet?.kind === 'edit') && userId ? (
           <PresetForm
             key={sheet.kind === 'edit' ? sheet.preset.id : 'create'}
             academyId={academyId}
             userId={userId}
+            canShare={isOwner}
             initial={sheet.kind === 'edit' ? toConfig(sheet.preset) : config}
             editing={sheet.kind === 'edit' ? sheet.preset : undefined}
-            taken={new Set((presets.data ?? []).map((p) => p.modalityId).filter((m): m is string => !!m))}
-            onSaved={(name, saved) => {
+            onRestoreBuiltIns={
+              sheet.kind === 'create' && hiddenBuiltIns.hidden.length > 0
+                ? () => {
+                    hiddenBuiltIns.set.mutate([]);
+                    setSheetOpen(false);
+                  }
+                : undefined
+            }
+            onSaved={(name, saved, personal) => {
               setSheetOpen(false);
               if (sheet.kind === 'create') {
-                setPicked({ id: `new:${name}`, name, builtIn: false, ...saved });
+                setPicked({ id: `new:${name}`, name, builtIn: false, personal, ...saved });
                 setConfig(saved);
               } else if (sheet.preset.id === selected.id) {
                 setPicked({ ...sheet.preset, name, ...saved });
@@ -217,8 +249,7 @@ export function TimerSetupScreen() {
             onDeleted={() => {
               setSheetOpen(false);
               if (sheet.kind === 'edit' && sheet.preset.id === selected.id) {
-                const next = all.find((p) => p.id !== sheet.preset.id);
-                if (next) pick(next);
+                pick(all.find((p) => p.id !== sheet.preset.id) ?? FALLBACK);
               }
             }}
           />
@@ -230,20 +261,22 @@ export function TimerSetupScreen() {
 
 /**
  * One horizontal line of compact selection chips (name only), scrolling
- * sideways without a bar. Selected: accent border + accent at 8%. Owner:
- * "+" at the end creates; a long press on an academy preset edits it.
+ * sideways without a bar. Selected: accent border + accent at 8%. "+" at the
+ * end creates; a long press edits a saved preset or removes a ready-made one.
  */
 function PresetChips({
   presets,
   selectedId,
   onPick,
+  canEdit,
   onLongPress,
   onCreate,
 }: {
   presets: TimerPreset[];
   selectedId: string;
   onPick: (p: TimerPreset) => void;
-  onLongPress?: (p: TimerPreset) => void;
+  canEdit: (p: TimerPreset) => boolean;
+  onLongPress: (p: TimerPreset) => void;
   onCreate?: () => void;
 }) {
   const { spacing } = useAppTheme();
@@ -257,7 +290,7 @@ function PresetChips({
       accessibilityLabel="Predefinições"
     >
       {presets.map((p) => {
-        const editable = !!onLongPress && !p.builtIn && !p.id.startsWith('new:');
+        const editable = canEdit(p);
         return (
           <Chip
             key={p.id}
@@ -272,7 +305,9 @@ function PresetChips({
                   }
                 : undefined
             }
-            accessibilityHint={editable ? 'Toque longo para editar ou apagar' : undefined}
+            accessibilityHint={
+              !editable ? undefined : p.builtIn ? 'Toque longo para remover' : 'Toque longo para editar ou apagar'
+            }
           />
         );
       })}

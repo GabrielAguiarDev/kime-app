@@ -5,6 +5,7 @@ import { ActivityIndicator, BackHandler } from 'react-native';
 import { Box, Button, CodeField, FeedbackSheet, Screen, Text, TextButton } from '@components';
 import { canCreateAcademy, CODE_LENGTH, normalizeCode, useCodeLookup, useJoinWithCode } from '@domain/Gym';
 import { errorMessage } from '@infra';
+import { backToSignIn } from '@screens/auth/backToSignIn';
 import { useActiveGym } from '@services/activeGym';
 import { entryPath, joinOutcome, joinOutcomeText, pendingCode, type JoinOutcome } from '@services/entry';
 import { useSession } from '@services/session';
@@ -12,7 +13,6 @@ import { haptics } from '@utils/haptics';
 
 import { SignedInFooter } from '../onboarding/SignedInFooter';
 import { AcademyCard } from './AcademyCard';
-import { backToStart } from './StartScreen';
 
 /**
  * "Código de convite" — ONE screen for every invite code: the lookup tells the
@@ -247,8 +247,8 @@ function CodeStep({
   return (
     <Screen
       title="Código de convite"
-      // Home: back to the choice. Signed in: close the flow. Signed out: the first screen.
-      onBack={home ? home.onBack : signedIn ? onClose : backToStart}
+      // Home: back to the choice. Signed in: close the flow. Signed out: back (or the sign-in screen).
+      onBack={home ? home.onBack : signedIn ? onClose : backToSignIn}
       feedback={home?.notice}
       footer={
         home ? (
