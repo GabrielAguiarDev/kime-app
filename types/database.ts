@@ -882,6 +882,9 @@ isOneToOne: false
               "avatar_path": string,"belt_primary": string,"belt_tip": string,"full_name": string,"status": Database["public"]['Enums']["checkin_status"],"user_id": string
             }[]
                            },
+"class_report":
+{ Args: { "p_academy_id": string,"p_user_id": string }; Returns: Json
+},
 "classmates":
 { Args: { "p_academy_id": string }; Returns: {
               "avatar_path": string | null,"full_name": string,"member_since": string,"modalities": Json,"role": Database["public"]['Enums']["membership_role"],"user_id": string

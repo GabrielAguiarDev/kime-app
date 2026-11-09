@@ -148,6 +148,12 @@ export function ProfileScreen() {
         ) : null}
 
         {!isStaff && active ? (
+          <Section title="Treinos">
+            <ManageCard title="Relatório de treinos" icon="chart" onPress={() => router.push('/relatorio')} />
+          </Section>
+        ) : null}
+
+        {!isStaff && active ? (
           <Section title="Preferências">
             <ClassReminderSwitch />
             <RankingSwitch />
@@ -319,7 +325,7 @@ function ManageCard({
   onPress,
 }: {
   title: string;
-  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'drop' | 'share';
+  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'drop' | 'share' | 'chart';
   onPress: () => void;
 }) {
   return (

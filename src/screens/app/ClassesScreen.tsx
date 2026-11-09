@@ -1,39 +1,28 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
-import { BeltChip, BigCounter, Box, Button, Card, EmptyState, ProgressBar, Screen, Text } from '@components';
+import { Box, Button, EmptyState, Screen, Text } from '@components';
 import {
   addDays,
-  beltName,
-  beltProgress,
-  beltsOf,
   classesOn,
-  nextClassMilestone,
   useAcademyToday,
-  useBelts,
-  useMemberStats,
-  useModalityStats,
   useMyCheckins,
   useSchedules,
   weekStart,
   type LocalDate,
-  type Modality,
-  type ModalityBelt,
-  type ModalityStats,
 } from '@domain/Classes';
 import { DietWeekPicker } from '@screens/diet/DietWeekPicker';
 import { ClassCard } from '@screens/student/ClassCard';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
 import { useSession } from '@services/session';
-import { missing } from '@utils/plural';
+
 
 /**
  * Aulas (student), for the modality picked in the Início header: the days of
  * the week (today selected), the classes of the chosen day with the row of
- * classmates (check-in only today), then the progress: belt and the bar to
- * the next one (modalities with belts) or the total and the next milestone.
+ * classmates (check-in only today). No progress here (card and header seal
+ * removed by the user; the Jornada stays without access).
  */
 export function ClassesScreen() {
   const { userId } = useSession();
@@ -42,14 +31,11 @@ export function ClassesScreen() {
   const today = useAcademyToday(academyId);
   const schedules = useSchedules(academyId);
   const checkins = useMyCheckins(academyId, userId);
-  const { selected, modalities, isLoading: modalitiesLoading } = useActiveModality();
-  const belts = useBelts(academyId);
-  const stats = useMemberStats(academyId);
-  const modalityStats = useModalityStats(academyId);
+  const { selected, isLoading: modalitiesLoading } = useActiveModality();
   const [monday, setMonday] = useState<LocalDate | null>(null);
   const [picked, setPicked] = useState<LocalDate | null>(null);
 
-  const queries = [today, schedules, checkins, belts, stats, modalityStats];
+  const queries = [today, schedules, checkins];
   const loading = modalitiesLoading || queries.some((q) => q.isLoading);
   const failed = queries.some((q) => q.isError);
 
@@ -72,8 +58,6 @@ export function ClassesScreen() {
 
   const week = monday ?? weekStart(today.data);
   const date = picked ?? today.data;
-  const own = stats.data?.find((s) => s.userId === userId);
-  const ownModalities = (modalityStats.data ?? []).filter((s) => s.userId === userId);
   const modalitySchedules = (schedules.data ?? []).filter((s) => s.active && s.modalityId === selected?.id);
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const withClasses = new Set(days.filter((d) => classesOn(modalitySchedules, d).length > 0));
@@ -115,87 +99,7 @@ export function ClassesScreen() {
           )}
         </Box>
 
-        {selected ? (
-          <ModalityProgress
-            key={selected.id}
-            modality={selected}
-            belts={beltsOf(belts.data ?? [], selected.id)}
-            stats={ownModalities.find((s) => s.modalityId === selected.id)}
-            overallTotal={own?.confirmedTotal ?? 0}
-            showOverall={modalities.length > 1}
-          />
-        ) : (
-          <Card>
-            <BigCounter value={own?.confirmedTotal ?? 0} label="Aulas confirmadas" />
-          </Card>
-        )}
       </Box>
     </Screen>
-  );
-}
-
-const aulas = (n: number) => `${n} ${n === 1 ? 'aula' : 'aulas'}`;
-
-function ModalityProgress({
-  modality,
-  belts,
-  stats,
-  overallTotal,
-  showOverall,
-}: {
-  modality: Modality;
-  belts: ModalityBelt[];
-  stats: ModalityStats | undefined;
-  overallTotal: number;
-  showOverall: boolean;
-}) {
-  const modalityTotal = stats?.confirmedTotal ?? 0;
-  const overall = showOverall ? (
-    <Text variant="caption">{`Total geral: ${aulas(overallTotal)} em todas as modalidades`}</Text>
-  ) : null;
-
-  // Without belts: the class count of the modality and the next milestone.
-  if (!modality.usesBelts) {
-    const milestone = nextClassMilestone(modalityTotal);
-    return (
-      <Card gap="s16">
-        <BigCounter value={modalityTotal} label={`Aulas de ${modality.name}`} />
-        <ProgressBar
-          value={modalityTotal}
-          max={milestone}
-          unit="aulas"
-          label={`${missing(milestone - modalityTotal, 'aula', 'aulas')} para ${milestone} aulas`}
-        />
-        {overall}
-      </Card>
-    );
-  }
-
-  const current = belts.find((b) => b.id === stats?.beltId) ?? null;
-  const progress = beltProgress(belts, current?.id ?? null, stats?.confirmedSinceBelt ?? 0);
-
-  return (
-    <Card gap="s16" onPress={() => router.push('/graduacao')} accessibilityLabel={`Trilha de graduação de ${modality.name}. Abrir`}>
-      {current ? <BeltChip belt={current} /> : <Text variant="caption">Sem faixa</Text>}
-      {progress.next && progress.required > 0 ? (
-        <ProgressBar
-          value={progress.done}
-          max={progress.required}
-          unit="aulas"
-          beltColor={progress.next.primary}
-          label={`Até a faixa ${beltName(progress.next).toLowerCase()}`}
-        />
-      ) : (
-        <Text variant="body" color="textMuted">
-          {progress.next
-            ? 'A academia ainda não definiu as aulas da próxima faixa.'
-            : belts.length
-              ? 'Você está na última faixa desta modalidade.'
-              : 'A academia ainda não cadastrou as faixas desta modalidade.'}
-        </Text>
-      )}
-      <BigCounter value={modalityTotal} label={`Aulas de ${modality.name}`} />
-      {overall}
-    </Card>
   );
 }

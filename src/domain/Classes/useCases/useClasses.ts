@@ -250,6 +250,18 @@ export function useBeltHistory(membershipId: string | undefined) {
   });
 }
 
+/**
+ * Training report of a student (own, or staff on MemberDetail). Under the
+ * ModalityStats key: refreshed with the stats (check-ins, awards).
+ */
+export function useClassReport(academyId: string | undefined, userId: string | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.ModalityStats, academyId, 'report', userId],
+    queryFn: () => service.getClassReport(academyId!, userId!),
+    enabled: !!academyId && !!userId,
+  });
+}
+
 export function useAwardBelt(academyId: string, membershipId: string) {
   const queryClient = useQueryClient();
   return useMutation({

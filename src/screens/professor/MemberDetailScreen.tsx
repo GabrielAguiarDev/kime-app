@@ -168,6 +168,12 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
         <Card>
           <BigCounter value={total} label="Aulas confirmadas · todas as modalidades" />
         </Card>
+        <Button
+          title="Relatório de treinos"
+          variant="secondary"
+          icon="chart"
+          onPress={() => router.push({ pathname: '/relatorio', params: { userId: member.userId, name: member.fullName } })}
+        />
 
         {trained.length > 1 && selected ? (
           <ChoiceRow
