@@ -13,7 +13,7 @@ export function useMyProfile(userId: string | undefined) {
   });
 }
 
-/** Perfil → Água: weight, height and bottle. */
+/** Garrafa e meta de água: bottle and personal goal. */
 export function useUpdateBodyAndBottle(userId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -82,12 +82,16 @@ export function useAvatarUrl(path: string | null | undefined, enabled = true) {
   });
 }
 
-/** Meus dados: name, sex, birth date, weight and height. */
+/** Meus dados: name, sex, birth date, weight, height and reach. */
 export function useUpdatePersonalData(userId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: PersonalData) => profileService.updatePersonalData(userId!, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] }),
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.BodyData, userId] }),
+      ]),
   });
 }
 
@@ -101,5 +105,14 @@ export function useSetShowInRanking(userId: string | undefined) {
         queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] }),
         queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking] }),
       ]),
+  });
+}
+
+/** Staff: weight, height and reach of a member (null when not readable). */
+export function useBodyData(userId: string | undefined) {
+  return useQuery({
+    queryKey: [QueryKeys.BodyData, userId],
+    queryFn: () => profileService.getBodyData(userId!),
+    enabled: !!userId,
   });
 }

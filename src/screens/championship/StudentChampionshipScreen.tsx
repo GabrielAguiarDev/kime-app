@@ -5,6 +5,7 @@ import { BeltChip, BigCounter, Box, Card, EmptyState, LoadError, PersonRow, Scre
 import { useAcademyToday } from '@domain/Classes';
 import { daysBetween, formatLocalDate, useChampionships } from '@domain/Competition';
 import { useChampionshipCompetitors } from '@domain/Team';
+import { ResultLine } from '@screens/competition/FightRecord';
 import { LinkRow } from '@screens/competition/shared';
 import { openColleague } from '@screens/team/StudentTeamScreen';
 import { useActiveGym } from '@services/activeGym';
@@ -15,7 +16,8 @@ const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 /**
  * A championship seen by a student of its modality (read only): name, date,
  * place, the countdown in display-xl and "Quem vai lutar" (photo, name, belt;
- * a row opens the member). Entered competitors can open their diet and log weight.
+ * a row opens the member). Once held, the list becomes "Resultados": placement
+ * and the tally of each athlete. Entered competitors can open their diet and log weight.
  */
 export function StudentChampionshipScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,6 +60,7 @@ export function StudentChampionshipScreen() {
   const days = daysBetween(today.data, championship.eventDate);
   const people = competitors.data ?? [];
   const entered = people.some((p) => p.userId === userId);
+  const held = days < 0;
 
   return (
     <Screen nativeHeader title={championship.name} onBack={back}>
@@ -84,7 +87,7 @@ export function StudentChampionshipScreen() {
         {entered && userId ? <CompetitorActions /> : null}
 
         <Box gap="s8">
-          <Text variant="captionCaps">Quem vai lutar</Text>
+          <Text variant="captionCaps">{held ? 'Resultados' : 'Quem vai lutar'}</Text>
           {competitors.isLoading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
           {competitors.isError ? (
             <LoadError title="Não foi possível carregar os inscritos" onRetry={() => void competitors.refetch()} />
@@ -102,7 +105,16 @@ export function StudentChampionshipScreen() {
                   name={p.userId === userId ? `${p.fullName} (você)` : p.fullName}
                   avatarPath={p.avatarPath}
                   last={index === people.length - 1}
-                  secondary={p.belt ? <BeltChip belt={p.belt} /> : undefined}
+                  secondary={
+                    held ? (
+                      <Box flexDirection="row" alignItems="center" gap="s8">
+                        {p.belt ? <BeltChip belt={p.belt} /> : null}
+                        <ResultLine placement={p.placement} tally={p.tally} />
+                      </Box>
+                    ) : p.belt ? (
+                      <BeltChip belt={p.belt} />
+                    ) : undefined
+                  }
                   onPress={() => openColleague(p.userId)}
                 />
               ))}

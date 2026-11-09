@@ -14,14 +14,14 @@ import {
   FeedbackSheet,
   Icon,
   Screen,
-  StatusBadge,
   Text,
   TextButton,
 } from '@components';
 import { useSignOut } from '@domain/Auth';
-import { activeMemberships, membershipLabel, useLeaveGym, type Membership } from '@domain/Membership';
+import { activeMemberships, membershipLabel } from '@domain/Membership';
 import { useAvatarMutations, useMyProfile } from '@domain/Profile';
 import { errorMessage } from '@infra';
+import { MyFightRecordCard } from '@screens/competition/FightRecord';
 import { RankingSwitch } from '@screens/ranking/RankingSwitch';
 import { ClassReminderSwitch } from '@screens/reminders/ClassReminderSwitch';
 import { useActiveGym } from '@services/activeGym';
@@ -33,18 +33,18 @@ import { haptics } from '@utils/haptics';
 import { squarePickerOptions } from '@utils/squareImage';
 
 /**
- * Perfil: avatar (photo or initials; tap for camera / gallery / remove),
- * editable name and e-mail, then grouped sections — Academias, Água (staff),
- * Gestão da academia (owner), Preferências (students) and Conta.
+ * Perfil: avatar (photo or initials; tap for camera / gallery / remove), name
+ * and, for competitors, the cartel of the selected modality (opens the fight
+ * history), then grouped sections — Academia (one row → Academias screen),
+ * Água (staff), Gestão da academia (owner), Treinos and Preferências
+ * (students) and Conta.
  */
 export function ProfileScreen() {
   const { userId } = useSession();
   const { data: profile } = useMyProfile(userId);
-  const { memberships, pending, active, isStaff, isOwner, selectGym } = useActiveGym();
+  const { memberships, active, isStaff, isOwner } = useActiveGym();
   const signOut = useSignOut();
-  const leave = useLeaveGym();
   const confirm = useConfirm();
-  const gyms = activeMemberships(memberships);
   const rejection = useJoinRequestNotices(userId, memberships);
 
   const fullName = profile?.fullName || 'Sem nome';
@@ -77,57 +77,14 @@ export function ProfileScreen() {
           avatarPath={profile?.avatarPath ?? null}
         />
 
-        <Section title="Academias">
-          {gyms.map((m) => {
-            const isActive = m.gymId === active?.gymId;
-            return (
-              <Card
-                key={m.id}
-                onPress={() => selectGym(m.gymId)}
-                selected={isActive}
-                disabled={isActive}
-                accessibilityLabel={`${m.gymName}, ${membershipLabel(m)}${isActive ? ', academia ativa' : ', tocar para trocar'}`}
-                flexDirection="row"
-                alignItems="center"
-                gap="s12"
-              >
-                <AcademyLogo name={m.gymName} url={m.gymLogoUrl} size="small" />
-                <Box flex={1}>
-                  <Text variant="bodyStrong">{m.gymName}</Text>
-                  <Text variant="caption">{membershipLabel(m)}</Text>
-                </Box>
-                {isActive ? <Icon name="check" color="accent" active /> : null}
-              </Card>
-            );
-          })}
-          {pending.map((m) => (
-            <PendingRequestCard key={m.id} membership={m} />
-          ))}
-          {/* Same code flow, already signed in (skips the account step). */}
-          <Button title="Entrar em outra academia" variant="secondary" icon="plus" onPress={() => router.push('/entrar')} />
-          {/* The owner never leaves: they transfer the academy first (Configurações). */}
-          {active && !isOwner ? (
-            <TextButton
-              title={`Sair de ${active.gymName}`}
-              color="danger"
-              disabled={leave.isPending}
-              onPress={async () => {
-                const ok = await confirm({
-                  title: 'Sair da academia?',
-                  message:
-                    'Você perde o acesso às aulas e ao histórico desta academia. Para voltar, vai precisar de um novo código.',
-                  confirmLabel: 'Sair da academia',
-                  tone: 'danger',
-                });
-                if (ok) leave.mutate(active.id, { onError: (e) => Alert.alert('Academia', errorMessage(e)) });
-              }}
-            />
-          ) : null}
+        <Section title="Academia">
+          <AcademyRow />
         </Section>
+
 
         {isStaff ? (
           <Section title="Água">
-            <ManageCard title="Garrafa e peso" icon="drop" onPress={() => router.push('/agua/configurar')} />
+            <ManageCard title="Garrafa e meta de água" icon="drop" onPress={() => router.push('/agua/configurar')} />
           </Section>
         ) : null}
 
@@ -258,6 +215,8 @@ function ProfileHeader({
       <Text variant="title" textAlign="center" accessibilityRole="header">
         {fullName}
       </Text>
+      {/* The athlete's cartel (selected modality, competitors only); opens the fight history. */}
+      <MyFightRecordCard />
       {error ? (
         <Text variant="caption" color="danger" textAlign="center">
           {errorMessage(error)}
@@ -287,34 +246,28 @@ function ProfileHeader({
   );
 }
 
-// ------------------------------------------------------------ academies ---
-/** A request still waiting: never selectable; the user may cancel it. */
-function PendingRequestCard({ membership }: { membership: Membership }) {
-  const cancel = useLeaveGym();
-  const confirm = useConfirm();
-  const name = membership.gymName || 'Academia';
-
-  const ask = async () => {
-    const ok = await confirm({
-      title: 'Cancelar pedido?',
-      message: `Seu pedido para a ${name} deixa de existir. Para entrar depois, use o código de novo.`,
-      confirmLabel: 'Cancelar pedido',
-      cancelLabel: 'Manter pedido',
-      tone: 'danger',
-    });
-    if (ok) cancel.mutate(membership.id, { onError: (e) => Alert.alert('Pedido', errorMessage(e)) });
-  };
-
+/** The active academy (logo, name, role); opens Academias (switch, join another, leave). */
+function AcademyRow() {
+  const { active, memberships, pending } = useActiveGym();
+  const others = activeMemberships(memberships).length - 1 + pending.length;
+  if (!active) {
+    return <ManageCard title="Academias" icon="home" onPress={() => router.push('/conta/academias')} />;
+  }
+  const label = membershipLabel(active);
   return (
-    <Card gap="s12" accessibilityLabel={`${name}, aguardando aprovação`}>
-      <Box flexDirection="row" alignItems="center" gap="s12">
-        <AcademyLogo name={name} url={membership.gymLogoUrl} size="small" />
-        <Box flex={1} gap="s4">
-          <Text variant="bodyStrong">{name}</Text>
-          <StatusBadge status="pending" label="Aguardando aprovação" />
-        </Box>
+    <Card
+      onPress={() => router.push('/conta/academias')}
+      accessibilityLabel={`${active.gymName}, ${label}. Ver academias`}
+      flexDirection="row"
+      alignItems="center"
+      gap="s12"
+    >
+      <AcademyLogo name={active.gymName} url={active.gymLogoUrl} size="small" />
+      <Box flex={1}>
+        <Text variant="bodyStrong">{active.gymName}</Text>
+        <Text variant="caption">{others > 0 ? `${label} · mais ${others}` : label}</Text>
       </Box>
-      <TextButton title="Cancelar pedido" color="danger" disabled={cancel.isPending} onPress={ask} />
+      <Icon name="chevronRight" color="textMuted" />
     </Card>
   );
 }
@@ -325,7 +278,7 @@ function ManageCard({
   onPress,
 }: {
   title: string;
-  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'drop' | 'share' | 'chart';
+  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'drop' | 'share' | 'chart' | 'home';
   onPress: () => void;
 }) {
   return (

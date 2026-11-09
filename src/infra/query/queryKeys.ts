@@ -34,4 +34,7 @@ export enum QueryKeys {
   HiddenTimerPresets = 'HiddenTimerPresets',
   Classmates = 'Classmates',
   ChampionshipCompetitors = 'ChampionshipCompetitors',
+  BodyData = 'BodyData',
+  FightHistory = 'FightHistory',
+  FightSummary = 'FightSummary',
 }

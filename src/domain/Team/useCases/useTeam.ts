@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import type { BeltColorKey, BeltLook } from '@domain/Classes';
+import type { Placement } from '@domain/Competition/fightRecordTypes';
 import { QueryKeys } from '@infra/query';
 import { supabase, toAppError } from '@infra/supabase';
 
@@ -52,6 +53,8 @@ export function useChampionshipCompetitors(championshipId: string | undefined) {
         fullName: r.full_name,
         avatarPath: r.avatar_path,
         belt: belt(r.belt_primary, r.belt_tip),
+        placement: (r.placement ?? null) as Placement | null,
+        tally: { wins: r.wins, losses: r.losses, draws: r.draws },
       }));
     },
     enabled: !!championshipId,

@@ -1,14 +1,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 
-import { Avatar, BigCounter, BottomSheet, Box, Button, Card, EmptyState, Icon, LoadError, Screen, SelectionCard, Text, TextField } from '@components';
+import { Avatar, BigCounter, BottomSheet, Box, Button, Card, EmptyState, LoadError, PersonRow, Screen, SelectionCard, Text, TextField, type PersonAction } from '@components';
 import { useAcademyToday, useModalities } from '@domain/Classes';
 import {
+  canRecordResults,
   countdownLabel,
   daysBetween,
   formatLocalDate,
+  tallyFights,
   useChampionshipEntries,
+  useChampionshipResults,
   useChampionshipMutations,
   useChampionships,
   type Championship,
@@ -18,13 +21,18 @@ import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
 import { SheetForm } from '@screens/professor/shared';
-import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
 import { ChampionshipForm } from './ChampionshipForm';
+import { ResultLine } from './FightRecord';
+import { RecordResultsSheet } from './RecordResultsSheet';
 import { Section } from './shared';
 
-/** Staff: one championship — countdown, details (edit / delete) and the athletes entered. */
+/**
+ * Staff: one championship — countdown, details (edit / delete) and the
+ * athletes entered. From the championship day on, each athlete gets
+ * "Registrar lutas" (placement and fights).
+ */
 export function ChampionshipDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { active } = useActiveGym();
@@ -111,7 +119,9 @@ function ChampionshipDetail({
     if (!athletesReady || mutations.setEntries.isPending) return;
     const ok = await confirm({
       title: 'Remover atleta do campeonato?',
-      message: `Remover ${name} de ${championship.name}?`,
+      message: canRecord
+        ? `Remover ${name} de ${championship.name}? A colocação e as lutas registradas também são apagadas.`
+        : `Remover ${name} de ${championship.name}?`,
       confirmLabel: 'Remover atleta',
       tone: 'danger',
     });
@@ -125,6 +135,11 @@ function ChampionshipDetail({
 
   const days = today.data ? daysBetween(today.data, championship.eventDate) : null;
   const isPast = days !== null && days < 0;
+  const canRecord = !!today.data && canRecordResults(today.data, championship.eventDate);
+  const results = useChampionshipResults(championship.id, canRecord);
+  const [recording, setRecording] = useState<string | null>(null);
+  const resultsOf = (athleteId: string) => results.data?.find((r) => r.athleteId === athleteId);
+  const recordingEntry = recording ? (resultsOf(recording) ?? null) : null;
 
   const remove = async () => {
     setEditing(false);
@@ -199,20 +214,56 @@ function ChampionshipDetail({
               description="Toque em Incluir atletas para adicionar participantes ao campeonato."
             />
           ) : null}
-          {entered.map((athleteId) => {
-            const member = memberOf(athleteId);
-            const name = member?.fullName ?? 'Ex-atleta';
-            return (
-              <EnteredAthlete
-                key={athleteId}
-                name={name}
-                avatarPath={member?.avatarPath}
-                former={formerIds.includes(athleteId)}
-                disabled={!athletesReady || mutations.setEntries.isPending}
-                onRemove={() => void removeAthlete(athleteId, name)}
-              />
-            );
-          })}
+          {canRecord && results.isError ? (
+            <LoadError title="Não foi possível carregar os resultados" onRetry={() => void results.refetch()} />
+          ) : null}
+          {entered.length ? (
+            <Card>
+              {entered.map((athleteId, index) => {
+                const member = memberOf(athleteId);
+                const name = member?.fullName ?? 'Ex-atleta';
+                const entry = resultsOf(athleteId);
+                const busy = !athletesReady || mutations.setEntries.isPending;
+                const actions: PersonAction[] = [
+                  ...(canRecord
+                    ? [{
+                        icon: 'trophy' as const,
+                        label: `Registrar lutas de ${name}`,
+                        color: 'accent' as const,
+                        disabled: !entry,
+                        onPress: () => setRecording(athleteId),
+                      }]
+                    : []),
+                  {
+                    icon: 'trash',
+                    label: `Remover ${name} do campeonato`,
+                    color: 'danger',
+                    disabled: busy,
+                    onPress: () => void removeAthlete(athleteId, name),
+                  },
+                ];
+                return (
+                  <PersonRow
+                    key={athleteId}
+                    name={name}
+                    avatarPath={member?.avatarPath}
+                    last={index === entered.length - 1}
+                    secondary={
+                      formerIds.includes(athleteId) ? (
+                        'Saiu da equipe'
+                      ) : canRecord && entry ? (
+                        <ResultLine placement={entry.placement} tally={tallyFights(entry.fights)} />
+                      ) : undefined
+                    }
+                    actions={actions}
+                  />
+                );
+              })}
+            </Card>
+          ) : null}
+          {canRecord && entered.length ? (
+            <Text variant="caption">Toque no troféu para registrar a colocação e as lutas de cada atleta.</Text>
+          ) : null}
           {mutations.setEntries.error ? (
             <Text variant="caption" color="danger">
               {errorMessage(mutations.setEntries.error)}
@@ -283,6 +334,12 @@ function ChampionshipDetail({
         </SheetForm>
       </BottomSheet>
 
+      <RecordResultsSheet
+        entry={recordingEntry}
+        athleteName={recording ? (memberOf(recording)?.fullName ?? 'Ex-atleta') : ''}
+        onClose={() => setRecording(null)}
+      />
+
       <BottomSheet visible={editing} onRequestClose={() => setEditing(false)}>
         <ChampionshipForm
           initial={championship}
@@ -317,34 +374,5 @@ function AthleteOption({ member, selected, onPress, disabled }: { member: GymMem
       onPress={onPress}
       accessibilityLabel={`${member.fullName}${selected ? ', inscrito' : ''}`}
     />
-  );
-}
-
-function EnteredAthlete({ name, avatarPath, former, disabled, onRemove }: {
-  name: string;
-  avatarPath?: GymMember['avatarPath'];
-  former: boolean;
-  disabled: boolean;
-  onRemove: () => void;
-}) {
-  const { size } = useAppTheme();
-  return (
-    <Card flexDirection="row" alignItems="center" gap="s12">
-      <Avatar name={name} path={avatarPath} />
-      <Box flex={1} gap="s4">
-        <Text variant="bodyStrong">{name}</Text>
-        {former ? <Text variant="caption">Saiu da equipe</Text> : null}
-      </Box>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Remover ${name} do campeonato`}
-        accessibilityState={{ disabled }}
-        disabled={disabled}
-        onPress={onRemove}
-        style={{ minWidth: size.touchTarget, minHeight: size.touchTarget, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.5 : 1 }}
-      >
-        <Icon name="trash" color="danger" />
-      </Pressable>
-    </Card>
   );
 }

@@ -2,8 +2,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator } from 'react-native';
 
 import { Avatar, BeltChip, Box, Card, EmptyState, Icon, LoadError, Screen, Text } from '@components';
+import { useFightSummary } from '@domain/Competition';
 import { roleLabel } from '@domain/Membership';
 import { memberSinceLabel, useClassmates } from '@domain/Team';
+import { FightRecordCard } from '@screens/competition/FightRecord';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
 import { useSession } from '@services/session';
@@ -11,17 +13,24 @@ import { useSession } from '@services/session';
 const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 /**
- * A member seen by a classmate: big photo, name, role, the modalities in
- * common with the belt of each, "Treina aqui desde …" and the competitor seal.
- * Never health data (water, weight, plans) nor attendance history.
+ * A member seen by a classmate, for the modality selected in the Início
+ * header only (user decision: no list of modalities): big photo, name, role,
+ * the competitor seal (competes in it), "Treina aqui desde …", the graduation
+ * (belt in it) and, for a competitor, the cartel summary of it (never the
+ * fights in detail). Never health data (water, weight, reach, plans) nor
+ * attendance history.
  */
 export function ColleagueScreen() {
   const { userId: memberId } = useLocalSearchParams<{ userId: string }>();
   const { userId } = useSession();
   const { active } = useActiveGym();
-  const { modalities } = useActiveModality();
+  const { selected } = useActiveModality();
   const classmates = useClassmates(active?.gymId);
   const member = classmates.data?.find((m) => m.userId === memberId);
+  const link = selected ? member?.modalities.find((s) => s.modalityId === selected.id) : undefined;
+  const competes = !!member && member.role === 'student' && !!link?.isCompetitor;
+  const record = useFightSummary(active?.gymId, memberId, competes);
+  const cartel = record.data?.find((r) => r.modalityId === selected?.id);
 
   if (classmates.isLoading || !active) {
     return (
@@ -45,11 +54,8 @@ export function ColleagueScreen() {
     );
   }
 
-  const competes = member.modalities.some((s) => s.isCompetitor);
   const isStaffMember = member.role !== 'student';
-  const shared = member.modalities
-    .map((s) => ({ ...s, modality: modalities.find((m) => m.id === s.modalityId) }))
-    .filter((s) => !!s.modality);
+  const showBelt = !isStaffMember && !!link && !!selected?.usesBelts;
 
   return (
     <Screen nativeHeader title="" largeTitle={false} onBack={back}>
@@ -85,26 +91,18 @@ export function ColleagueScreen() {
           </Text>
         </Box>
 
-        {shared.length ? (
+        {showBelt ? (
           <Box gap="s8">
-            <Text variant="captionCaps">{member.userId === userId ? 'Suas modalidades' : 'Modalidades em comum'}</Text>
-            <Card gap="s12">
-              {shared.map((s) => (
-                <Box key={s.modalityId} flexDirection="row" alignItems="center" justifyContent="space-between" gap="s12">
-                  <Box flexDirection="row" alignItems="center" gap="s8" flex={1}>
-                    <Text variant="bodyStrong">{s.modality!.name}</Text>
-                    {s.isCompetitor ? <Icon name="trophy" color="accent" active size={16} /> : null}
-                  </Box>
-                  {s.modality!.usesBelts ? (
-                    s.belt ? (
-                      <BeltChip belt={s.belt} />
-                    ) : (
-                      <Text variant="caption">Sem faixa</Text>
-                    )
-                  ) : null}
-                </Box>
-              ))}
-            </Card>
+            <Text variant="captionCaps">{`Graduação · ${selected!.name}`}</Text>
+            <Card>{link!.belt ? <BeltChip belt={link!.belt} /> : <Text variant="body">Sem faixa</Text>}</Card>
+          </Box>
+        ) : null}
+
+        {competes ? (
+          <Box gap="s8">
+            <Text variant="captionCaps">{`Cartel · ${selected!.name}`}</Text>
+            {record.isLoading ? <ActivityIndicator accessibilityLabel="Carregando cartel" /> : null}
+            {cartel ? <FightRecordCard record={cartel} /> : null}
           </Box>
         ) : null}
       </Box>

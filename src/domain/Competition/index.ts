@@ -9,3 +9,6 @@ export {
   type CountdownWidgetData,
   type CountdownWidgetModality,
 } from './competitionWidget';
+export * from './fightRecordTypes';
+export * from './fightRecordRules';
+export * from './useCases/useFightRecord';

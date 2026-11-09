@@ -2,8 +2,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Screen, SelectionGrid, Text, TextField } from '@components';
-import { useMyProfile, useUpdateBodyAndBottle, type Profile } from '@domain/Profile';
+import { Box, Button, Card, Screen, SelectionGrid, Text, TextButton, TextField } from '@components';
+import { formatBodyNumber, useMyProfile, useUpdateBodyAndBottle, type Profile } from '@domain/Profile';
 import {
   autoDailyGoalMl,
   BOTTLE_MAX_ML,
@@ -11,8 +11,6 @@ import {
   BOTTLE_PRESETS,
   isValidBottle,
   ML_PER_KG,
-  parseDecimal,
-  WEIGHT_RANGE_KG,
 } from '@domain/Water';
 import { errorMessage } from '@infra';
 import { usePlannedWater } from '@services/water/usePlannedWater';
@@ -25,10 +23,12 @@ const OTHER = 'Outro';
 const presetLabel = (ml: number) => `${formatMl(ml)} ml`;
 const PRESET_LABELS = BOTTLE_PRESETS.map(presetLabel);
 
+const TITLE = 'Garrafa e meta de água';
+
 /**
- * Sua garrafa (also the widget's "Configure sua garrafa"): bottle size and
- * weight — the same weight as Meus dados — and an optional personal daily goal.
- * The professor’s active plan locks personal goal edits.
+ * Garrafa e meta de água (also the widget's "Configure sua garrafa"): bottle
+ * size and the daily goal — from the weight of Meus dados (shortcut to change
+ * it there) or a personal goal. The professor’s active plan locks the goal.
  */
 export function WaterSettingsScreen() {
   const { userId } = useSession();
@@ -37,7 +37,7 @@ export function WaterSettingsScreen() {
 
   if (!profile.data) {
     return (
-      <Screen nativeHeader title="Sua garrafa" onBack={back}>
+      <Screen nativeHeader title={TITLE} onBack={back}>
         {profile.isError ? (
           <Text variant="body" color="danger">
             {errorMessage(profile.error)}
@@ -66,16 +66,9 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
   const personalMl = Number(personalGoal);
   const personalError = goalMode === 'Personalizada' && (!Number.isInteger(personalMl) || personalMl < 50 || personalMl > 20000)
     ? 'Informe uma meta entre 50 e 20.000 ml.' : undefined;
-  const [weight, setWeight] = useState(profile.weightKg ? String(profile.weightKg).replace('.', ',') : '');
   const start = initialBottle(profile.bottleMl);
   const [choice, setChoice] = useState<string | null>(start.choice);
   const [other, setOther] = useState(start.other);
-
-  const weightKg = weight.trim() ? parseDecimal(weight) : null;
-  const weightError =
-    weight.trim() && (weightKg === null || weightKg < WEIGHT_RANGE_KG.min || weightKg > WEIGHT_RANGE_KG.max)
-      ? `Informe um peso entre ${WEIGHT_RANGE_KG.min} e ${WEIGHT_RANGE_KG.max} kg.`
-      : undefined;
 
   const otherMl = other.trim() ? Number(other.trim()) : NaN;
   const bottleMl =
@@ -85,13 +78,12 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
       ? `Use um valor entre ${formatMl(BOTTLE_MIN_ML)} e ${formatMl(BOTTLE_MAX_ML)} ml.`
       : undefined;
 
-  const goal = weightError ? null : autoDailyGoalMl(weightKg);
-  const usesWeight = !planned.isLocked && goalMode === 'Pelo meu peso';
-  const valid = (!usesWeight || !weightError) && bottleMl !== null && !planned.isLoading && !planned.isError && (planned.isLocked || !personalError);
+  const goal = autoDailyGoalMl(profile.weightKg);
+  const valid = bottleMl !== null && !planned.isLoading && !planned.isError && (planned.isLocked || !personalError);
 
   const submit = () =>
     save.mutate(
-      { weightKg: usesWeight ? weightKg : profile.weightKg, bottleMl, ...(planned.isLocked ? {} : { personalWaterGoalMl: goalMode === 'Personalizada' ? personalMl : null }) },
+      { bottleMl, ...(planned.isLocked ? {} : { personalWaterGoalMl: goalMode === 'Personalizada' ? personalMl : null }) },
       {
         onSuccess: () => {
           haptics.success();
@@ -102,7 +94,7 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
 
   return (
     <Screen nativeHeader
-      title="Sua garrafa"
+      title={TITLE}
       onBack={onDone}
       footer={<Button title="Salvar" disabled={!valid} loading={save.isPending} onPress={submit} />}
     >
@@ -143,22 +135,27 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
             <>
               <SelectionGrid options={['Pelo meu peso', 'Personalizada']} selected={[goalMode]} onToggle={setGoalMode} />
               {goalMode === 'Pelo meu peso' ? (
-                <Box gap="s12">
-          <Text variant="captionCaps">Seu peso</Text>
-          <TextField
-            label="Peso"
-            value={weight}
-            onChangeText={setWeight}
-            keyboardType="decimal-pad"
-            unit="kg"
-            errorMessage={weightError}
-          />
-          <Text variant="body" color="textMuted">
-            {goal
-              ? `Meta sugerida: ${formatMl(goal)} ml (${ML_PER_KG} ml por kg).`
-              : `Com o peso, o Kimi calcula sua meta diária (${ML_PER_KG} ml por kg).`}
-          </Text>
-        </Box>
+                <Card gap="s8">
+                  {goal && profile.weightKg ? (
+                    <>
+                      <Text variant="caption">Meta do dia</Text>
+                      <Text variant="heading">{`${formatMl(goal)} ml`}</Text>
+                      <Text variant="caption">
+                        {`${formatBodyNumber(profile.weightKg)} kg × ${ML_PER_KG} ml por kg`}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text variant="body" color="textMuted">
+                      {`Informe seu peso em Meus dados e o Kimi calcula sua meta diária (${ML_PER_KG} ml por kg).`}
+                    </Text>
+                  )}
+                  <Box alignItems="flex-start">
+                    <TextButton
+                      title={profile.weightKg ? 'Alterar peso em Meus dados' : 'Informar peso em Meus dados'}
+                      onPress={() => router.push('/conta/dados')}
+                    />
+                  </Box>
+                </Card>
               ) : null}
               {goalMode === 'Personalizada' ? (
                 <TextField label="Sua meta diária" value={personalGoal} onChangeText={(text) => setPersonalGoal(text.replace(/\D/g, ''))} keyboardType="number-pad" unit="ml" errorMessage={personalError} />

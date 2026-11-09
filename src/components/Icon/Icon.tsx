@@ -30,6 +30,7 @@ import { House } from 'phosphor-react-native/src/icons/House';
 import { Image } from 'phosphor-react-native/src/icons/Image';
 import { LinkBreak } from 'phosphor-react-native/src/icons/LinkBreak';
 import { ListChecks } from 'phosphor-react-native/src/icons/ListChecks';
+import { EnvelopeSimple } from 'phosphor-react-native/src/icons/EnvelopeSimple';
 import { Lock } from 'phosphor-react-native/src/icons/Lock';
 import { Medal } from 'phosphor-react-native/src/icons/Medal';
 import { Minus } from 'phosphor-react-native/src/icons/Minus';
@@ -101,6 +102,7 @@ const ICONS = {
   drop: Drop,
   home: House,
   light: Sun,
+  mail: EnvelopeSimple,
   medal: Medal,
   linkBroken: LinkBreak,
   dark: Moon,
