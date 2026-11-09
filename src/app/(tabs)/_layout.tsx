@@ -14,6 +14,7 @@ function tabIcon(name: IconName) {
 }
 
 /**
+ * Android/web tab bar (iOS uses the native one in `_layout.ios.tsx`).
  * Icon-only tab bar (DESIGN-SYSTEM.md, 3.9): 64 + safe area, surface, 2px top border.
  * Same five tabs for everyone: Início, Aulas, Timer, Equipe, Perfil. The
  * screens differ by role (staff vs student); competitors get no extra tab:

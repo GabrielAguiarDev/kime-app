@@ -296,9 +296,13 @@ function NativeHeaderScreen({
           right={0}
           bottom={0}
           backgroundColor="bg"
-          onLayout={(e) => setBottomHeight(e.nativeEvent.layout.height)}
         >
-          {bottomContent}
+          {/* iOS native tabs: the screen runs under the glass tab bar, so lift the
+              footer by the native bottom safe area (which includes the bar). Only the
+              content is measured: the scroll's automatic inset already covers the bar. */}
+          <SafeAreaView edges={Platform.OS === "ios" && !bottomInset ? ["bottom"] : []}>
+            <Box onLayout={(e) => setBottomHeight(e.nativeEvent.layout.height)}>{bottomContent}</Box>
+          </SafeAreaView>
         </Box>
       ) : null}
     </>
