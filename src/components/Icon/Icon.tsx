@@ -10,6 +10,7 @@ import { CalendarBlank } from 'phosphor-react-native/src/icons/CalendarBlank';
 import { CaretDownIcon as CaretDown } from 'phosphor-react-native/src/icons/CaretDown';
 import { CaretLeft } from 'phosphor-react-native/src/icons/CaretLeft';
 import { CaretRight } from 'phosphor-react-native/src/icons/CaretRight';
+import { ChartBar } from 'phosphor-react-native/src/icons/ChartBar';
 import { Check } from 'phosphor-react-native/src/icons/Check';
 import { CircleIcon as Circle } from 'phosphor-react-native/src/icons/Circle';
 import { CheckCircle } from 'phosphor-react-native/src/icons/CheckCircle';
@@ -68,6 +69,7 @@ const ICONS = {
   chevronDown: CaretDown,
   copy: Copy,
   diet: ForkKnife,
+  chart: ChartBar,
   done: Check,
   edit: PencilSimple,
   flame: Fire,
@@ -99,6 +101,7 @@ const ICONS = {
   drop: Drop,
   home: House,
   light: Sun,
+  medal: Medal,
   linkBroken: LinkBreak,
   dark: Moon,
   offline: CloudSlash,

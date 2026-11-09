@@ -7,6 +7,7 @@ import type {
   AcademyCheckin,
   BeltAward,
   BeltInput,
+  ClassReport,
   Checkin,
   ClassSchedule,
   LocalDate,
@@ -122,5 +123,7 @@ export const classesService = {
     call(async () => (await api.listModalityStats(academyId)).map(adapter.toModalityStats)),
   listBeltHistory: (membershipId: string): Promise<BeltAward[]> =>
     call(async () => (await api.listBeltHistory(membershipId)).map(adapter.toBeltAward)),
+  getClassReport: (academyId: string, userId: string): Promise<ClassReport | null> =>
+    call(async () => adapter.toClassReport(await api.getClassReport(academyId, userId))),
   awardBelt: (membershipId: string, beltId: string) => call(() => api.awardBelt(membershipId, beltId)),
 };

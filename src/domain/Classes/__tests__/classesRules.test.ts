@@ -13,7 +13,6 @@ import {
   latestBelt,
   milestoneCrossed,
   trainedModalities,
-  trailNodes,
   weekStart,
   weekdayOf,
   weeklyStreak,
@@ -204,24 +203,6 @@ describe('belt colors', () => {
     expect(beltColorNeedsOutline('blue')).toBe(false);
     expect(beltNeedsDarkText({ primary: 'yellow', tip: null })).toBe(true);
     expect(beltNeedsDarkText({ primary: 'blue', tip: 'black' })).toBe(false);
-  });
-});
-
-describe('trailNodes', () => {
-  it('splits the goal in blocks of 10 with states', () => {
-    const nodes = trailNodes(30, 14);
-    expect(nodes.map((n) => [n.from, n.to, n.state, n.doneInNode])).toEqual([
-      [1, 10, 'done', 10],
-      [11, 20, 'current', 4],
-      [21, 30, 'future', 0],
-    ]);
-  });
-  it('keeps a short last block and marks the next block current at a boundary', () => {
-    expect(trailNodes(25, 20).map((n) => [n.from, n.to, n.state])).toEqual([
-      [1, 10, 'done'],
-      [11, 20, 'done'],
-      [21, 25, 'current'],
-    ]);
   });
 });
 

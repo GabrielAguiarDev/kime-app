@@ -12,6 +12,7 @@ import type {
   AcademyCheckin,
   BeltAward,
   BeltColorKey,
+  ClassReport,
   Checkin,
   ClassSchedule,
   MemberStats,
@@ -87,6 +88,52 @@ function toModalityStats(row: ModalityStatsRowApi): ModalityStats {
   };
 }
 
+const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+const str = (v: unknown) => (typeof v === 'string' ? v : null);
+
+const obj = (v: unknown): Record<string, unknown> | null =>
+  v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+const list = (v: unknown) => (Array.isArray(v) ? v : []).map(obj).filter((o): o is Record<string, unknown> => !!o);
+
+/** class_report JSON → ClassReport (null: no access / no student membership). */
+function toClassReport(json: unknown): ClassReport | null {
+  const row = obj(json);
+  const joinedAt = str(row?.joined_at);
+  const today = str(row?.today);
+  if (!row || !joinedAt || !today) return null;
+  return {
+    joinedAt,
+    today,
+    recentSince: str(row.recent_since) ?? today,
+    enrollments: list(row.enrollments).flatMap((e) => {
+      const modalityId = str(e.modality_id);
+      return modalityId ? [{ modalityId, status: str(e.status) ?? 'active', isCompetitor: e.is_competitor === true }] : [];
+    }),
+    modalities: list(row.modalities).flatMap((m) => {
+      const modalityId = str(m.modality_id);
+      return modalityId ? [{ modalityId, total: num(m.total), sinceBelt: num(m.since_belt), recent: num(m.recent) }] : [];
+    }),
+    months: list(row.months).flatMap((m) => {
+      const month = str(m.month);
+      return month ? [{ month, modalityId: str(m.modality_id), classes: num(m.classes) }] : [];
+    }),
+    weeks: (Array.isArray(row.weeks) ? row.weeks : []).filter((w): w is string => typeof w === 'string'),
+    belts: list(row.belts).flatMap((b) => {
+      const modalityId = str(b.modality_id);
+      const beltId = str(b.belt_id);
+      const awardedAt = str(b.awarded_at);
+      return modalityId && beltId && awardedAt
+        ? [{ modalityId, beltId, awardedAt, nextAwardedAt: str(b.next_awarded_at), classes: num(b.classes) }]
+        : [];
+    }),
+    milestones: list(row.milestones).flatMap((m) => {
+      const modalityId = str(m.modality_id);
+      const date = str(m.date);
+      return modalityId && date ? [{ modalityId, count: num(m.count), date }] : [];
+    }),
+  };
+}
+
 function toBeltAward(row: BeltAwardRowApi): BeltAward {
   return {
     id: row.id,
@@ -107,4 +154,5 @@ export const classesAdapter = {
   toMemberStats,
   toModalityStats,
   toBeltAward,
+  toClassReport,
 };

@@ -278,32 +278,6 @@ export function beltNeedsDarkText(belt: BeltLook): boolean {
   return beltColorIsLight(belt.primary);
 }
 
-/** Classes per node of the graduation trail (11.2): "Aulas 21–30". */
-export const TRAIL_BLOCK = 10;
-
-export type TrailNodeState = 'done' | 'current' | 'future';
-
-export interface TrailNode {
-  /** 1-based class numbers covered by the node. */
-  from: number;
-  to: number;
-  state: TrailNodeState;
-  /** Classes done inside this node. */
-  doneInNode: number;
-}
-
-/** Splits the classes required for the next belt into blocks of TRAIL_BLOCK. */
-export function trailNodes(required: number, done: number, block = TRAIL_BLOCK): TrailNode[] {
-  const nodes: TrailNode[] = [];
-  for (let from = 1; from <= required; from += block) {
-    const to = Math.min(from + block - 1, required);
-    const doneInNode = Math.max(0, Math.min(done - (from - 1), to - from + 1));
-    const state: TrailNodeState = done >= to ? 'done' : done >= from - 1 ? 'current' : 'future';
-    nodes.push({ from, to, state, doneInNode });
-  }
-  return nodes;
-}
-
 // ----------------------------------------------------------- modalities ---
 
 /** Suggestions when creating an academy; the academy keeps its own list. */
@@ -324,4 +298,44 @@ export function sortByTime(schedules: ClassSchedule[]): ClassSchedule[] {
 export function classesOn(schedules: ClassSchedule[], date: LocalDate): ClassSchedule[] {
   const dow = weekdayOf(date);
   return sortByTime(schedules.filter((s) => s.active && s.weekday === dow));
+}
+
+// ------------------------------------------------------------- summary ---
+
+/** Confirmed classes per week over a window of `days` days (one decimal). */
+export function weeklyAverage(classes: number, days: number): number {
+  if (classes <= 0 || days <= 0) return 0;
+  return Math.round((classes / (days / 7)) * 10) / 10;
+}
+
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+/** "mar 2026": a timestamp (device local time) or a LocalDate / month ("2026-03-01"). */
+export function monthYearLabel(iso: string): string {
+  const day = /^(\d{4})-(\d{2})-\d{2}$/.exec(iso);
+  if (day) return `${MONTHS[Number(day[2]) - 1]} ${day[1]}`;
+  const d = new Date(iso);
+  return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** "mar": short month of a LocalDate / month ("2026-03-01"). */
+export function monthShortLabel(month: LocalDate): string {
+  return MONTHS[Number(month.slice(5, 7)) - 1] ?? '';
+}
+
+/** Time between two instants in words: "12 dias", "1 mês", "5 meses", "1 ano e 2 meses". */
+export function durationLabel(fromIso: string, toIso: string): string {
+  const from = new Date(fromIso);
+  const to = new Date(toIso);
+  const months =
+    (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()) - (to.getDate() < from.getDate() ? 1 : 0);
+  if (months < 1) {
+    const days = Math.max(1, Math.floor((to.getTime() - from.getTime()) / 86_400_000));
+    return `${days} ${days === 1 ? 'dia' : 'dias'}`;
+  }
+  const monthsLabel = (n: number) => `${n} ${n === 1 ? 'mês' : 'meses'}`;
+  if (months < 12) return monthsLabel(months);
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  return `${years} ${years === 1 ? 'ano' : 'anos'}${rest ? ` e ${monthsLabel(rest)}` : ''}`;
 }

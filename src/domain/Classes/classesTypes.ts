@@ -122,6 +122,37 @@ export interface Modality {
   weeklyClassGoal: number;
 }
 
+/** A graduation of the student in the report: the time in that belt. */
+export interface ReportBelt {
+  modalityId: string;
+  beltId: string;
+  awardedAt: string;
+  /** Null = the current belt. */
+  nextAwardedAt: string | null;
+  /** Confirmed classes done in this belt. */
+  classes: number;
+}
+
+/** Training report of one student (class_report): raw numbers, see classReport.ts for the views. */
+export interface ClassReport {
+  /** Membership start ("Treina aqui desde"). */
+  joinedAt: string;
+  today: LocalDate;
+  /** Start of the "last 3 months" window (or the membership start when later). */
+  recentSince: LocalDate;
+  enrollments: { modalityId: string; status: string; isCompetitor: boolean }[];
+  /** Confirmed classes per modality: all, since the last graduation, in the recent window. */
+  modalities: { modalityId: string; total: number; sinceBelt: number; recent: number }[];
+  /** Confirmed classes per month (first day of the month) and modality, whole history. */
+  months: { month: LocalDate; modalityId: string | null; classes: number }[];
+  /** Mondays of every week with a confirmed class. */
+  weeks: LocalDate[];
+  /** Graduations, oldest first. */
+  belts: ReportBelt[];
+  /** Day of the 10th, 25th, 50th, 100th… confirmed class per modality. */
+  milestones: { modalityId: string; count: number; date: LocalDate }[];
+}
+
 export interface BeltAward {
   id: string;
   modalityId: string;

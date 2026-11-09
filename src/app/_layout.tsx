@@ -125,8 +125,8 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="conta/dados" options={header} />
         <Stack.Screen name="dieta" options={header} />
         <Stack.Screen name="aula" options={header} />
+        <Stack.Screen name="relatorio" options={header} />
         <Stack.Screen name="peso" options={header} />
-        <Stack.Screen name="graduacao" options={header} />
         <Stack.Screen name="ofensivas" options={header} />
         <Stack.Screen name="ranking" options={header} />
         {/* Student app: competition (also the countdown widget, kimi://competition), championships, classmates. */}

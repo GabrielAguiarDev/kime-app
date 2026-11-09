@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView } from "react-native";
+import { Platform, Pressable, ScrollView } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@theme";
@@ -39,6 +39,8 @@ interface ScreenProps {
   headerRight?: ReactNode;
   /** nativeHeader (iOS): large title that collapses (default true). False = compact bar only. */
   largeTitle?: boolean;
+  /** nativeHeader: second line under the title (e.g. the modality). Uses the compact bar (no large title). */
+  subtitle?: string;
   /** Without nativeHeader: content above the title (e.g. the signed-in account row). */
   header?: ReactNode;
 }
@@ -56,6 +58,7 @@ export function Screen({
   headerLeft,
   headerRight,
   largeTitle = true,
+  subtitle,
   header: topContent,
 }: ScreenProps) {
   const { bottom } = useSafeAreaInsets();
@@ -73,6 +76,7 @@ export function Screen({
         headerLeft={headerLeft}
         headerRight={headerRight}
         largeTitle={largeTitle}
+        subtitle={subtitle}
         footer={footer}
         feedback={feedback}
         bottomInset={bottomInset}
@@ -224,6 +228,7 @@ function NativeHeaderScreen({
   headerLeft,
   headerRight,
   largeTitle = true,
+  subtitle,
   scrollable = true,
   footer,
   feedback,
@@ -252,7 +257,15 @@ function NativeHeaderScreen({
       <Stack.Screen
         options={{
           title: title ?? "",
-          headerLargeTitleEnabled: largeTitle,
+          headerLargeTitleEnabled: largeTitle && !subtitle,
+          headerTitle: subtitle
+            ? () => (
+                <Box alignItems={Platform.OS === "ios" ? "center" : "flex-start"}>
+                  <Text variant="navTitle" numberOfLines={1}>{title}</Text>
+                  <Text variant="caption" numberOfLines={1}>{subtitle}</Text>
+                </Box>
+              )
+            : undefined,
           headerBackVisible: !left,
           headerLeft: left ? () => left : undefined,
           headerRight: right ? () => right : undefined,

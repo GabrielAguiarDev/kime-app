@@ -263,6 +263,13 @@ async function listBeltHistory(membershipId: string) {
   return data;
 }
 
+/** Training report of a student: the student themself or staff (RPC class_report). */
+async function getClassReport(academyId: string, userId: string) {
+  const { data, error } = await supabase.rpc('class_report', { p_academy_id: academyId, p_user_id: userId });
+  if (error) throw error;
+  return data;
+}
+
 async function awardBelt(membershipId: string, beltId: string) {
   // modality_id is set by a trigger from the belt (the client has no grant on it).
   const row = { membership_id: membershipId, belt_id: beltId } as TablesInsert<'belt_history'>;
@@ -346,6 +353,7 @@ export const classesApi = {
   listMemberStats,
   listModalityStats,
   listBeltHistory,
+  getClassReport,
   awardBelt,
 };
 
