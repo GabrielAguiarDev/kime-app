@@ -39,6 +39,7 @@ import { membershipLabel, useGymMembers, useRemoveMembership, type GymMember } f
 import { errorMessage } from '@infra';
 import { CompetitorSection } from '@screens/competition/CompetitorSection';
 import { FightRecordSection } from '@screens/competition/FightRecord';
+import { PreviousHistorySection } from '@screens/competition/PreviousHistorySection';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
@@ -53,7 +54,8 @@ import { StudentModalitiesSection } from './StudentModalitiesSection';
  * Staff: one member of the academy.
  *  - owner / instructor: photo, name, role and classes taught (they do not train in the app);
  *  - student: body data (competitors), classes and belt progress per modality,
- *    competition team, record ("Cartel") and championships, belt history, "Definir faixa".
+ *    competition team, record ("Cartel") and championships, history before the app
+ *    ("Histórico anterior"), belt history, "Definir faixa".
  */
 export function MemberDetailScreen() {
   const { membershipId } = useLocalSearchParams<{ membershipId: string }>();
@@ -208,6 +210,10 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
             modalityIds={member.modalities.filter((l) => l.isCompetitor).map((l) => l.modalityId)}
             title="Cartel e campeonatos"
           />
+        ) : null}
+
+        {member.isCompetitor ? (
+          <PreviousHistorySection academyId={academyId} member={member} modalities={allModalities} />
         ) : null}
 
         <Box gap="s12">

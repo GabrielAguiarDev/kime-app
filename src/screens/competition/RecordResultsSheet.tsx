@@ -17,7 +17,7 @@ import {
   type FightStage,
 } from '@domain/Competition';
 import { errorMessage } from '@infra';
-import { SheetForm } from '@screens/professor/shared';
+import { SheetForm, type SheetHeaderAction } from '@screens/professor/shared';
 import { haptics } from '@utils/haptics';
 
 import { FightRow } from './FightRecord';
@@ -41,45 +41,58 @@ export function RecordResultsSheet({
   athleteName: string;
   onClose: () => void;
 }) {
+  return (
+    <BottomSheet visible={!!entry} onRequestClose={onClose}>
+      {entry ? <RecordResultsContent entry={entry} title={`Lutas de ${athleteName}`} /> : null}
+    </BottomSheet>
+  );
+}
+
+/**
+ * Body of "Registrar lutas" (inside a sheet): placement and fights, or the
+ * fight form. `headerAction` goes on the list (e.g. edit the championship).
+ */
+export function RecordResultsContent({
+  entry,
+  title,
+  headerAction,
+}: {
+  entry: EntryResults;
+  title: string;
+  headerAction?: SheetHeaderAction;
+}) {
   // null = the list; { fight: null } = new fight; { fight } = editing.
   const [form, setForm] = useState<{ fight: Fight | null } | null>(null);
-  const close = () => {
-    setForm(null);
-    onClose();
-  };
-  return (
-    <BottomSheet visible={!!entry} onRequestClose={close}>
-      {entry ? (
-        form ? (
-          <FightForm
-            key={form.fight?.id ?? 'new'}
-            entryId={entry.entryId}
-            fight={form.fight}
-            onDone={() => setForm(null)}
-          />
-        ) : (
-          <ResultsList entry={entry} athleteName={athleteName} onAdd={() => setForm({ fight: null })} onEdit={(fight) => setForm({ fight })} />
-        )
-      ) : null}
-    </BottomSheet>
+  return form ? (
+    <FightForm key={form.fight?.id ?? 'new'} entryId={entry.entryId} fight={form.fight} onDone={() => setForm(null)} />
+  ) : (
+    <ResultsList
+      entry={entry}
+      title={title}
+      headerAction={headerAction}
+      onAdd={() => setForm({ fight: null })}
+      onEdit={(fight) => setForm({ fight })}
+    />
   );
 }
 
 function ResultsList({
   entry,
-  athleteName,
+  title,
+  headerAction,
   onAdd,
   onEdit,
 }: {
   entry: EntryResults;
-  athleteName: string;
+  title: string;
+  headerAction?: SheetHeaderAction;
   onAdd: () => void;
   onEdit: (fight: Fight) => void;
 }) {
   const { setPlacement } = useResultMutations();
   const current = labelOf(PLACEMENTS, entry.placement);
   return (
-    <SheetForm title={`Lutas de ${athleteName}`} tall actions={<Button title="Adicionar luta" icon="plus" onPress={onAdd} />}>
+    <SheetForm title={title} tall headerAction={headerAction} actions={<Button title="Adicionar luta" icon="plus" onPress={onAdd} />}>
       <Box gap="s8">
         <Text variant="captionCaps">Colocação</Text>
         <SelectionGrid

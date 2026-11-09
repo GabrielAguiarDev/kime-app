@@ -22,12 +22,16 @@ async function removeCompetitor(membershipId: string, modalityId: string) {
 }
 
 // ---------------------------------------------------- championships ---
-/** Staff: every championship of the academy. Competitor: only the ones they are entered in (RLS). */
+/**
+ * Team events of the academy: staff get all, a student those of their modalities (RLS).
+ * Previous championships ("Registro anterior") belong to one athlete's history: never listed here.
+ */
 async function listChampionships(academyId: string) {
   const { data, error } = await supabase
     .from('championships')
     .select('id, academy_id, modality_id, name, event_date, location')
     .eq('academy_id', academyId)
+    .eq('is_historical', false)
     .order('event_date');
   if (error) throw error;
   return data;
@@ -38,7 +42,8 @@ async function listMyChampionships(athleteId: string) {
   const { data, error } = await supabase
     .from('championship_entries')
     .select('championship:championships!inner(id, academy_id, modality_id, name, event_date, location)')
-    .eq('athlete_id', athleteId);
+    .eq('athlete_id', athleteId)
+    .eq('championship.is_historical', false);
   if (error) throw error;
   return data.map((row) => row.championship);
 }

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { QueryKeys } from '@infra/query';
 import { toAppError } from '@infra/supabase';
 
+import { competitionApi } from '../competitionApi';
 import { fightRecordApi as api, type FightRowApi } from '../fightRecordApi';
 import type {
   ChampionshipResult,
@@ -14,6 +15,8 @@ import type {
   FightResult,
   FightStage,
   Placement,
+  PreviousChampionshipInput,
+  PreviousRecord,
 } from '../fightRecordTypes';
 
 async function call<T>(run: () => Promise<T>): Promise<T> {
@@ -79,6 +82,7 @@ export function useFightHistory(academyId: string | undefined, athleteId: string
           eventDate: r.event_date,
           location: r.location,
           placement: (r.placement ?? null) as Placement | null,
+          isHistorical: r.is_historical,
           fights: ((r.fights ?? []) as unknown as FightJson[]).map(toFight),
         })),
       ),
@@ -131,5 +135,77 @@ export function useResultMutations() {
       onSuccess,
     }),
     deleteFight: useMutation({ mutationFn: (id: string) => call(() => api.deleteFight(id)), onSuccess }),
+  };
+}
+
+// ------------------------------------------------ history before the app ---
+/** Previous record per modality ("Antes do Kimi"): the athlete themself or staff. */
+export function usePreviousRecords(academyId: string | undefined, athleteId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: [QueryKeys.PreviousRecords, academyId, athleteId],
+    queryFn: () =>
+      call(async (): Promise<PreviousRecord[]> =>
+        (await api.previousRecords(academyId!, athleteId!)).map((r) => ({
+          modalityId: r.modality_id,
+          wins: r.wins,
+          losses: r.losses,
+          draws: r.draws,
+          gold: r.gold,
+          silver: r.silver,
+          bronze: r.bronze,
+        })),
+      ),
+    enabled: !!academyId && !!athleteId && enabled,
+  });
+}
+
+/**
+ * Everything the Cartel needs (the athlete themself or staff): championships
+ * held — previous and in the app — and the previous record.
+ */
+export function useCartel(academyId: string | undefined, athleteId: string | undefined, enabled = true) {
+  const history = useFightHistory(academyId, athleteId, enabled);
+  const previous = usePreviousRecords(academyId, athleteId, enabled);
+  return {
+    history: history.data,
+    previous: previous.data,
+    ready: !!history.data && !!previous.data,
+    isLoading: history.isLoading || previous.isLoading,
+    isError: history.isError || previous.isError,
+    refetch: () => {
+      if (history.isError) void history.refetch();
+      if (previous.isError) void previous.refetch();
+    },
+  };
+}
+
+/** Staff: history before the app of one athlete (previous record and previous championships). */
+export function usePreviousHistoryMutations(academyId: string, athleteId: string) {
+  const queryClient = useQueryClient();
+  const onSuccess = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.FightHistory] }),
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.FightSummary] }),
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.PreviousRecords] }),
+    ]);
+  return {
+    setRecord: useMutation({
+      mutationFn: (record: PreviousRecord) => call(() => api.setPreviousRecord(academyId, athleteId, record)),
+      onSuccess,
+    }),
+    createChampionship: useMutation({
+      mutationFn: (input: PreviousChampionshipInput) =>
+        call(() => api.createPreviousChampionship(academyId, athleteId, { ...input, name: input.name.trim(), location: input.location.trim() })),
+      onSuccess,
+    }),
+    updateChampionship: useMutation({
+      mutationFn: ({ id, input }: { id: string; input: PreviousChampionshipInput }) =>
+        call(() => competitionApi.updateChampionship(id, input.modalityId, input.name.trim(), input.eventDate, input.location.trim())),
+      onSuccess,
+    }),
+    deleteChampionship: useMutation({
+      mutationFn: (id: string) => call(() => competitionApi.deleteChampionship(id)),
+      onSuccess,
+    }),
   };
 }

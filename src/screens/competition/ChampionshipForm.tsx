@@ -2,7 +2,8 @@ import { useState } from 'react';
 
 import { Box, Button, SelectionCard, Text, TextField } from '@components';
 import type { Modality } from '@domain/Classes';
-import { parseBrDate, toBrDate, type Championship, type ChampionshipInput } from '@domain/Competition';
+import type { LocalDate } from '@domain/Classes/classesTypes';
+import { isPastDate, parseBrDate, toBrDate, type ChampionshipInput } from '@domain/Competition';
 import { maskBirthDate } from '@domain/Profile';
 import { errorMessage } from '@infra';
 import { SheetForm } from '@screens/professor/shared';
@@ -11,7 +12,10 @@ const NAME_MIN = 2;
 const NAME_MAX = 120;
 const LOCATION_MAX = 200;
 
-/** Sheet form: create or edit a championship (modality — required —, name, date, location). */
+/**
+ * Sheet form: create or edit a championship (modality — required —, name, date, location).
+ * `pastBefore` (academy-local today): a previous championship, whose date must be before it.
+ */
 export function ChampionshipForm({
   initial,
   modalities,
@@ -19,8 +23,13 @@ export function ChampionshipForm({
   error,
   onSave,
   onDelete,
+  title,
+  pastBefore,
 }: {
-  initial?: Championship;
+  initial?: ChampionshipInput;
+  /** Overrides "Novo campeonato" / "Editar campeonato". */
+  title?: string;
+  pastBefore?: LocalDate;
   /** The academy's modalities; one is required. */
   modalities: Modality[];
   saving: boolean;
@@ -41,19 +50,27 @@ export function ChampionshipForm({
       ? `Use entre ${NAME_MIN} e ${NAME_MAX} caracteres.`
       : undefined;
   const eventDate = parseBrDate(date);
-  const dateError = date.length === 10 && !eventDate ? 'Use uma data válida no formato DD/MM/AAAA.' : undefined;
+  const notPast = !!eventDate && !!pastBefore && !isPastDate(pastBefore, eventDate);
+  const dateError =
+    date.length === 10 && !eventDate
+      ? 'Use uma data válida no formato DD/MM/AAAA.'
+      : notPast
+        ? 'Use uma data anterior a hoje.'
+        : undefined;
   const valid =
     trimmed.length >= NAME_MIN &&
     trimmed.length <= NAME_MAX &&
     !!eventDate &&
+    !notPast &&
     location.length <= LOCATION_MAX &&
     !!modalityId &&
     modalities.some((m) => m.id === modalityId);
-  const movingModality = !!initial && !!modalityId && modalityId !== initial.modalityId;
+  // A previous championship has only its athlete: nobody leaves the list.
+  const movingModality = !pastBefore && !!initial && !!modalityId && modalityId !== initial.modalityId;
 
   return (
     <SheetForm
-      title={initial ? 'Editar campeonato' : 'Novo campeonato'}
+      title={title ?? (initial ? 'Editar campeonato' : 'Novo campeonato')}
       headerAction={
         onDelete ? { icon: 'trash', accessibilityLabel: 'Remover campeonato', onPress: onDelete, color: 'danger' } : undefined
       }

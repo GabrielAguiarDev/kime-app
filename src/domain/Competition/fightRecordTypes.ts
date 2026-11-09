@@ -43,6 +43,8 @@ export interface ChampionshipResult {
   eventDate: LocalDate;
   location: string;
   placement: Placement | null;
+  /** Previous championship ("Registro anterior"): before the app, only in this athlete's history. */
+  isHistorical: boolean;
   fights: Fight[];
 }
 
@@ -62,4 +64,17 @@ export interface MedalCount {
 export interface FightRecord extends FightTally, MedalCount {
   modalityId: string;
   championships: number;
+}
+
+/** Summarized record before the app ("Antes do Kimi") in one modality. Staff write it; the athlete reads. */
+export interface PreviousRecord extends FightTally, MedalCount {
+  modalityId: string;
+}
+
+/** Staff: a previous championship of one athlete (date strictly in the past). */
+export interface PreviousChampionshipInput {
+  modalityId: string;
+  name: string;
+  eventDate: LocalDate;
+  location: string;
 }
