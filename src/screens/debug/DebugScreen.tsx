@@ -9,7 +9,7 @@ import { WaterGoalSheet } from '@screens/water/WaterGoalSheet';
 
 const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-type Sheet = 'team' | 'streak' | 'record' | 'water' | null;
+type Sheet = 'team' | 'streak' | 'record' | 'water' | 'checkin' | null;
 type Inline = 'empty' | 'emptyError' | 'balloon' | 'thirsty' | null;
 
 /**
@@ -19,7 +19,6 @@ type Inline = 'empty' | 'emptyError' | 'balloon' | 'thirsty' | null;
 export function DebugScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [inline, setInline] = useState<Inline>(null);
-  const [checkin, setCheckin] = useState<number | null>(null);
   const [intro, setIntro] = useState(false);
   const endIntro = useCallback(() => setIntro(false), []);
 
@@ -31,7 +30,7 @@ export function DebugScreen() {
       <FeedbackSheet
         tone="success"
         title="Bem-vindo à equipe."
-        mascot={<KimiMascot size="feedback" pose="team" />}
+        pose="team"
         actionLabel="Continuar"
         onAction={close}
       />
@@ -40,13 +39,15 @@ export function DebugScreen() {
         key={sheet}
         tone="accent"
         title={sheet === 'record' ? 'Novo recorde.' : 'Nada mal.'}
-        mascot={<KimiMascot size="feedback" pose="streak" />}
+        pose="streak"
         message="4 semanas seguidas treinando."
         actionLabel={sheet === 'record' ? 'Ver disciplina' : 'Continuar'}
         onAction={close}
       />
     ) : sheet === 'water' ? (
       <WaterGoalSheet isLimit={false} totalMl={2500} streak={3} onAction={close} />
+    ) : sheet === 'checkin' ? (
+      <CheckinConfirmedSheet count={1} total={42} onAction={close} />
     ) : undefined;
 
   const toggle = (value: Exclude<Inline, null>) => setInline((current) => (current === value ? null : value));
@@ -58,12 +59,12 @@ export function DebugScreen() {
           <Button title="Ver splash" variant="secondary" onPress={() => setIntro(true)} />
         </Section>
 
-        <Section title="Folhas de feedback" pose="team, streak">
+        <Section title="Folhas de feedback" pose="team, streak, guard animado">
           <Button title="Entrar na equipe" variant="secondary" onPress={() => setSheet('team')} />
           <Button title="Disciplina aumentou" variant="secondary" onPress={() => setSheet('streak')} />
           <Button title="Novo recorde" variant="secondary" onPress={() => setSheet('record')} />
           <Button title="Meta de água batida" variant="secondary" onPress={() => setSheet('water')} />
-          <Button title="Check-in confirmado" variant="secondary" onPress={() => setCheckin(1)} />
+          <Button title="Check-in confirmado" variant="secondary" onPress={() => setSheet('checkin')} />
         </Section>
 
         <Section title="Telas de conquista" pose="graduation, guard">
@@ -109,8 +110,6 @@ export function DebugScreen() {
           </Card>
         ) : null}
       </Box>
-
-      <CheckinConfirmedSheet count={checkin} total={42} onClose={() => setCheckin(null)} />
 
       <Modal visible={intro} animationType="none" transparent statusBarTranslucent onRequestClose={() => setIntro(false)}>
         {intro ? <AppIntro ready onDone={endIntro} /> : null}

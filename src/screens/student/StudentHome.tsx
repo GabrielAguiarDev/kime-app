@@ -14,10 +14,8 @@ import { CompetitorInviteCard } from '@screens/competition/CompetitorInviteCard'
 import { useLogBottle } from '@screens/water/useLogBottle';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
-import { useClassRewards } from '@services/classRewards';
 import { useSession } from '@services/session';
 
-import { CheckinConfirmedSheet } from './CheckinConfirmedSheet';
 import { ChampionshipCard } from './home/ChampionshipCard';
 import { NextClassCard } from './home/NextClassCard';
 import { RankingCard } from './home/RankingCard';
@@ -28,7 +26,7 @@ import { WeekCard } from './home/WeekCard';
  * Início of a student (competitor or not), for the modality picked in the
  * header. Never empty: every section has a useful state without data.
  * Next class · championship · water · the week ·
- * ranking. Rewards (confirmed check-in) on top.
+ * ranking. Rewards (belt, milestone, confirmed check-in) are handled by HomeScreen.
  */
 export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   const { userId } = useSession();
@@ -41,7 +39,6 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   const checkins = useMyCheckins(academyId, userId);
   const modalityStats = useModalityStats(academyId);
   const championships = useChampionships(academyId);
-  const rewards = useClassRewards(academyId, userId);
   const period = today.data ? rankingPeriod(today.data) : undefined;
   const ranking = useRanking(academyId, selected?.id, period);
   const water = useLogBottle();
@@ -63,7 +60,6 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   }
 
   const list = checkins.data ?? [];
-  const own = modalityStats.data?.find((s) => s.userId === userId && s.modalityId === selected?.id);
   const modalitySchedules = (schedules.data ?? []).filter((s) => s.active && s.modalityId === selected?.id);
   const ofModality = list.filter((c) => c.modalityId === selected?.id);
   const training = trainingStreak(
@@ -111,12 +107,6 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
       />
 
       <RankingCard entries={ranking.data ?? []} userId={userId} />
-
-      <CheckinConfirmedSheet
-        count={rewards.confirmedCount}
-        total={own?.confirmedTotal ?? 0}
-        onClose={rewards.dismissConfirmed}
-      />
     </Box>
   );
 }

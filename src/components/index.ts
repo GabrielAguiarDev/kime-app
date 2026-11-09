@@ -20,7 +20,10 @@ export {
   type KimiMascotHandle,
   type KimiMascotProps,
   type KimiPose,
+  type MascotCrop,
   type MascotSize,
+  bustWidth,
+  useMascotPx,
 } from './KimiMascot/KimiMascot';
 export { ProgressBar } from './ProgressBar/ProgressBar';
 export { WaterRing } from './WaterRing/WaterRing';
