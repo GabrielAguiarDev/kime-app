@@ -12,7 +12,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  * "Sua semana" (Duolingo-like calendar): Monday–Sunday in small circles with
  * two marks per day (confirmed class, water goal met), the classes of the
  * week against the modality's weekly goal, and both streaks. A streak at
- * risk turns the text into a friendly alert. Opens Ofensivas.
+ * risk turns the text into a friendly alert. Opens Disciplina.
  */
 export function WeekCard({
   today,
@@ -48,13 +48,13 @@ export function WeekCard({
   const trainingRisk = late && weekdayOf(today) === 0 && !!training && training.current > 0 && !training.currentDone;
   const waterRisk = late && !!water && water.current > 0 && !water.currentDone;
   const alert = trainingRisk
-    ? `Treine até domingo para manter sua ofensiva de ${plural(training!.current, 'semana', 'semanas')}.`
+    ? `Treine até domingo para manter sua disciplina de ${plural(training!.current, 'semana', 'semanas')}.`
     : waterRisk
-      ? `Cumpra a água de hoje para manter sua ofensiva de ${plural(water!.current, 'dia', 'dias')}.`
+      ? `Cumpra a água de hoje para manter sua disciplina de ${plural(water!.current, 'dia', 'dias')}.`
       : null;
 
   return (
-    <Card gap="s16" onPress={() => router.push('/ofensivas')} accessibilityLabel="Sua semana. Ver ofensivas">
+    <Card gap="s16" onPress={() => router.push('/disciplina')} accessibilityLabel="Sua semana. Ver disciplina">
       <Text variant="captionCaps">Sua semana</Text>
       {/* TODO(motion): a day's marks lighting up when the class is confirmed or the goal is met. */}
       <Box flexDirection="row" justifyContent="space-between">

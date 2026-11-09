@@ -44,7 +44,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 export function homeMessage(i: HomeMessageInput): string {
   if (i.pendingCheckin) return 'Check-in enviado. Aguardando o professor.';
   if (i.trainingStreak && i.trainingStreak.current > 0 && !i.trainingStreak.currentDone) {
-    return `Treine até domingo para manter sua ofensiva de ${plural(i.trainingStreak.current, 'semana', 'semanas')}.`;
+    return `Treine até domingo para manter sua disciplina de ${plural(i.trainingStreak.current, 'semana', 'semanas')}.`;
   }
   if (i.water && i.water.goalMl && !i.water.isLimit && i.nowTime >= LATE_WATER_TIME) {
     const left = i.water.goalMl - i.water.totalMl;
@@ -53,7 +53,7 @@ export function homeMessage(i: HomeMessageInput): string {
     }
   }
   if (i.waterStreak && i.waterStreak.current > 0 && !i.waterStreak.currentDone && i.nowTime >= LATE_WATER_TIME) {
-    return `Cumpra a água de hoje para manter sua ofensiva de ${plural(i.waterStreak.current, 'dia', 'dias')}.`;
+    return `Cumpra a água de hoje para manter sua disciplina de ${plural(i.waterStreak.current, 'dia', 'dias')}.`;
   }
   if (i.belt && i.belt.left > 0 && i.belt.left <= BELT_CLOSE) {
     return `${missing(i.belt.left, 'aula', 'aulas')} para a faixa ${i.belt.name}.`;

@@ -13,21 +13,32 @@ import { haptics } from '@utils/haptics';
  * Student, on Início: pending invite to the competition team of one modality
  * (one card per invite). The sheet says what accepting means (staff start
  * reading weight, water and the plans) and offers "Aceitar convite" / "Recusar".
+ * `onAccepted`: the Início shows "Bem-vindo à equipe." (this card is gone by then).
  */
-export function CompetitorInviteCard({ membership, modality }: { membership: Membership; modality: LinkedModality }) {
+export function CompetitorInviteCard({
+  membership,
+  modality,
+  onAccepted,
+}: {
+  membership: Membership;
+  modality: LinkedModality;
+  onAccepted: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const respond = useRespondCompetitorInvite();
 
+  // mutateAsync, not mutate's callbacks: the refetch drops the invite and unmounts
+  // this card before they would run, so `onAccepted` would never fire.
   const answer = (accept: boolean) =>
-    respond.mutate(
-      { membershipId: membership.id, modalityId: modality.id, accept },
-      {
-        onSuccess: () => {
-          if (accept) haptics.success();
-          setOpen(false);
-        },
-        onError: (e) => Alert.alert('Equipe de competição', errorMessage(e)),
+    respond.mutateAsync({ membershipId: membership.id, modalityId: modality.id, accept }).then(
+      () => {
+        setOpen(false);
+        if (accept) {
+          haptics.success();
+          onAccepted();
+        }
       },
+      (e: unknown) => Alert.alert('Equipe de competição', errorMessage(e)),
     );
 
   return (

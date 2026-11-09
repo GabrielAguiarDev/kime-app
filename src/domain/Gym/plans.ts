@@ -42,7 +42,7 @@ export const PLANS: Plan[] = [
     name: 'Profissional',
     monthlyPrice: 179,
     studentLimit: 150,
-    benefits: ['Tudo do Essencial', 'Faixas e graduações', 'Ranking e ofensivas', 'Professores ilimitados'],
+    benefits: ['Tudo do Essencial', 'Faixas e graduações', 'Ranking e disciplina', 'Professores ilimitados'],
     popular: true,
   },
   {

@@ -58,15 +58,15 @@ export function LastDaysBars({ days, today }: { days: WaterDayTotal[]; today: Lo
   );
 }
 
-/** Water streak and the freezes in stock; opens Ofensivas. */
+/** Water streak and the freezes in stock; opens Disciplina. */
 export function WaterStreakCard({ streak }: { streak: Streak }) {
   return (
     <Card
       flexDirection="row"
       alignItems="center"
       gap="s16"
-      onPress={() => router.push('/ofensivas')}
-      accessibilityLabel={`Ofensiva de água: ${streak.current} ${streakUnit(streak.current, 'day')}. ${streak.freezes} congelamentos. Ver ofensivas`}
+      onPress={() => router.push('/disciplina')}
+      accessibilityLabel={`Disciplina de água: ${streak.current} ${streakUnit(streak.current, 'day')}. ${streak.freezes} congelamentos. Ver disciplina`}
     >
       {/* TODO(motion): flame lighting up when today's goal is met. */}
       <Box flexDirection="row" alignItems="center" gap="s8" flex={1}>

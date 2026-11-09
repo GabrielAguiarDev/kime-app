@@ -20,7 +20,7 @@ describe('homeMessage', () => {
 
   it('training streak at risk', () => {
     expect(homeMessage({ ...base, trainingStreak: { current: 4, currentDone: false } })).toBe(
-      'Treine até domingo para manter sua ofensiva de 4 semanas.',
+      'Treine até domingo para manter sua disciplina de 4 semanas.',
     );
     expect(homeMessage({ ...base, trainingStreak: { current: 4, currentDone: true } })).toBe(TIPS[3]);
   });

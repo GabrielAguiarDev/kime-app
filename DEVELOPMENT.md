@@ -253,8 +253,8 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 | Badge pendente → confirmado | `components/StatusBadge/StatusBadge.tsx`, `screens/student/TodayClasses.tsx` |
 | Barra de faixa avançando | `components/ProgressBar/ProgressBar.tsx` |
 | Número da contagem virando | `components/BigCounter/BigCounter.tsx`, `screens/app/CompetitionScreen.tsx` (dia do campeonato), `CountdownWidget.swift`, `CountdownWidget.kt` |
-| Folha de feedback entrando e saindo | `components/FeedbackSheet/FeedbackSheet.tsx`, `screens/app/HomeScreen.tsx`, `screens/water/WaterScreen.tsx` |
-| Outros | entrada da conquista (`AchievementScreen`), balão do mascote (`MascotBalloon`), código (`CodeField`), entrada (`EnterCodeScreen`), reordenar (`ReorderList`) |
+| Folha de feedback entrando e saindo | `components/FeedbackSheet/FeedbackSheet.tsx`, `screens/app/HomeScreen.tsx`, `screens/water/WaterGoalSheet.tsx` |
+| Outros | entrada do título e dos cards da conquista (`AchievementScreen`; o mascote é a animação Rive), balão do mascote (`MascotBalloon`), código (`CodeField`), entrada (`EnterCodeScreen`), reordenar (`ReorderList`) |
 
 - [x] 7. Pré-lançamento (2026-11-04): migration `20261105000400_prelaunch_hardening` + 21 testes em `prelaunch.test.sql` (454 no total).
   - **Excluir conta** (exigência da App Store): Perfil → Meus dados → "Excluir conta" (confirmação `danger`). RPC `delete_my_account` (DEFINER): bloqueia com `owner_must_transfer` se o usuário é owner de academia com outros membros ATIVOS; academia em que ele é o único ativo é apagada junto (pedidos pendentes não bloqueiam); depois apaga `auth.users` e tudo pessoal cai em cascata. O app apaga a foto em seguida (o token ainda vale) e sai só localmente. As logos das academias que vão junto são apagadas antes, pela API de storage (o SQL não pode apagar arquivos: `storage.protect_delete`): `account_deletion_academies()` (migration `20261105000700`) recusa com `owner_must_transfer` ou lista as academias; o app apaga a pasta de cada uma enquanto ainda é owner e só então chama `delete_my_account`.
@@ -262,12 +262,12 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - **Pedido recusado:** `request_join` recusa com `join_cooldown` por 24 h depois da decisão. O valor vem de `private.join_cooldown()` (desligado temporariamente em `join_cooldown_off` e religado em `join_cooldown_on`, 2026-11-05).
   - **Limite no `lookup_invite_code`** (anônimo): 20 consultas SEM resultado por IP em 15 min → `rate_limited`. IP de `cf-connecting-ip` / `x-real-ip` / primeiro `x-forwarded-for`; sem cabeçalhos (SQL, testes) não limita. Tabela `private.code_lookup_failures` (limpa as do IP com mais de 1 dia a cada falha). A função virou VOLATILE.
 
-- [x] 8. Ofensivas (backlog, 2026-11-04). Decisões do usuário: congelamento POR CONQUISTA (1 a cada 7 dias seguidos de água / 4 semanas seguidas de treino, no máximo 2 de cada, usado sozinho); lembretes = notificação local 1 h antes de cada aula (item seguinte).
-  - **Regra** (`src/domain/Streaks/streakRules.ts`, testada): calculada SÓ do histórico (`computeStreak`), sem estado guardado: mesmo resultado em qualquer aparelho. Do primeiro período cumprido até o atual: cumprido soma (e a cada N ganha congelamento); perdido gasta um congelamento ("congelado", a ofensiva mantém o valor) ou zera; o período ATUAL nunca quebra enquanto não terminou. Recorde = maior sequência.
-  - **Água** (diária, todos): o dia conta quando o total chega à meta DAQUELE dia. Migration `20261105000500_water_streak`: `water_goal_days` (o app grava a meta do dia, `useRecordWaterGoal` na raiz, uma vez por dia+valor via kv-store) e `my_water_days()` (total por dia no fuso do perfil + meta do dia, senão a última anterior, senão a primeira). O app junta com os totais do aparelho (`waterService.localDayTotals`, inclui widget/não sincronizados; vence o maior). Sem peso (meta nula) o dia não conta. Enquanto o histórico do servidor não chega, a ofensiva fica nula (não mostra valor errado).
+- [x] 8. Disciplina (backlog, 2026-11-04). Decisões do usuário: congelamento POR CONQUISTA (1 a cada 7 dias seguidos de água / 4 semanas seguidas de treino, no máximo 2 de cada, usado sozinho); lembretes = notificação local 1 h antes de cada aula (item seguinte).
+  - **Regra** (`src/domain/Streaks/streakRules.ts`, testada): calculada SÓ do histórico (`computeStreak`), sem estado guardado: mesmo resultado em qualquer aparelho. Do primeiro período cumprido até o atual: cumprido soma (e a cada N ganha congelamento); perdido gasta um congelamento ("congelado", a disciplina mantém o valor) ou zera; o período ATUAL nunca quebra enquanto não terminou. Recorde = maior sequência.
+  - **Água** (diária, todos): o dia conta quando o total chega à meta DAQUELE dia. Migration `20261105000500_water_streak`: `water_goal_days` (o app grava a meta do dia, `useRecordWaterGoal` na raiz, uma vez por dia+valor via kv-store) e `my_water_days()` (total por dia no fuso do perfil + meta do dia, senão a última anterior, senão a primeira). O app junta com os totais do aparelho (`waterService.localDayTotals`, inclui widget/não sincronizados; vence o maior). Sem peso (meta nula) o dia não conta. Enquanto o histórico do servidor não chega, a disciplina fica nula (não mostra valor errado).
   - **Treino** (semanal, alunos, por academia): semana com aula confirmada; substituiu `checkinStreak` na barra da Início e na tela de conquista.
-  - **Telas:** `/ofensivas` (cards Água e Treino: chama acesa = período cumprido, contorno = ainda falta, apagada = sem ofensiva; últimos 7 dias/semanas com chama / gelo / X / círculo; congelamentos guardados; recorde; explicação). A chama da barra da Início abre `/ofensivas`; na tela de Água, "N dias seguidos" abaixo do anel.
-  - **Recorde:** folha "Novo recorde." na Início (água primeiro, depois treino), uma vez por recorde novo ≥ 3; a primeira leitura só grava a base (o histórico não é comemorado). kv-store `streakRecords` por usuário (e academia no treino).
+  - **Telas:** `/disciplina` (cards Água e Treino: chama acesa = período cumprido, contorno = ainda falta, apagada = sem disciplina; últimos 7 dias/semanas com chama / gelo / X / círculo; congelamentos guardados; recorde; explicação). A chama da barra da Início abre `/disciplina`; na tela de Água, "N dias seguidos" abaixo do anel.
+  - **Recorde:** folha "Novo recorde." na Início (água primeiro, depois treino), uma vez por recorde novo ≥ 3; a primeira leitura só grava a base (o histórico não é comemorado). kv-store `streakRecords` por usuário (e academia no treino). Desde 2026-11-09 (`services/streaks/useStreakNotices`) também há a folha "Nada mal." quando a disciplina de treino aumenta, e a folha da meta de água leva a disciplina de água (ver "Animações do mascote (Rive)").
   - Ícones novos: `freeze` (Snowflake), `missed` (X), `open` (Circle).
 
 - [x] 9. Lembretes de aula (backlog, 2026-11-04). Decisão do usuário: notificação LOCAL (agendada no aparelho), 1 h antes de cada aula.
@@ -306,17 +306,17 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 
 - [x] 13. **Vínculo aluno ↔ modalidade** (2026-11-05, pedido do usuário). Migration `20261105210000_student_modalities` (aplicada no remoto em 2026-11-05; 757 testes pgTAP passando lá, 129 novos em `student_modalities.test.sql`). Ranking: ver `docs/ranking.md`.
   - **Banco:** `student_modality_enrollments` é o vínculo (`active | ended`, `started_at`, `weekly_class_goal` do aluno, competidor POR modalidade com convite e aceite). Aluno ativo tem sempre ≥ 1 vínculo ativo (constraint triggers adiados → `student_modality_required`). Escrita só por RPCs de staff: `approve_student(membership, modalidades[])` (aprovar ALUNO agora é só por ela; o UPDATE direto falha no commit), `set_student_modalities` (o conjunto inteiro; remover = encerrar, mantém aulas e faixas e apaga inscrições futuras daquela modalidade), `set_student_weekly_goal`. `memberships.is_competitor` virou cache (compete em ALGUMA modalidade): plano de água, dieta e peso continuam por atleta e academia. `invite_competitor`/`respond_competitor_invite`/`remove_competitor` recebem a modalidade. `championships.modality_id` obrigatório; inscrição exige competidor na modalidade. RLS: aluno lê só horários das suas modalidades e só faz check-in nelas; staff só marca presença de aluno vinculado à modalidade da aula. `academy_modalities.weekly_class_goal` (padrão 2, owner). `water_plan_days.is_limit` (limite = cumprido entre 90% e 100%, só no ranking por enquanto). Migração: alunos aprovados vinculados a todas as modalidades (academia sem modalidade ganhou "Geral"), competidores competem em todas, campeonatos foram para a primeira modalidade; a suspensão saiu. "Turmas obrigatórias" saíram da UI (tabelas mantidas).
-  - **Aluno:** `services/activeModality` (`useActiveModality`): modalidade selecionada salva no aparelho por usuário + academia (kv `selectedModality`), cai na primeira se o vínculo some. Header da Início: logo + nome da modalidade; com mais de uma, menu NATIVO (`components/ModalityMenu`, `@expo/ui` 58.0.27: SwiftUI `Menu` + `Picker` inline no iOS, `DropdownMenuPopup` no Android; "Trocar academia" → Perfil com mais de uma academia; sem o módulo nativo, cai no botão antigo). Seguem a modalidade: aulas de hoje e próxima aula, faixa e total da barra do topo (ofensiva de treino continua geral), Aulas (horários e trilha), ranking, campeonatos e a aba Competição (só quando compete na selecionada). Convite de competidor por modalidade na Início.
+  - **Aluno:** `services/activeModality` (`useActiveModality`): modalidade selecionada salva no aparelho por usuário + academia (kv `selectedModality`), cai na primeira se o vínculo some. Header da Início: logo + nome da modalidade; com mais de uma, menu NATIVO (`components/ModalityMenu`, `@expo/ui` 58.0.27: SwiftUI `Menu` + `Picker` inline no iOS, `DropdownMenuPopup` no Android; "Trocar academia" → Perfil com mais de uma academia; sem o módulo nativo, cai no botão antigo). Seguem a modalidade: aulas de hoje e próxima aula, faixa e total da barra do topo (disciplina de treino continua geral), Aulas (horários e trilha), ranking, campeonatos e a aba Competição (só quando compete na selecionada). Convite de competidor por modalidade na Início.
   - **Widget de contagem:** chave nova `competition.selectedModality` `{modalityId, name, competes}` + `modalityId` em cada campeonato; o widget filtra e mostra "Nenhum campeonato em {modalidade}". **Exige build novo** (junto com o `@expo/ui`).
   - **Staff:** aprovar aluno abre o sheet de modalidades (mínimo uma); detalhe do aluno com "Modalidades" (alterar + meta semanal por modalidade) e equipe de competição por modalidade; meta semanal em Modalidades (owner); filtro "Modalidade ▾" (um chip que abre a lista, decisão anterior do usuário) em Aulas, Equipe e Campeonatos; ranking sempre com uma modalidade; campeonato com modalidade obrigatória; plano de água com Meta/Limite por dia.
 
 ## App do aluno reestruturado (2026-11-06, pedido do usuário)
 
 - **Abas iguais para todos:** Início · Aulas · Timer · Equipe · Perfil (`(tabs)/_layout.tsx`); a tela de cada aba muda por papel. Competidor não ganha aba: a antiga aba Competição virou a rota empilhada `/competition` (mesmo caminho do widget de contagem, `kimi://competition`), aberta em Água → "Peso e campeonatos".
-- **Início** (`screens/student/StudentHome.tsx` + `screens/student/home/`): atalhos (Check-in → Aulas, desativado sem aula hoje; Água registra uma garrafa com haptic e a folha de feedback da Início; Horários; Ranking → Equipe com `?view=ranking`), próxima aula (`NextClassCard`, usa `nextClass`/`startsInLabel` do staff; `ClassCard` compartilhado com Aulas), campeonato da modalidade (`ChampionshipCard`, o mais próximo + "Ver todos" → `/campeonatos`), água de hoje (`WaterCard`; "Adicionar widget" só no primeiro dia em que a meta é batida, kv `widgetHint`), sua semana (`WeekCard`: treino confirmado da modalidade + meta de água por dia, ofensivas e alerta de risco), progresso (`ProgressCard`; sem faixas = próximo marco `nextClassMilestone`), ranking (`RankingCard`, posição + mini pódio; o ranking é a janela de 28 dias, não "do mês") e o balão do mascote (`homeMessage`, prioridade testada).
+- **Início** (`screens/student/StudentHome.tsx` + `screens/student/home/`): atalhos (Check-in → Aulas, desativado sem aula hoje; Água registra uma garrafa com haptic e a folha de feedback da Início; Horários; Ranking → Equipe com `?view=ranking`), próxima aula (`NextClassCard`, usa `nextClass`/`startsInLabel` do staff; `ClassCard` compartilhado com Aulas), campeonato da modalidade (`ChampionshipCard`, o mais próximo + "Ver todos" → `/campeonatos`), água de hoje (`WaterCard`; "Adicionar widget" só no primeiro dia em que a meta é batida, kv `widgetHint`), sua semana (`WeekCard`: treino confirmado da modalidade + meta de água por dia, disciplina e alerta de risco), progresso (`ProgressCard`; sem faixas = próximo marco `nextClassMilestone`), ranking (`RankingCard`, posição + mini pódio; o ranking é a janela de 28 dias, não "do mês") e o balão do mascote (`homeMessage`, prioridade testada).
 - **Aulas** (`ClassesScreen`): seletor da semana (hoje selecionado), aulas do dia da modalidade com a fileira de colegas (só de hoje em diante: o servidor recusa datas passadas) e check-in só hoje; card de progresso embaixo (sem trilha, decisão de 2026-11-06).
 - **Timer:** a mesma tela do professor; o aluno mantém as predefinições pessoais (decisão do usuário, 2026-11-06, no lugar do "não cria predefinições" do pedido).
-- **Água:** + últimos 7 dias em barras, ofensiva e congelamentos, plano de água do professor e dieta do dia (competidor), "Adicionar widget" (`/agua/widget`, instruções por plataforma).
+- **Água:** + últimos 7 dias em barras, disciplina e congelamentos, plano de água do professor e dieta do dia (competidor), "Adicionar widget" (`/agua/widget`, instruções por plataforma).
 - **Campeonato** (`/campeonato?id=`, `StudentChampionshipScreen`): contagem em display-xl, "Quem vai lutar" (abre o colega) e, para o inscrito, água e dieta. Somente leitura.
 - **Equipe do aluno** (`StudentTeamScreen`): Membros | Ranking da modalidade selecionada. Membros vêm de `classmates(academy)`; tocar abre `/colega/[userId]` (foto, papel, modalidades em comum com a faixa, "Treina aqui desde", selo de competidor; nada de saúde nem presença). No Ranking, a linha do próprio aluno fica fixa no rodapé a partir da 8ª posição (aproximação de "fora da tela": a `Screen` não expõe a rolagem).
 - **Perfil:** como estava; a opção "Mostrar meu check-in para colegas" continua removida (decisão de 2026-11-06).
@@ -341,16 +341,66 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 - **Modo de demonstração (só `__DEV__`):** botão "Demo"/"Real" no header da Jornada alterna para `trail/journeyDemo.ts` (7 seções: Fundamentos, Branca, Branca/ponta vermelha, Azul, Roxa, Marrom, Preta; aluno na 3ª com 4 de 10). Não aparece em produção e não grava nada.
 - Sem dependência nativa nova: não precisa de build.
 
+## Termo "Disciplina" (2026-11-09, decisão do usuário)
+
+"Ofensiva" (termo do app usado como inspiração) virou **"Disciplina"** em todo o app: tela `/disciplina` (antes `/ofensivas`), títulos, textos, rótulos de acessibilidade e plano ("Ranking e disciplina"). Não usar "ofensiva" em texto novo. No código, o conceito segue como `streak` (domínio `Streaks`, kv-store `streakRecords`/`streakCurrent`, gatilho Rive `streak`).
+
+## Animações do mascote (Rive) (2026-11-09, pedido do usuário)
+
+As animações são feitas pelo usuário no Rive. O agente não cria animações: o app só está preparado para recebê-las.
+
+**Plano (usuário)**
+- Animações só para o aluno, exceto a abertura do app, que aparece para todos.
+- Um artboard `Kimi` com uma máquina de estados `Kimi`. Todas as animações saem do estado de espera e voltam para ele (respiração, piscadas e pontas da faixa balançando).
+- Entradas da máquina de estados (nomes exatos):
+
+| Entrada | Tipo | Uso |
+| --- | --- | --- |
+| `intro` | gatilho | abertura do app |
+| `joinTeam` | gatilho | entrada na equipe de competição |
+| `streak` | gatilho | disciplina aumentou |
+| `graduate` | gatilho | nova faixa (usa `beltColor`) |
+| `beltColor` | número | cor da nova faixa (tabela abaixo) |
+| `isAngry` | booleano | exposto, sem uso no app ainda |
+| `coverEyes` | booleano | exposto, sem uso no app ainda |
+| `lookX` | número 0–100 | exposto, sem uso no app ainda (0 = esquerda, 100 = direita) |
+| `celebrate` | gatilho | exposto, sem uso no app ainda |
+| `error` | gatilho | exposto, sem uso no app ainda |
+
+- Animações:
+  - **Abertura do app:** bomba de fumaça revela o ninja, olhos abrem bravos, depois espera em loop.
+  - **Entrada na equipe de competição:** punho na palma, sequência de golpes, símbolo de raiva, poeira, assentir. Texto "Bem-vindo à equipe."
+  - **Disciplina:** braços cruzados, joinha rápido a contragosto, vira o rosto. Texto "Nada mal."
+  - **Graduação:** reverência calma, faixa da cintura muda de cor, pétalas, olhos voltam bravos. Texto "Faixa [nome]." (a tela de conquista já mostra "Faixa [nome] conquistada").
+
+**`beltColor`** = posição da cor na paleta principal seguida das variações (`beltColorInput` em `KimiMascot.tsx`): 0 white, 1 gray, 2 yellow, 3 orange, 4 green, 5 blue, 6 purple, 7 brown, 8 black, 9 red, 10 light_gray, 11 dark_gray, 12 dark_yellow, 13 light_green, 14 dark_green, 15 light_blue, 16 dark_blue, 17 light_purple, 18 light_brown, 19 dark_red. Só a cor principal (a ponta não entra).
+
+**No app**
+- Pacote `rive-react-native` (9.8.6; código nativo, precisa de build). O README dele avisa que o runtime novo é o `@rive-app/react-native` (Nitro); o pedido foi o `rive-react-native`.
+- **Arquivo:** `assets/brand/kimi.riv`. Enquanto ele não existe, o `metro.config.js` resolve `KimiMascot/kimiRiv` para `kimiRivMissing` (null) e o mascote é o SVG estático; no Jest, sempre o stub. Depois de colocar o arquivo, reinicie o bundler com cache limpo (`npx expo start --clear`). `.riv` está nos `assetExts` do Metro.
+- **Componente `KimiMascot`** (`components/KimiMascot`): mesmas props do `Mascot` (`size`, `expression` do SVG) + `play` (gatilho disparado uma vez quando a máquina começa a tocar), `beltColor` (chave da faixa, enviada antes do `play`), `isAngry`, `coverEyes`, `lookX`, `still` (sempre estático), `onStart`, e `ref.fire(gatilho)`. Mostra o SVG estático quando: o arquivo não existe, "Reduzir movimento" está ligado (`useReducedMotion`), `still`, ou o arquivo falha ao carregar. `useKimiAnimates()` diz se a animação pode tocar.
+- **Onde cada gatilho toca:**
+  - `intro`: `screens/intro/AppIntro`, camada sobre a primeira tela a cada abertura a frio do app (logado ou não), logo depois da splash. Fica `INTRO_MS` (3 s) depois de a animação começar; desiste em 2 s se ela não começar. Sem animação possível (sem arquivo ou com "Reduzir movimento"), a camada não aparece. Sem botão de pular. **A animação `intro` precisa caber em 3 s** (ou ajuste `INTRO_MS`).
+  - `joinTeam`: "Aceitar convite" (`CompetitorInviteCard`) → folha de feedback na Início "Bem-vindo à equipe." com o mascote animado. O card usa `mutateAsync` porque o refetch tira o convite e desmonta o card antes dos callbacks do `mutate`.
+  - `streak`:
+    - **Treino (semanal):** folha na Início "Nada mal." + "N semanas seguidas treinando." ("1 semana treinando.") e "Continuar", uma vez por aumento; kv-store `streakCurrent` (última disciplina já mostrada) por usuário e academia; a primeira leitura e uma queda só gravam a base.
+    - **Água (diária) — decisão do usuário, 2026-11-09:** a disciplina de água cresce no mesmo momento em que a meta é batida, então não há folha "Nada mal." para água (seriam duas folhas seguidas todo dia). A folha "Meta do dia batida." / "Limite do dia cumprido." (`screens/water/WaterGoalSheet`, na Início e na Água) ganhou o mascote com `streak` e "N dias seguidos." na mensagem (a partir de 2).
+    - **Recorde** (água ou treino): continua a folha "Novo recorde." ("Ver disciplina"), agora com o mascote animado no lugar da chama.
+    - O staff vê essas folhas com o mascote estático (`still`).
+  - `graduate`: tela de conquista de nova faixa (`AchievementScreen`, `kind=belt`), com `beltColor` = cor principal da faixa nova. A conquista de marco de aulas segue com o SVG estático.
+- **Professor:** só a abertura do app é animada; nas demais telas dele o mascote é o SVG estático (`Mascot`, ou `KimiMascot still`).
+- O `Mascot` estático continua em todos os outros pontos (estados vazios, feedbacks, onboarding).
+
 ## Backlog (depois da Fase 6)
 
-Ideias registradas pelo usuário. As de 2026-11-04 (ofensivas, ranking e timer) foram **implementadas em 2026-11-04** (itens 8 a 11 do mapa acima) e ficam como referência; a trilha de jornada segue pendente.
+Ideias registradas pelo usuário. As de 2026-11-04 (disciplina, ranking e timer) foram **implementadas em 2026-11-04** (itens 8 a 11 do mapa acima) e ficam como referência; a trilha de jornada segue pendente.
 
-- **Ofensivas e recompensas (inspirado no Duolingo):**
-  - ofensiva de água (diária) e de treinos (semanal);
-  - chama acesa/apagada conforme a ofensiva está ativa ou quebrada;
-  - congelamento de ofensiva (protege um dia/semana perdido);
-  - lembretes para não perder a ofensiva;
-  - conquistas por recorde (maior ofensiva).
+- **Disciplina e recompensas (inspirado no Duolingo):**
+  - disciplina de água (diária) e de treinos (semanal);
+  - chama acesa/apagada conforme a disciplina está ativa ou quebrada;
+  - congelamento de disciplina (protege um dia/semana perdido);
+  - lembretes para não perder a disciplina;
+  - conquistas por recorde (maior disciplina).
 - **Ranking da academia:**
   - baseado só em aulas confirmadas (não em água nem peso);
   - mensal, com histórico dos campeões de cada mês;

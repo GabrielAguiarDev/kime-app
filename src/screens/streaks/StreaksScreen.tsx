@@ -16,7 +16,7 @@ import { useWaterSettings } from '@services/water';
 import { StreakCard } from './StreakCard';
 
 /**
- * Ofensivas: water (daily, everyone) and training (weekly, students), with
+ * Disciplina: water (daily, everyone) and training (weekly, students), with
  * freezes, record and the last periods. How freezes work is explained at the end.
  */
 export function StreaksScreen() {
@@ -30,7 +30,7 @@ export function StreaksScreen() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
-    <Screen nativeHeader title="Ofensivas" onBack={back}>
+    <Screen nativeHeader title="Disciplina" onBack={back}>
       <Box gap="s24">
         {water.streak ? (
           <StreakCard
@@ -43,7 +43,7 @@ export function StreaksScreen() {
             emptyText={settings?.goalMl ? (settings.isLimit ? 'Fique entre 90% e 100% do limite hoje para começar.' : 'Bata a meta de água hoje para começar.') : 'Informe seu peso para ter uma meta de água.'}
           />
         ) : water.isError ? (
-          <LoadError title="Não foi possível carregar a ofensiva de água" onRetry={water.refetch} />
+          <LoadError title="Não foi possível carregar a disciplina de água" onRetry={water.refetch} />
         ) : (
           <ActivityIndicator accessibilityLabel="Carregando" />
         )}
@@ -60,7 +60,7 @@ export function StreaksScreen() {
               emptyText="Faça uma aula esta semana para começar."
             />
           ) : training.isError ? (
-            <LoadError title="Não foi possível carregar a ofensiva de treino" onRetry={training.refetch} />
+            <LoadError title="Não foi possível carregar a disciplina de treino" onRetry={training.refetch} />
           ) : (
             <ActivityIndicator accessibilityLabel="Carregando" />
           )
@@ -70,7 +70,7 @@ export function StreaksScreen() {
           <Text variant="captionCaps">Congelamentos</Text>
           <Text variant="body" color="textMuted">
             A cada 7 dias seguidos cumprindo o objetivo de água, e a cada 4 semanas seguidas treinando, você ganha um
-            congelamento (no máximo 2 de cada). Se perder um dia ou uma semana, ele é usado sozinho e a ofensiva continua.
+            congelamento (no máximo 2 de cada). Se perder um dia ou uma semana, ele é usado sozinho e a disciplina continua.
           </Text>
           <Text variant="body" color="textMuted">
             No treino, só aulas confirmadas pelo professor contam. A semana atual só conta como perdida quando acaba.

@@ -1,16 +1,18 @@
 import { router } from 'expo-router';
 import { ActivityIndicator, Alert } from 'react-native';
 
-import { Box, Button, Card, EmptyState, FeedbackSheet, Icon, Screen, Text, TextButton, WaterRing } from '@components';
+import { Box, Button, Card, EmptyState, Icon, Screen, Text, TextButton, WaterRing } from '@components';
 import { useWaterStreak } from '@domain/Streaks';
 import { waterDayState, useLogWater, useUndoWater, useWaterDay } from '@domain/Water';
 import { errorMessage } from '@infra';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
 import { haptics } from '@utils/haptics';
 
+import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
 
 import { formatMl, formatTime } from './format';
+import { WaterGoalSheet } from './WaterGoalSheet';
 import { AddWidgetLink, CompetitorWater, LastDaysBars, WaterStreakCard } from './WaterSections';
 
 /**
@@ -32,6 +34,7 @@ export function WaterScreen() {
   const goalMl = settings?.goalMl ?? null;
   const isLimit = settings?.isLimit ?? false;
   const totalMl = day.data?.totalMl ?? 0;
+  const { isStaff } = useActiveGym();
   const goalFeedback = useWaterGoalFeedback(userId, day.data?.date, day.data?.totalMl, goalMl, isLimit);
   const water = useWaterStreak(userId, timeZone, goalMl, isLimit);
   const { modalities } = useActiveModality();
@@ -100,12 +103,11 @@ export function WaterScreen() {
       topAction={settingsAction}
       feedback={
         goalFeedback.visible ? (
-          // TODO(motion): feedback sheet entering and leaving.
-          <FeedbackSheet
-            tone="water"
-            title={isLimit ? "Limite do dia cumprido." : "Meta do dia batida."}
-            message={`${formatMl(totalMl)} ml hoje.`}
-            actionLabel="Continuar"
+          <WaterGoalSheet
+            isLimit={!!isLimit}
+            totalMl={totalMl}
+            streak={water.streak?.current}
+            still={isStaff}
             onAction={goalFeedback.dismiss}
           />
         ) : undefined

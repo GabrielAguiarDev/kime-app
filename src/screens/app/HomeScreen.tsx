@@ -1,17 +1,18 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 
-import { AcademyLogo, Box, FeedbackSheet, HeaderButton, HeaderMenu, Icon, Screen, Text } from '@components';
+import { AcademyLogo, Box, FeedbackSheet, HeaderButton, HeaderMenu, Icon, KimiMascot, Screen, Text } from '@components';
 import { useWaterDay } from '@domain/Water';
 import { StaffHome } from '@screens/staff/StaffHome';
 import { StudentHome } from '@screens/student/StudentHome';
 import { WaterCounter } from '@screens/water/WaterCounter';
-import { formatMl } from '@screens/water/format';
+import { WaterGoalSheet } from '@screens/water/WaterGoalSheet';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
 import { useSession } from '@services/session';
 import { useJoinRequestNotices } from '@services/joinRequests';
-import { useStreakRecords } from '@services/streaks';
+import { useStreakNotices } from '@services/streaks';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
 import { useAppTheme } from '@theme';
 
@@ -54,7 +55,9 @@ export function HomeScreen() {
   const { settings: waterSettings } = useWaterSettings();
   const { data: water } = useWaterDay(userId, waterSettings?.timeZone);
   const goalFeedback = useWaterGoalFeedback(userId, water?.date, water?.totalMl, waterSettings?.goalMl, waterSettings?.isLimit);
-  const record = useStreakRecords();
+  const streak = useStreakNotices();
+  // Accepted a competition team invite (the invite card is gone by then): "Bem-vindo à equipe."
+  const [joinedTeam, setJoinedTeam] = useState(false);
 
   return (
     <Screen
@@ -99,29 +102,40 @@ export function HomeScreen() {
       headerRight={<WaterCounter inHeader />}
       bottomInset={false}
       feedback={
-        goalFeedback.visible && water ? (
-          // TODO(motion): feedback sheet entering and leaving.
+        joinedTeam ? (
           <FeedbackSheet
-            tone="water"
-            title={waterSettings?.isLimit ? "Limite do dia cumprido." : "Meta do dia batida."}
-            message={`${formatMl(water.totalMl)} ml hoje.`}
+            tone="success"
+            title="Bem-vindo à equipe."
+            mascot={<KimiMascot size="feedback" expression="celebrating" play="joinTeam" />}
             actionLabel="Continuar"
+            onAction={() => setJoinedTeam(false)}
+          />
+        ) : goalFeedback.visible && water ? (
+          <WaterGoalSheet
+            isLimit={!!waterSettings?.isLimit}
+            totalMl={water.totalMl}
+            streak={streak.waterCurrent}
+            still={isStaff}
             onAction={goalFeedback.dismiss}
           />
-        ) : record.notice ? (
+        ) : streak.notice ? (
+          // Staff see the static mascot (animations are for students, except the app intro).
           <FeedbackSheet
+            key={`${streak.notice.kind}.${streak.notice.count}`}
             tone="accent"
-            icon="flame"
-            title="Novo recorde."
+            title={streak.notice.record ? 'Novo recorde.' : 'Nada mal.'}
+            mascot={<KimiMascot size="feedback" expression="celebrating" play="streak" still={isStaff} />}
             message={
-              record.notice.kind === 'water'
-                ? `${record.notice.count} dias seguidos cumprindo o objetivo de água.`
-                : `${record.notice.count} semanas seguidas treinando.`
+              streak.notice.kind === 'water'
+                ? `${streak.notice.count} dias seguidos cumprindo o objetivo de água.`
+                : streak.notice.count === 1
+                  ? '1 semana treinando.'
+                  : `${streak.notice.count} semanas seguidas treinando.`
             }
-            actionLabel="Ver ofensivas"
+            actionLabel={streak.notice.record ? 'Ver disciplina' : 'Continuar'}
             onAction={() => {
-              record.dismiss();
-              router.push('/ofensivas');
+              streak.dismiss();
+              if (streak.notice?.record) router.push('/disciplina');
             }}
           />
         ) : rejection.notice ? (
@@ -140,7 +154,7 @@ export function HomeScreen() {
         ) : undefined
       }
     >
-      {isStaff ? <StaffHome /> : <StudentHome />}
+      {isStaff ? <StaffHome /> : <StudentHome onJoinedTeam={() => setJoinedTeam(true)} />}
     </Screen>
   );
 }
