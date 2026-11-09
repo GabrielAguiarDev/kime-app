@@ -144,6 +144,73 @@ export type Database = {
           },
         ]
       }
+      athlete_previous_records: {
+        Row: {
+          academy_id: string
+          athlete_id: string
+          bronze: number
+          created_at: string
+          draws: number
+          gold: number
+          id: string
+          losses: number
+          modality_id: string
+          silver: number
+          updated_at: string
+          wins: number
+        }
+        Insert: {
+          academy_id: string
+          athlete_id: string
+          bronze?: number
+          created_at?: string
+          draws?: number
+          gold?: number
+          id?: string
+          losses?: number
+          modality_id: string
+          silver?: number
+          updated_at?: string
+          wins?: number
+        }
+        Update: {
+          academy_id?: string
+          athlete_id?: string
+          bronze?: number
+          created_at?: string
+          draws?: number
+          gold?: number
+          id?: string
+          losses?: number
+          modality_id?: string
+          silver?: number
+          updated_at?: string
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_previous_records_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_previous_records_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_previous_records_modality_id_academy_id_fkey"
+            columns: ["modality_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "academy_modalities"
+            referencedColumns: ["id", "academy_id"]
+          },
+        ]
+      }
       belt_history: {
         Row: {
           awarded_at: string
@@ -330,7 +397,9 @@ export type Database = {
           academy_id: string
           created_at: string
           event_date: string
+          historical_athlete_id: string | null
           id: string
+          is_historical: boolean
           location: string
           modality_id: string
           name: string
@@ -340,7 +409,9 @@ export type Database = {
           academy_id: string
           created_at?: string
           event_date: string
+          historical_athlete_id?: string | null
           id?: string
+          is_historical?: boolean
           location?: string
           modality_id: string
           name: string
@@ -350,7 +421,9 @@ export type Database = {
           academy_id?: string
           created_at?: string
           event_date?: string
+          historical_athlete_id?: string | null
           id?: string
+          is_historical?: boolean
           location?: string
           modality_id?: string
           name?: string
@@ -362,6 +435,13 @@ export type Database = {
             columns: ["academy_id"]
             isOneToOne: false
             referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "championships_historical_athlete_id_fkey"
+            columns: ["historical_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1625,6 +1705,7 @@ export type Database = {
           entry_id: string
           event_date: string
           fights: Json
+          is_historical: boolean
           location: string
           modality_id: string
           name: string
@@ -1686,6 +1767,17 @@ export type Database = {
       }
       create_academy_with_setup: {
         Args: { p_modalities: Json; p_name: string; p_plan_tier: string }
+        Returns: string
+      }
+      create_previous_championship: {
+        Args: {
+          p_academy_id: string
+          p_athlete_id: string
+          p_event_date: string
+          p_location: string
+          p_modality_id: string
+          p_name: string
+        }
         Returns: string
       }
       delete_my_account: { Args: never; Returns: undefined }
@@ -1804,6 +1896,20 @@ export type Database = {
       }
       set_championship_entries: {
         Args: { p_athlete_ids: string[]; p_championship_id: string }
+        Returns: undefined
+      }
+      set_previous_record: {
+        Args: {
+          p_academy_id: string
+          p_athlete_id: string
+          p_bronze: number
+          p_draws: number
+          p_gold: number
+          p_losses: number
+          p_modality_id: string
+          p_silver: number
+          p_wins: number
+        }
         Returns: undefined
       }
       set_student_class_enrollment: {

@@ -37,4 +37,5 @@ export enum QueryKeys {
   BodyData = 'BodyData',
   FightHistory = 'FightHistory',
   FightSummary = 'FightSummary',
+  PreviousRecords = 'PreviousRecords',
 }

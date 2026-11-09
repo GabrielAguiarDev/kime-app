@@ -1,6 +1,6 @@
 import { supabase, type TablesInsert } from '@infra/supabase';
 
-import type { FightInput, Placement } from './fightRecordTypes';
+import type { FightInput, Placement, PreviousChampionshipInput, PreviousRecord } from './fightRecordTypes';
 
 const FIGHT_COLUMNS = 'id, result, method, stage, opponent_name, note, created_at';
 
@@ -72,6 +72,59 @@ async function summary(academyId: string, athleteId: string) {
   return data;
 }
 
-export const fightRecordApi = { listEntryResults, setPlacement, addFight, updateFight, deleteFight, history, summary };
+// ------------------------------------------------ history before the app ---
+/** Previous record per modality ("Antes do Kimi"): staff of the academy or the athlete (RLS). */
+async function previousRecords(academyId: string, athleteId: string) {
+  const { data, error } = await supabase
+    .from('athlete_previous_records')
+    .select('modality_id, wins, losses, draws, gold, silver, bronze')
+    .eq('academy_id', academyId)
+    .eq('athlete_id', athleteId);
+  if (error) throw error;
+  return data;
+}
+
+/** Staff: sets the previous record of a modality (all zeros removes it). */
+async function setPreviousRecord(academyId: string, athleteId: string, record: PreviousRecord) {
+  const { error } = await supabase.rpc('set_previous_record', {
+    p_academy_id: academyId,
+    p_athlete_id: athleteId,
+    p_modality_id: record.modalityId,
+    p_wins: record.wins,
+    p_losses: record.losses,
+    p_draws: record.draws,
+    p_gold: record.gold,
+    p_silver: record.silver,
+    p_bronze: record.bronze,
+  });
+  if (error) throw error;
+}
+
+/** Staff: a previous championship of one athlete, with their entry. Returns its id. */
+async function createPreviousChampionship(academyId: string, athleteId: string, input: PreviousChampionshipInput) {
+  const { data, error } = await supabase.rpc('create_previous_championship', {
+    p_academy_id: academyId,
+    p_athlete_id: athleteId,
+    p_modality_id: input.modalityId,
+    p_name: input.name,
+    p_event_date: input.eventDate,
+    p_location: input.location,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export const fightRecordApi = {
+  listEntryResults,
+  setPlacement,
+  addFight,
+  updateFight,
+  deleteFight,
+  history,
+  summary,
+  previousRecords,
+  setPreviousRecord,
+  createPreviousChampionship,
+};
 
 export type FightRowApi = Awaited<ReturnType<typeof listEntryResults>>[number]['fights'][number];

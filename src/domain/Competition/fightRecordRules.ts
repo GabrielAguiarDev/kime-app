@@ -11,6 +11,7 @@ import type {
   Medal,
   MedalCount,
   Placement,
+  PreviousRecord,
 } from './fightRecordTypes';
 
 export const FIGHT_RESULTS: { value: FightResult; label: string }[] = [
@@ -90,18 +91,55 @@ export function countMedals(placements: (Placement | null)[]): MedalCount {
 
 export const hasMedals = (m: MedalCount) => m.gold + m.silver + m.bronze > 0;
 
-/** Record per modality from the athlete's history (staff and the athlete see the full history). */
-export function recordsByModality(history: ChampionshipResult[], modalityIds: string[] = []): FightRecord[] {
-  const ids = [...new Set([...modalityIds, ...history.map((h) => h.modalityId)])];
+/**
+ * Record per modality from the athlete's history (staff and the athlete see the full history).
+ * Totals = previous record ("Antes do Kimi") + previous championships + championships in the app
+ * (the last two are both in `history`). `championships` counts the championships only.
+ */
+export function recordsByModality(
+  history: ChampionshipResult[],
+  modalityIds: string[] = [],
+  previous: PreviousRecord[] = [],
+): FightRecord[] {
+  const ids = [...new Set([...modalityIds, ...history.map((h) => h.modalityId), ...previous.map((p) => p.modalityId)])];
   return ids.map((modalityId) => {
     const own = history.filter((h) => h.modalityId === modalityId);
+    const tally = tallyFights(own.flatMap((h) => h.fights));
+    const medals = countMedals(own.map((h) => h.placement));
+    const before = previous.find((p) => p.modalityId === modalityId);
     return {
       modalityId,
-      ...tallyFights(own.flatMap((h) => h.fights)),
-      ...countMedals(own.map((h) => h.placement)),
+      wins: tally.wins + (before?.wins ?? 0),
+      losses: tally.losses + (before?.losses ?? 0),
+      draws: tally.draws + (before?.draws ?? 0),
+      gold: medals.gold + (before?.gold ?? 0),
+      silver: medals.silver + (before?.silver ?? 0),
+      bronze: medals.bronze + (before?.bronze ?? 0),
       championships: own.length,
     };
   });
+}
+
+/** Upper bound of each number of the previous record (same as the database). */
+export const PREVIOUS_RECORD_MAX = 9999;
+
+/** A previous championship happened before today (academy-local date). */
+export function isPastDate(today: LocalDate, date: LocalDate): boolean {
+  return date < today;
+}
+
+/** Nothing recorded (all zeros): saving it removes the line. */
+export function isEmptyPreviousRecord(r: FightTally & MedalCount): boolean {
+  return r.wins + r.losses + r.draws + r.gold + r.silver + r.bronze === 0;
+}
+
+/** Number field of the previous record: digits only, empty = 0; null when invalid. */
+export function parseRecordCount(text: string): number | null {
+  const t = text.trim();
+  if (!t) return 0;
+  if (!/^\d+$/.test(t)) return null;
+  const n = Number(t);
+  return n <= PREVIOUS_RECORD_MAX ? n : null;
 }
 
 /** One line for a fight: "Vitória · Finalização". */

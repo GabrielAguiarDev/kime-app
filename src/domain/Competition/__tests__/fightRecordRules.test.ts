@@ -4,12 +4,15 @@ import {
   fightDetails,
   fightTitle,
   formatTally,
+  isEmptyPreviousRecord,
+  isPastDate,
   optionalText,
+  parseRecordCount,
   recordsByModality,
   tallyAccessibilityLabel,
   tallyFights,
 } from '../fightRecordRules';
-import type { ChampionshipResult, Fight } from '../fightRecordTypes';
+import type { ChampionshipResult, Fight, PreviousRecord } from '../fightRecordTypes';
 
 const fight = (result: Fight['result'], extra: Partial<Fight> = {}): Fight => ({
   id: Math.random().toString(36),
@@ -30,6 +33,7 @@ const champ = (modalityId: string, placement: ChampionshipResult['placement'], f
   eventDate: '2026-10-01',
   location: '',
   placement,
+  isHistorical: false,
   fights,
 });
 
@@ -61,6 +65,37 @@ describe('fight record rules', () => {
       { modalityId: 'boxe', wins: 0, losses: 0, draws: 0, gold: 0, silver: 0, bronze: 0, championships: 0 },
       { modalityId: 'mma', wins: 0, losses: 0, draws: 0, gold: 0, silver: 1, bronze: 0, championships: 1 },
     ]);
+  });
+
+  it('adds the previous record, previous championships and app championships', () => {
+    const previous: PreviousRecord[] = [
+      { modalityId: 'bjj', wins: 8, losses: 2, draws: 1, gold: 3, silver: 1, bronze: 0 },
+      { modalityId: 'judo', wins: 4, losses: 0, draws: 0, gold: 1, silver: 0, bronze: 0 },
+    ];
+    const history = [
+      { ...champ('bjj', 'gold', [fight('win'), fight('draw')]), isHistorical: true },
+      champ('bjj', 'silver', [fight('win'), fight('loss')]),
+    ];
+    expect(recordsByModality(history, ['bjj'], previous)).toEqual([
+      { modalityId: 'bjj', wins: 10, losses: 3, draws: 2, gold: 4, silver: 2, bronze: 0, championships: 2 },
+      { modalityId: 'judo', wins: 4, losses: 0, draws: 0, gold: 1, silver: 0, bronze: 0, championships: 0 },
+    ]);
+  });
+
+  it('accepts only past dates for a previous championship', () => {
+    expect(isPastDate('2026-11-09', '2026-11-08')).toBe(true);
+    expect(isPastDate('2026-11-09', '2026-11-09')).toBe(false);
+    expect(isPastDate('2026-11-09', '2027-01-01')).toBe(false);
+  });
+
+  it('parses the numbers of the previous record', () => {
+    expect(parseRecordCount('')).toBe(0);
+    expect(parseRecordCount(' 12 ')).toBe(12);
+    expect(parseRecordCount('1.5')).toBeNull();
+    expect(parseRecordCount('-1')).toBeNull();
+    expect(parseRecordCount('10000')).toBeNull();
+    expect(isEmptyPreviousRecord({ wins: 0, losses: 0, draws: 0, gold: 0, silver: 0, bronze: 0 })).toBe(true);
+    expect(isEmptyPreviousRecord({ wins: 0, losses: 0, draws: 0, gold: 0, silver: 0, bronze: 1 })).toBe(false);
   });
 
   it('describes a fight', () => {
