@@ -1,4 +1,5 @@
 import type { TrailEnvironment } from '@domain/Classes';
+import { tokens } from '@theme';
 
 import { ELEMENT_SIZE, type JourneyElementKind, type PlacedElement } from './JourneyElements';
 import { NODE_SIZE, NODE_SIZE_CURRENT } from './JourneyNode';
@@ -37,8 +38,8 @@ const PATH_SWING = (0.11 * JOURNEY_NODE_SPACING) / 170;
 export const BANNER_MAX_WIDTH = 300;
 export const NODE_OVER_BANNER = 6;
 const BANNER_ROOM = 96;
-/** Mascot next to the current node (tokens.size.mascotEmpty) and its gap to the node. */
-export const MASCOT = 96;
+/** Mascot next to the current node (size `empty`) and its gap to the node. */
+export const MASCOT = tokens.size.mascotEmpty;
 export const MASCOT_GAP = 4;
 
 /** Elements keep this far from the screen sides and from each other / the node and banner. */
@@ -282,6 +283,11 @@ export function placeElements({ width, environment, seed, top, bottom, pathX, fi
   return placed.sort((a, b) => a.y - b.y);
 }
 
+/** Left of the mascot beside the current node: next to it, but always whole on screen. */
+export function mascotLeft(width: number, nodeSize: number): number {
+  return Math.min(width / 2 + nodeSize / 2 + MASCOT_GAP, width - EDGE - MASCOT);
+}
+
 /** Node, banner and (current) mascot of a section, in its coordinates. */
 export function sectionReserved(width: number, margin: number, current: boolean): Box[] {
   const cx = width / 2;
@@ -292,7 +298,7 @@ export function sectionReserved(width: number, margin: number, current: boolean)
     { x0: (width - bw) / 2, x1: (width + bw) / 2, y0: NODE_Y + size / 2 - NODE_OVER_BANNER, y1: NODE_Y + size / 2 + BANNER_ROOM },
   ];
   if (current) {
-    const x0 = cx + size / 2 + MASCOT_GAP;
+    const x0 = mascotLeft(width, size);
     boxes.push({ x0, x1: x0 + MASCOT, y0: NODE_Y - MASCOT / 2, y1: NODE_Y + MASCOT / 2 });
   }
   return boxes;

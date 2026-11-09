@@ -12,6 +12,8 @@ enum WaterStore {
   static let appGroup = "group.br.com.kimi.app"
   static let configKey = "water.config"
   static let logPrefix = "water.log."
+  /// Local hour (profile time zone) from which a day with nothing logged shows the thirsty mascot.
+  static let thirstyHour = 18
 
   struct Config: Decodable {
     let userId: String
@@ -109,5 +111,13 @@ enum WaterStore {
     calendar.timeZone = zone
     let startOfDay = calendar.startOfDay(for: date)
     return calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? date.addingTimeInterval(86_400)
+  }
+
+  /// `thirstyHour`:00 of the local day of `date` in the profile time zone.
+  static func thirstyStart(on date: Date, in zone: TimeZone) -> Date {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = zone
+    return calendar.date(bySettingHour: thirstyHour, minute: 0, second: 0, of: date)
+      ?? calendar.startOfDay(for: date).addingTimeInterval(TimeInterval(thirstyHour * 3_600))
   }
 }

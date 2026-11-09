@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
-import { Box, Card, Mascot, Screen, Text } from '@components';
+import { Box, Card, KimiMascot, Screen, Text } from '@components';
 
 const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -26,7 +26,7 @@ export function WaterWidgetScreen() {
     <Screen nativeHeader title="Widget de água" onBack={back}>
       <Box gap="s24">
         <Box alignItems="center" gap="s12">
-          <Mascot size="hero" />
+          <KimiMascot size="hero" />
           <Text variant="body" color="textMuted" textAlign="center">
             Registre uma garrafa direto da tela de início, sem abrir o app.
           </Text>

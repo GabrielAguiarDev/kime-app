@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 
-import { BELT_COLOR_TOKEN, Box, Button, KimiMascot, Mascot, Screen, Text } from '@components';
+import { BELT_COLOR_TOKEN, Box, Button, KimiMascot, Screen, Text } from '@components';
 import {
   beltName,
   beltNeedsDarkText,
@@ -51,13 +51,9 @@ export function AchievementScreen() {
 
   return (
     <Screen scrollable={false} footer={<Button title="Continuar" onPress={() => router.back()} />}>
-      {/* TODO(motion): title and stat cards entrance. The mascot is the Rive animation (new belt: `graduate`). */}
+      {/* TODO(motion): title and stat cards entrance. */}
       <Box flex={1} alignItems="center" justifyContent="center" gap="s24">
-        {belt ? (
-          <KimiMascot size="hero" expression="celebrating" play="graduate" beltColor={belt.primary} />
-        ) : (
-          <Mascot size="hero" expression="celebrating" />
-        )}
+        <KimiMascot size="hero" pose={belt ? 'graduation' : 'guard'} />
         <Text variant="title" textAlign="center" accessibilityRole="header">
           {title}
         </Text>

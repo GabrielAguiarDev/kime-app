@@ -87,6 +87,7 @@ export function SheetForm({
       <ScrollView
         style={{ maxHeight: (height - keyboard) * (tall ? 0.7 : 0.55) }}
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         <Box gap="s16">{children}</Box>

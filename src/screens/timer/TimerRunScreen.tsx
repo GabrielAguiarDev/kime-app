@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BigCounter, Box, Button, ConfirmSheet, Icon, Mascot, Text, type IconName } from '@components';
+import { BigCounter, Box, Button, ConfirmSheet, Icon, KimiMascot, Text, type IconName } from '@components';
 import { formatClock, roundsDone, type TimerState } from '@domain/Timer';
 import { pauseTimer, resumeTimer, skipTimer, stopTimer, useTimerSession } from '@services/timer';
 import { useAppTheme, type ColorToken } from '@theme';
@@ -62,7 +62,7 @@ export function TimerRunScreen() {
           <Box flex={1} alignItems="center" justifyContent="center" gap="s24">
             {session ? (
               <>
-                <Mascot expression="celebrating" size="empty" />
+                <KimiMascot size="empty" />
                 <Text variant="title" textAlign="center" accessibilityRole="header">
                   Treino concluído
                 </Text>

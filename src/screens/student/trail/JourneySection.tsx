@@ -1,11 +1,11 @@
 import { memo, useRef, type ComponentRef } from 'react';
 import { View } from 'react-native';
 
-import { BeltSwatch, Box, Mascot, Text } from '@components';
+import { BeltSwatch, Box, KimiMascot, Text } from '@components';
 import type { TrailSection } from '@domain/Classes';
 import { useAppTheme, withAlpha } from '@theme';
 
-import { MASCOT, MASCOT_GAP, NODE_OVER_BANNER, NODE_Y, SECTION_HEIGHT, bannerWidth as bannerWidthOf } from './journeyLayout';
+import { MASCOT, NODE_OVER_BANNER, NODE_Y, SECTION_HEIGHT, bannerWidth as bannerWidthOf, mascotLeft } from './journeyLayout';
 import { JourneyNode, NODE_GLOW, NODE_SIZE, NODE_SIZE_CURRENT, type JourneyNodeState } from './JourneyNode';
 import { isReady, nodeCopy, sectionCount, sectionTitle } from './trailCopy';
 
@@ -112,12 +112,12 @@ export const JourneySection = memo(function JourneySection({ section, index, top
       </View>
 
       {state === 'current' ? (
-        // TODO(motion): mascot idle / reacting next to the current node.
+        // Animated guard; a tap makes him angry (the box itself does not take touches).
         <View
-          pointerEvents="none"
-          style={{ position: 'absolute', left: center.x + size / 2 + MASCOT_GAP, top: center.y - MASCOT / 2 }}
+          pointerEvents="box-none"
+          style={{ position: 'absolute', left: mascotLeft(width, size), top: center.y - MASCOT / 2 }}
         >
-          <Mascot size="empty" expression="angry" />
+          <KimiMascot size="empty" animated />
         </View>
       ) : null}
     </View>

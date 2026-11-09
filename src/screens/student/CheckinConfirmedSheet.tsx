@@ -1,4 +1,4 @@
-import { BottomSheet, Box, Button, Mascot, Text } from '@components';
+import { BottomSheet, Box, Button, KimiMascot, Text } from '@components';
 import { useAppTheme } from '@theme';
 
 interface CheckinConfirmedSheetProps {
@@ -29,7 +29,7 @@ export function CheckinConfirmedSheet({ count, total, onClose }: CheckinConfirme
         accessibilityLiveRegion="polite"
       >
         <Box flexDirection="row" alignItems="center" gap="s12">
-          <Mascot size="feedback" expression="celebrating" />
+          <KimiMascot size="feedback" />
           <Box flex={1} gap="s4">
             <Text variant="heading" accessibilityRole="header">
               {title}

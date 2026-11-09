@@ -32,7 +32,7 @@ App mobile multi-academia de artes marciais (a spec completa do usuário está n
   - **Fontes:** Barlow Condensed (display/título) + Inter (texto). Todas as variantes de texto usam `tabular-nums`.
   - **Ícones:** Phosphor (`phosphor-react-native`, importado ícone a ícone em `components/Icon`); `bold` normal, `fill` ativo. Para um ícone novo, adicionar ao mapa `ICONS`.
   - **Edges `success`/`warning`/`danger`** não estão no documento: foram derivadas a 25% mais escuras, como ele manda.
-- **Ícone e mascote:** fontes em `assets/brand/`: `kimi-icon.svg` (fonte oficial do ícone) e `kimi-icon-{light,dark,tinted}.png` (1024×1024, sem alpha, fornecidos pelo design). O antigo `kimi-icon.png` (1254 px, gerado por IA, com ruído) foi apagado em 2026-11-04 e não deve voltar. O ícone de topo do `app.json` é o `kimi-icon-light.png`. Mascote: `kimi-mascot.svg` = bravo, `kimi-mascot-celebrating.svg` = olhos redondos. Ícone adaptativo do Android: primeiro plano = `kimi-icon-light.png` a 72% (os olhos ficam a 0,302 do centro, contra 0,305 da área segura), fundo = `backgroundColor` #24262B. O monocromático sai da faixa laranja do mesmo PNG. O app renderiza os SVGs do mascote com `expo-image` (`<Mascot size="hero|empty|feedback" />`). Os PNGs de ícone/splash são gerados por `scripts/brand/render-icons.sh` (macOS); depois, `npx expo prebuild`. Mascote só em estados vazios, folha de feedback, onboarding e telas de marco.
+- **Ícone e mascote:** fontes em `assets/brand/`: `kimi-icon.svg` (fonte oficial do ícone) e `kimi-icon-{light,dark,tinted}.png` (1024×1024, sem alpha, fornecidos pelo design). O antigo `kimi-icon.png` (1254 px, gerado por IA, com ruído) foi apagado em 2026-11-04 e não deve voltar. O ícone de topo do `app.json` é o `kimi-icon-light.png`. Ícone adaptativo do Android: primeiro plano = `kimi-icon-light.png` a 72% (os olhos ficam a 0,302 do centro, contra 0,305 da área segura), fundo = `backgroundColor` #24262B. O monocromático sai da faixa laranja do mesmo PNG. Os PNGs de ícone e o favicon são gerados por `scripts/brand/render-icons.sh` (macOS); depois, `npx expo prebuild`. Mascote: ver "Mascote em poses" abaixo e a seção 4 do DESIGN-SYSTEM.md.
 - **Teclado:** o rodapé do `Screen` NÃO sobe com o teclado (decisão do usuário). Sem `KeyboardAvoidingView`: só a área rolável abre espaço (`automaticallyAdjustKeyboardInsets`), e no Android `softwareKeyboardLayoutMode: pan`.
 - **Ícone iOS com aparências (2026-11-04):** `ios.icon` no `app.json` aponta para `assets/brand/kimi-icon-{light,dark,tinted}.png` (1024×1024, sem alpha, fornecidos pelo usuário). Sem as variantes, o iOS gerava sozinho a versão escura, com manchas. O `icon` de topo continua valendo para Android/web. O SDK 58 também aceita um `.icon` do Icon Composer em `ios.icon`. O `scripts/brand/render-icons.sh` NÃO gera essas variantes: ele só gera as camadas do Android, o favicon e o splash a partir delas. Depois de trocar qualquer ícone, rode `bash scripts/brand/render-icons.sh` e `npx expo prebuild --clean`.
 - **Sem animações** (o usuário faz o movimento). Cada estado visual fica separado, com `// TODO(motion): ...`.
@@ -54,11 +54,11 @@ src/
   infra/                env, supabase (client, database.types gerado, supabaseError), query, storage, widget (sharedStore)
   services/             session/, activeGym/, entry/ (entryPath, pendingCode, useConsumePendingCode), confirm/, water/ (sync, config do widget, folha de meta, plano do professor), competition/ (widget de contagem)
   components/           Box, Text, Icon, Button (tátil), TextButton (fantasma), TextField, Screen, Card,
-                        EmptyState, Mascot, ProgressBar, WaterRing, BigCounter, StatusBadge, BeltChip, FeedbackSheet
+                        EmptyState, KimiMascot, ProgressBar, WaterRing, BigCounter, StatusBadge, BeltChip, FeedbackSheet
   theme/                tokens (GERADO), fonts, theme (light/dark), useAppTheme, useSchemeTheme, useIsDark
   utils/                deepLinks, haptics
 scripts/tokens/            gerador de tokens (TS/Swift/Kotlin)
-scripts/brand/             renderização dos PNGs de ícone/splash a partir dos SVGs
+scripts/brand/             PNGs de ícone a partir dos SVGs; olhos do mascote (mascot-eyes.mjs)
 targets/widgets/           extensão iOS (WidgetKit) via @bacons/apple-targets: Swift, Info.plist, fontes em assets/, tokens GERADOS
 modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iOS/Android) + widget Glance (Android) + tokens Kotlin GERADOS
 ```
@@ -73,7 +73,7 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - Todo `Stack.Protected` usa `redirectTo={access.home}` (SDK 58): navegação interna, deep link, widget ou notificação caem na home do estado. `entrar` (código → academia) é parte do fluxo de entrada e fica acessível em qualquer estado.
   - `src/app/+native-intent.tsx` (`normalizeExternalPath`): links de fora só abrem `/`, `/entrar`, `/agua`, `/agua/configurar`; qualquer outro vira `/`. Ele não decide acesso (roda fora do React).
   - Widget: o app só publica `water.config` com login + vínculo aprovado (`useWidgetConfig`); sem config, o widget mostra "Entre no Kimi para registrar sua água." sem o botão, e o toque abre `kimi://`. Limitação conhecida: se o acesso mudar com o app fechado (removido da academia, sessão expirada), o widget só atualiza na próxima abertura do app.
-  - A splash fica só no BOOT (fontes ou erro de fonte + sessão + vínculos). Depois do boot, o Stack nunca desmonta, e as telas mostram o próprio loading.
+  - A splash (abertura animada, `AppIntro`) cobre o BOOT (fontes ou erro de fonte + sessão + vínculos). Depois do boot, o Stack nunca desmonta, e as telas mostram o próprio loading.
 - **Tabs por papel** (`(tabs)/_layout.tsx`, `Tabs.Protected`), só com ícones:
   - aluno: Início, Aulas, Perfil;
   - competidor: + Competição (desde 2026-11-05, só quando compete na modalidade selecionada);
@@ -89,7 +89,7 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
   - `<Screen nativeHeader title=… onBack=… topAction=… headerLeft/headerRight>`: escreve as opções da rota (`Stack.Screen`, só `title` em texto, nunca `headerTitle` customizado) e o ScrollView é a RAIZ nativa da tela (o react-native-screens procura o scroll pela cadeia do primeiro filho; sem isso o título grande não recolhe). `contentInsetAdjustmentBehavior="automatic"`, SEM `flexGrow` (com os recuos automáticos ele deixava telas curtas rolando pela altura do header + tab bar), sem SafeAreaView nem padding de topo. Rodapé/folha de feedback flutuam por cima (irmão posterior, fundo `bg`) e o conteúdo ganha espaço embaixo. Botões do header: `HeaderButton` (ícone Phosphor, sem fundo próprio; o iOS 26 põe o círculo de vidro). Voltar = `HeaderButton` "back".
   - Início (decisão do usuário, 2026-11-04): sem título e sem título grande (`largeTitle={false}`); à esquerda, logo + nome da academia num só botão (abre o Perfil; token `headerLogo`), contador de água à direita (aluno e staff; saiu da barra de sequência/aulas do aluno).
 - **Área segura (telas sem header nativo):** aplicada UMA vez, no `Screen`, via `SafeAreaView` (`edges={['top']}`), que só acolchoa a parte da view que está de fato sob a barra de status; o conteúdo começa `s16` abaixo. Nenhum navegador tem header (`headerShown: false` em todos).
-- **Componentes:** `Screen` sempre esconde as barras de rolagem e recebe `footer` para a ação primária fixa, ou `feedback` para a `FeedbackSheet`. Dentro das tabs, usar `bottomInset={false}`. `Button` e `Card` tocável disparam o haptic leve sozinhos. `EmptyState` usa o mascote (96) por padrão e `visual="icon"` (48) dentro de cards/seções.
+- **Componentes:** `Screen` e todas as ScrollView/FlatList do app escondem as barras de rolagem (vertical e horizontal; manter em listas novas) e recebe `footer` para a ação primária fixa, ou `feedback` para a `FeedbackSheet`. Dentro das tabs, usar `bottomInset={false}`. `Button` e `Card` tocável disparam o haptic leve sozinhos. `EmptyState` usa o mascote (96) por padrão e `visual="icon"` (48) dentro de cards/seções.
 
 ## Decisões da Fase 2 (usuário, 2026-11-04)
 
@@ -254,7 +254,7 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 | Barra de faixa avançando | `components/ProgressBar/ProgressBar.tsx` |
 | Número da contagem virando | `components/BigCounter/BigCounter.tsx`, `screens/app/CompetitionScreen.tsx` (dia do campeonato), `CountdownWidget.swift`, `CountdownWidget.kt` |
 | Folha de feedback entrando e saindo | `components/FeedbackSheet/FeedbackSheet.tsx`, `screens/app/HomeScreen.tsx`, `screens/water/WaterGoalSheet.tsx` |
-| Outros | entrada do título e dos cards da conquista (`AchievementScreen`; o mascote é a animação Rive), balão do mascote (`MascotBalloon`), código (`CodeField`), entrada (`EnterCodeScreen`), reordenar (`ReorderList`) |
+| Outros | entrada do título e dos cards da conquista (`AchievementScreen`), balão do mascote (`MascotBalloon`), código (`CodeField`), entrada (`EnterCodeScreen`), reordenar (`ReorderList`) |
 
 - [x] 7. Pré-lançamento (2026-11-04): migration `20261105000400_prelaunch_hardening` + 21 testes em `prelaunch.test.sql` (454 no total).
   - **Excluir conta** (exigência da App Store): Perfil → Meus dados → "Excluir conta" (confirmação `danger`). RPC `delete_my_account` (DEFINER): bloqueia com `owner_must_transfer` se o usuário é owner de academia com outros membros ATIVOS; academia em que ele é o único ativo é apagada junto (pedidos pendentes não bloqueiam); depois apaga `auth.users` e tudo pessoal cai em cascata. O app apaga a foto em seguida (o token ainda vale) e sai só localmente. As logos das academias que vão junto são apagadas antes, pela API de storage (o SQL não pode apagar arquivos: `storage.protect_delete`): `account_deletion_academies()` (migration `20261105000700`) recusa com `owner_must_transfer` ou lista as academias; o app apaga a pasta de cada uma enquanto ainda é owner e só então chama `delete_my_account`.
@@ -345,51 +345,18 @@ modules/kimi-widget/       módulo nativo local: armazenamento compartilhado (iO
 
 "Ofensiva" (termo do app usado como inspiração) virou **"Disciplina"** em todo o app: tela `/disciplina` (antes `/ofensivas`), títulos, textos, rótulos de acessibilidade e plano ("Ranking e disciplina"). Não usar "ofensiva" em texto novo. No código, o conceito segue como `streak` (domínio `Streaks`, kv-store `streakRecords`/`streakCurrent`, gatilho Rive `streak`).
 
-## Animações do mascote (Rive) (2026-11-09, pedido do usuário)
+## Mascote em poses (2026-11-09, pedido do usuário; substituiu o plano Rive)
 
-As animações são feitas pelo usuário no Rive. O agente não cria animações: o app só está preparado para recebê-las.
+O Rive foi abandonado: `rive-react-native`, `metro.config.js` (só existia para o `.riv`), `kimiRiv*`, o `Mascot` em SVG e os SVGs antigos (`kimi-mascot*.svg`, `kimi-pose-extras.svg`) e o `splash-icon.png` foram removidos. Regras visuais: DESIGN-SYSTEM.md, seção 4.
 
-**Plano (usuário)**
-- Animações só para o aluno, exceto a abertura do app, que aparece para todos.
-- Um artboard `Kimi` com uma máquina de estados `Kimi`. Todas as animações saem do estado de espera e voltam para ele (respiração, piscadas e pontas da faixa balançando).
-- Entradas da máquina de estados (nomes exatos):
-
-| Entrada | Tipo | Uso |
-| --- | --- | --- |
-| `intro` | gatilho | abertura do app |
-| `joinTeam` | gatilho | entrada na equipe de competição |
-| `streak` | gatilho | disciplina aumentou |
-| `graduate` | gatilho | nova faixa (usa `beltColor`) |
-| `beltColor` | número | cor da nova faixa (tabela abaixo) |
-| `isAngry` | booleano | exposto, sem uso no app ainda |
-| `coverEyes` | booleano | exposto, sem uso no app ainda |
-| `lookX` | número 0–100 | exposto, sem uso no app ainda (0 = esquerda, 100 = direita) |
-| `celebrate` | gatilho | exposto, sem uso no app ainda |
-| `error` | gatilho | exposto, sem uso no app ainda |
-
-- Animações:
-  - **Abertura do app:** bomba de fumaça revela o ninja, olhos abrem bravos, depois espera em loop.
-  - **Entrada na equipe de competição:** punho na palma, sequência de golpes, símbolo de raiva, poeira, assentir. Texto "Bem-vindo à equipe."
-  - **Disciplina:** braços cruzados, joinha rápido a contragosto, vira o rosto. Texto "Nada mal."
-  - **Graduação:** reverência calma, faixa da cintura muda de cor, pétalas, olhos voltam bravos. Texto "Faixa [nome]." (a tela de conquista já mostra "Faixa [nome] conquistada").
-
-**`beltColor`** = posição da cor na paleta principal seguida das variações (`beltColorInput` em `KimiMascot.tsx`): 0 white, 1 gray, 2 yellow, 3 orange, 4 green, 5 blue, 6 purple, 7 brown, 8 black, 9 red, 10 light_gray, 11 dark_gray, 12 dark_yellow, 13 light_green, 14 dark_green, 15 light_blue, 16 dark_blue, 17 light_purple, 18 light_brown, 19 dark_red. Só a cor principal (a ponta não entra).
-
-**No app**
-- Pacote `rive-react-native` (9.8.6; código nativo, precisa de build). O README dele avisa que o runtime novo é o `@rive-app/react-native` (Nitro); o pedido foi o `rive-react-native`.
-- **Arquivo:** `assets/brand/kimi.riv`. Enquanto ele não existe, o `metro.config.js` resolve `KimiMascot/kimiRiv` para `kimiRivMissing` (null) e o mascote é o SVG estático; no Jest, sempre o stub. Depois de colocar o arquivo, reinicie o bundler com cache limpo (`npx expo start --clear`). `.riv` está nos `assetExts` do Metro.
-- **Componente `KimiMascot`** (`components/KimiMascot`): mesmas props do `Mascot` (`size`, `expression` do SVG) + `play` (gatilho disparado uma vez quando a máquina começa a tocar), `beltColor` (chave da faixa, enviada antes do `play`), `isAngry`, `coverEyes`, `lookX`, `still` (sempre estático), `onStart`, e `ref.fire(gatilho)`. Mostra o SVG estático quando: o arquivo não existe, "Reduzir movimento" está ligado (`useReducedMotion`), `still`, ou o arquivo falha ao carregar. `useKimiAnimates()` diz se a animação pode tocar.
-- **Onde cada gatilho toca:**
-  - `intro`: `screens/intro/AppIntro`, camada sobre a primeira tela a cada abertura a frio do app (logado ou não), logo depois da splash. Fica `INTRO_MS` (3 s) depois de a animação começar; desiste em 2 s se ela não começar. Sem animação possível (sem arquivo ou com "Reduzir movimento"), a camada não aparece. Sem botão de pular. **A animação `intro` precisa caber em 3 s** (ou ajuste `INTRO_MS`).
-  - `joinTeam`: "Aceitar convite" (`CompetitorInviteCard`) → folha de feedback na Início "Bem-vindo à equipe." com o mascote animado. O card usa `mutateAsync` porque o refetch tira o convite e desmonta o card antes dos callbacks do `mutate`.
-  - `streak`:
-    - **Treino (semanal):** folha na Início "Nada mal." + "N semanas seguidas treinando." ("1 semana treinando.") e "Continuar", uma vez por aumento; kv-store `streakCurrent` (última disciplina já mostrada) por usuário e academia; a primeira leitura e uma queda só gravam a base.
-    - **Água (diária) — decisão do usuário, 2026-11-09:** a disciplina de água cresce no mesmo momento em que a meta é batida, então não há folha "Nada mal." para água (seriam duas folhas seguidas todo dia). A folha "Meta do dia batida." / "Limite do dia cumprido." (`screens/water/WaterGoalSheet`, na Início e na Água) ganhou o mascote com `streak` e "N dias seguidos." na mensagem (a partir de 2).
-    - **Recorde** (água ou treino): continua a folha "Novo recorde." ("Ver disciplina"), agora com o mascote animado no lugar da chama.
-    - O staff vê essas folhas com o mascote estático (`still`).
-  - `graduate`: tela de conquista de nova faixa (`AchievementScreen`, `kind=belt`), com `beltColor` = cor principal da faixa nova. A conquista de marco de aulas segue com o SVG estático.
-- **Professor:** só a abertura do app é animada; nas demais telas dele o mascote é o SVG estático (`Mascot`, ou `KimiMascot still`).
-- O `Mascot` estático continua em todos os outros pontos (estados vazios, feedbacks, onboarding).
+- **`KimiMascot`** (`components/KimiMascot`): `size` (`hero` 200 | `empty` 128 | `feedback` 80, tokens), `pose` (`guard` | `team` | `streak` | `graduation` | `thirsty`), `animated`, `angry` (raiva quando vira true, também ao montar), `outsideScreen` (fora de uma tela do navegador: não usa `useIsFocused`) e `ref` com `angry()` / `blink()`. Estático = `expo-image` do PNG da pose. Animado (só `guard`, sem "Reduzir movimento") = `guard-no-eyes.png` + `GuardEyes` (react-native-svg + Reanimated; pálpebra = `y` do retângulo, pupila = `cx`, sobrancelhas = opacidade). O loop de piscar/olhar roda só com a tela em foco e o app ativo; tocar dispara a raiva.
+- **Olhos:** `guardEyesShapes.ts` é gerado do `assets/mascot/guard-eyes.svg` por `node scripts/brand/mascot-eyes.mjs` (`--check` acusa arquivo desatualizado). Não editar à mão.
+- **Onde:** animado em `EmptyState` (todos os papéis; `error` liga a raiva), `MascotBalloon` e Jornada (`JourneySection`); `team` na folha "Bem-vindo à equipe."; `streak` em "Nada mal.", "Novo recorde." e `WaterGoalSheet`; `graduation` na `AchievementScreen` de faixa; `thirsty` nos widgets de água (abaixo). O resto usa `guard` estático. O staff vê as mesmas poses estáticas que o aluno (a prop `still` saiu).
+- **Balão na Início:** o `MascotBalloon` está pronto com o guard animado, mas hoje não é renderizado na Início (`homeMessage.ts` sem uso desde e31f5dc).
+- **Widget de água (`thirsty`):** iOS (`targets/widgets`, imageset `kimiThirsty`, 360 px) e Android (`drawable-nodpi/kimi_thirsty.png`): no estado pronto, com 0 ml no dia e a partir das 18h (`thirstyHour` / `THIRSTY_HOUR`, fuso do perfil), a pose substitui o anel no mesmo quadro. iOS: entrada extra na timeline às 18h. Android: segundo alarme inexato às 18h no `WaterWidgetAlarm` (código de request próprio, pode atrasar um pouco como o da meia-noite).
+- **Tela de debug (só `__DEV__`):** ícone de bug no header da Início → `/debug` (`screens/debug/DebugScreen`): botões que simulam a splash, as folhas (equipe, disciplina, recorde, meta de água, check-in), as conquistas (nova faixa, marco) e mostram estado vazio, erro, balão e a prévia do widget `thirsty`, com dados de exemplo. Em produção a rota redireciona para `/` e o botão não aparece.
+- **Notificação de lembrete com `thirsty`:** adiada (decisão do usuário, 2026-11-09) até existir um lembrete de água; hoje só há o de aula.
+- **Abertura do app** (`screens/intro/AppIntro`): splash nativa só com a cor de fundo (`app.config.ts`, sem imagem). O `RootNavigator` renderiza a abertura assim que as fontes carregam (precisa da Barlow para "KIMI") e o `Stack` só quando o boot termina; a abertura chama `SplashScreen.hide()` no `onLayout`. Linha do tempo e regras: DESIGN-SYSTEM.md, seção 4. Sai em `INTRO_MIN_MS` (2,0 s = texto pronto em 1,4 s + pausa `HOLD_MS` de 0,6 s) se `ready`; senão, quando `ready` virar true. As nuvens (`CLOUDS`, 5) estão em pt para o mascote de 200 e escalam com o token; um relógio linear de 1 s (`SMOKE_END_MS`) e cada nuvem calcula a própria parte. A cobertura total do ninja de `NINJA_ON_MS` (0,4 s) até a dissipação foi conferida pixel a pixel contra o alfa do `guard.png` (se mudar tamanho/posição/tempos das nuvens ou a arte, conferir de novo). Só na abertura a frio (estado do `RootNavigator`).
 
 ## Backlog (depois da Fase 6)
 

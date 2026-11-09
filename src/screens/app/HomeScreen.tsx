@@ -98,15 +98,24 @@ export function HomeScreen() {
           </HeaderButton>
         )
       }
-      // Today's water at the top right for everyone (students and staff).
-      headerRight={<WaterCounter inHeader />}
+      // Today's water at the top right for everyone (students and staff). DEV: debug screen.
+      headerRight={
+        __DEV__ ? (
+          <Box flexDirection="row" alignItems="center" gap="s16">
+            <HeaderButton icon="bug" accessibilityLabel="Abrir tela de debug" onPress={() => router.push('/debug')} />
+            <WaterCounter inHeader />
+          </Box>
+        ) : (
+          <WaterCounter inHeader />
+        )
+      }
       bottomInset={false}
       feedback={
         joinedTeam ? (
           <FeedbackSheet
             tone="success"
             title="Bem-vindo à equipe."
-            mascot={<KimiMascot size="feedback" expression="celebrating" play="joinTeam" />}
+            mascot={<KimiMascot size="feedback" pose="team" />}
             actionLabel="Continuar"
             onAction={() => setJoinedTeam(false)}
           />
@@ -115,16 +124,14 @@ export function HomeScreen() {
             isLimit={!!waterSettings?.isLimit}
             totalMl={water.totalMl}
             streak={streak.waterCurrent}
-            still={isStaff}
             onAction={goalFeedback.dismiss}
           />
         ) : streak.notice ? (
-          // Staff see the static mascot (animations are for students, except the app intro).
           <FeedbackSheet
             key={`${streak.notice.kind}.${streak.notice.count}`}
             tone="accent"
             title={streak.notice.record ? 'Novo recorde.' : 'Nada mal.'}
-            mascot={<KimiMascot size="feedback" expression="celebrating" play="streak" still={isStaff} />}
+            mascot={<KimiMascot size="feedback" pose="streak" />}
             message={
               streak.notice.kind === 'water'
                 ? `${streak.notice.count} dias seguidos cumprindo o objetivo de água.`

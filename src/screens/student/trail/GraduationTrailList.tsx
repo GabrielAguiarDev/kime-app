@@ -109,6 +109,7 @@ export function GraduationTrailList({ header, trail, modalityTotal, scrollKey }:
         contentInsetAdjustmentBehavior={trail ? 'never' : 'automatic'}
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         style={{ flex: 1, backgroundColor: trail ? 'transparent' : colors.bg }}
       >
         {trail ? (

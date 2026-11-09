@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, EmptyState, FeedbackSheet, Icon, Mascot, Screen, Text, type IconName } from '@components';
+import { Box, Button, Card, EmptyState, FeedbackSheet, Icon, KimiMascot, Screen, Text, type IconName } from '@components';
 import { canCreateAcademy } from '@domain/Gym';
 import { useActiveGym } from '@services/activeGym';
 import { useIsConsumingCode } from '@services/entry';
@@ -48,6 +48,7 @@ export function NoAcademyScreen() {
         <Box flex={1} justifyContent="center">
           <EmptyState
             title="Não foi possível carregar suas academias"
+            error
             description="Verifique sua conexão."
             action={<Button title="Tentar de novo" variant="secondary" onPress={refetch} />}
           />
@@ -85,7 +86,7 @@ function Choice({ onJoin, notice }: { onJoin: () => void; notice?: ReactNode }) 
     <Screen header={<AccountHeader />} feedback={notice} footer={<SignedInFooter />}>
       <Box gap="s24">
         <Box alignItems="center" gap="s16">
-          <Mascot size="empty" />
+          <KimiMascot size="empty" />
           <Text variant="title" textAlign="center" accessibilityRole="header">
             Como você quer usar o Kimi?
           </Text>
