@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,11 +23,13 @@ const TONES: Record<FeedbackTone, { tint: ColorToken; line: ColorToken; button: 
 interface FeedbackSheetProps {
   tone: FeedbackTone;
   title: string;
-  message: string;
+  message?: string;
   actionLabel: string;
   onAction: () => void;
   /** Icon on the left. When omitted, the celebrating mascot (56) is shown instead. */
   icon?: IconName;
+  /** Replaces the default mascot (e.g. an animated `KimiMascot` size "feedback"). Ignored with `icon`. */
+  mascot?: ReactNode;
 }
 
 /**
@@ -35,14 +37,14 @@ interface FeedbackSheetProps {
  * Semantic color at 15% over the screen background, 2px top line in the full color.
  * Pass it to `<Screen feedback={...} />`. The caller fires the haptic for the moment.
  */
-export function FeedbackSheet({ tone, title, message, actionLabel, onAction, icon }: FeedbackSheetProps) {
+export function FeedbackSheet({ tone, title, message, actionLabel, onAction, icon, mascot }: FeedbackSheetProps) {
   const { bottom } = useSafeAreaInsets();
   const theme = useAppTheme();
   const t = TONES[tone];
 
   // iOS ignores accessibilityLiveRegion: announce the sheet explicitly.
   useEffect(() => {
-    AccessibilityInfo.announceForAccessibility(`${title}. ${message}`);
+    AccessibilityInfo.announceForAccessibility(message ? `${title}. ${message}` : title);
   }, [title, message]);
 
   return (
@@ -58,12 +60,12 @@ export function FeedbackSheet({ tone, title, message, actionLabel, onAction, ico
         style={{ paddingBottom: bottom + theme.spacing.s16 }}
       >
         <Box flexDirection="row" alignItems="center" gap="s12">
-          {icon ? <Icon name={icon} color={t.line} active /> : <Mascot size="feedback" expression="celebrating" />}
+          {icon ? <Icon name={icon} color={t.line} active /> : (mascot ?? <Mascot size="feedback" expression="celebrating" />)}
           <Box flex={1} gap="s4">
             <Text variant="heading" accessibilityRole="header">
               {title}
             </Text>
-            <Text variant="body">{message}</Text>
+            {message ? <Text variant="body">{message}</Text> : null}
           </Box>
         </Box>
         <Button title={actionLabel} variant={t.button} onPress={onAction} />

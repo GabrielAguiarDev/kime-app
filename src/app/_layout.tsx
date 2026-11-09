@@ -8,7 +8,7 @@ import {
   ThemeProvider as NavigationThemeProvider,
 } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { queryClient } from "@infra";
@@ -23,6 +23,7 @@ import { ConfirmProvider } from "@services/confirm";
 import { useConsumePendingCode } from "@services/entry";
 import { useRecordWaterGoal, useWaterSync, useWidgetConfig } from "@services/water";
 import { SessionProvider, useSession } from "@services/session";
+import { AppIntro } from "@screens/intro/AppIntro";
 import { fontAssets, useSchemeTheme } from "@theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -103,63 +104,70 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
     if (ready) SplashScreen.hide();
   }, [ready]);
 
+  // Mascot intro over the first screen, once per cold start (screens/intro/AppIntro).
+  const [introDone, setIntroDone] = useState(false);
+  const endIntro = useCallback(() => setIntroDone(true), []);
+
   if (!ready) return null;
 
   const redirectTo = access.home;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Protected guard={access.auth} redirectTo={redirectTo}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
-      <Stack.Protected guard={access.onboarding} redirectTo={redirectTo}>
-        <Stack.Screen name="(onboarding)" />
-      </Stack.Protected>
-      <Stack.Protected guard={access.app} redirectTo={redirectTo}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="achievement" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-        {/* Also opened by the widget (kimi://agua, kimi://agua/configurar). */}
-        <Stack.Screen name="agua/index" options={header} />
-        <Stack.Screen name="agua/configurar" options={header} />
-        <Stack.Screen name="conta/dados" options={header} />
-        <Stack.Screen name="conta/academias" options={header} />
-        <Stack.Screen name="cartel" options={header} />
-        <Stack.Screen name="conta/email" options={header} />
-        <Stack.Screen name="conta/senha" options={header} />
-        <Stack.Screen name="dieta" options={header} />
-        <Stack.Screen name="aula" options={header} />
-        <Stack.Screen name="relatorio" options={header} />
-        <Stack.Screen name="peso" options={header} />
-        <Stack.Screen name="ofensivas" options={header} />
-        <Stack.Screen name="ranking" options={header} />
-        {/* Student app: competition (also the countdown widget, kimi://competition), championships, classmates. */}
-        <Stack.Screen name="competition" options={header} />
-        <Stack.Screen name="campeonato" options={header} />
-        <Stack.Screen name="campeonatos" options={header} />
-        <Stack.Screen name="colega/[userId]" options={header} />
-        <Stack.Screen name="agua/widget" options={header} />
-        <Stack.Screen name="timer/run" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-      </Stack.Protected>
-      <Stack.Protected guard={access.staff} redirectTo={redirectTo}>
-        <Stack.Screen name="presenca" options={header} />
-        <Stack.Screen name="pedidos" options={header} />
-        <Stack.Screen name="member/[membershipId]" options={header} />
-        <Stack.Screen name="academy/championships" options={header} />
-        <Stack.Screen name="academy/championship" options={header} />
-        <Stack.Screen name="athlete/water-plan" options={header} />
-        <Stack.Screen name="athlete/progress" options={header} />
-        <Stack.Screen name="athlete/diet" options={header} />
-      </Stack.Protected>
-      <Stack.Protected guard={access.owner} redirectTo={redirectTo}>
-        <Stack.Screen name="academy/settings" options={header} />
-        <Stack.Screen name="academy/schedules" options={header} />
-        <Stack.Screen name="convites" options={header} />
-        <Stack.Screen name="academy/modalities" options={header} />
-        <Stack.Screen name="academy/belts" options={header} />
-        <Stack.Screen name="academy/belts-order" options={header} />
-      </Stack.Protected>
-      <Stack.Screen name="entrar" />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Protected guard={access.auth} redirectTo={redirectTo}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+        <Stack.Protected guard={access.onboarding} redirectTo={redirectTo}>
+          <Stack.Screen name="(onboarding)" />
+        </Stack.Protected>
+        <Stack.Protected guard={access.app} redirectTo={redirectTo}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="achievement" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+          {/* Also opened by the widget (kimi://agua, kimi://agua/configurar). */}
+          <Stack.Screen name="agua/index" options={header} />
+          <Stack.Screen name="agua/configurar" options={header} />
+          <Stack.Screen name="conta/dados" options={header} />
+          <Stack.Screen name="conta/academias" options={header} />
+          <Stack.Screen name="cartel" options={header} />
+          <Stack.Screen name="conta/email" options={header} />
+          <Stack.Screen name="conta/senha" options={header} />
+          <Stack.Screen name="dieta" options={header} />
+          <Stack.Screen name="aula" options={header} />
+          <Stack.Screen name="relatorio" options={header} />
+          <Stack.Screen name="peso" options={header} />
+          <Stack.Screen name="disciplina" options={header} />
+          <Stack.Screen name="ranking" options={header} />
+          {/* Student app: competition (also the countdown widget, kimi://competition), championships, classmates. */}
+          <Stack.Screen name="competition" options={header} />
+          <Stack.Screen name="campeonato" options={header} />
+          <Stack.Screen name="campeonatos" options={header} />
+          <Stack.Screen name="colega/[userId]" options={header} />
+          <Stack.Screen name="agua/widget" options={header} />
+          <Stack.Screen name="timer/run" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={access.staff} redirectTo={redirectTo}>
+          <Stack.Screen name="presenca" options={header} />
+          <Stack.Screen name="pedidos" options={header} />
+          <Stack.Screen name="member/[membershipId]" options={header} />
+          <Stack.Screen name="academy/championships" options={header} />
+          <Stack.Screen name="academy/championship" options={header} />
+          <Stack.Screen name="athlete/water-plan" options={header} />
+          <Stack.Screen name="athlete/progress" options={header} />
+          <Stack.Screen name="athlete/diet" options={header} />
+        </Stack.Protected>
+        <Stack.Protected guard={access.owner} redirectTo={redirectTo}>
+          <Stack.Screen name="academy/settings" options={header} />
+          <Stack.Screen name="academy/schedules" options={header} />
+          <Stack.Screen name="convites" options={header} />
+          <Stack.Screen name="academy/modalities" options={header} />
+          <Stack.Screen name="academy/belts" options={header} />
+          <Stack.Screen name="academy/belts-order" options={header} />
+        </Stack.Protected>
+        <Stack.Screen name="entrar" />
+      </Stack>
+      {introDone ? null : <AppIntro onDone={endIntro} />}
+    </>
   );
 }

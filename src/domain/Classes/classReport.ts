@@ -64,7 +64,7 @@ export function bestMonth(report: ClassReport): MonthCount | null {
   return best;
 }
 
-/** Longest training streak in weeks (the record of the Ofensivas screen). */
+/** Longest training streak in weeks (the record of the Disciplina screen). */
 export function longestStreak(report: ClassReport): number {
   return report.weeks.length ? trainingStreak(report.weeks, report.today).record : 0;
 }

@@ -26,6 +26,8 @@ const ScopedKeys = {
   waterGoalRecorded: 'kimi.waterGoalRecorded.v1',
   /** Streak records already celebrated (JSON {water, training}), per user (+ academy for training). */
   streakRecords: 'kimi.streakRecords.v1',
+  /** Last running streak already shown ("Nada mal."), per user (+ academy for training). */
+  streakCurrent: 'kimi.streakCurrent.v1',
   /** Class reminders switched on on this device ('on'), per user. */
   classReminders: 'kimi.classReminders.v1',
   /** Signature of the reminders last scheduled, per user (skip rescheduling when unchanged). */

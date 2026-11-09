@@ -1,1 +1,1 @@
-export { useStreakRecords, type StreakRecordNotice } from './useStreakRecords';
+export { useStreakNotices, type StreakNotice } from './useStreakNotices';

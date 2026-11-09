@@ -37,9 +37,9 @@ O plano mais recente por semana/última edição substitui a meta automática, s
 O congelamento existente é **automático e derivado**, sem estoque gravado:
 
 - Água: um congelamento a cada sete dias concluídos na sequência, máximo de dois; protege um dia de hidratação.
-- Treino: um congelamento a cada quatro semanas concluídas, máximo de dois; protege a ofensiva semanal (uma aula confirmada na semana).
+- Treino: um congelamento a cada quatro semanas concluídas, máximo de dois; protege a disciplina semanal (uma aula confirmada na semana).
 
-O ranking chama o mesmo `computeStreak` e `WATER_STREAK_RULE` existentes, com histórico anterior à janela, e consulta os períodos `frozen`. Não reinicia o estoque na virada da janela, não cria uma segunda regra de consumo e não estende o congelamento de água/semana a faltas individuais. Um dia congelado não gera pontos positivos. Datas sem meta não geram penalidades de ranking; os períodos da ofensiva continuam seguindo o comportamento já existente.
+O ranking chama o mesmo `computeStreak` e `WATER_STREAK_RULE` existentes, com histórico anterior à janela, e consulta os períodos `frozen`. Não reinicia o estoque na virada da janela, não cria uma segunda regra de consumo e não estende o congelamento de água/semana a faltas individuais. Um dia congelado não gera pontos positivos. Datas sem meta não geram penalidades de ranking; os períodos da disciplina continuam seguindo o comportamento já existente.
 
 ## Banco e limitações
 
@@ -49,11 +49,11 @@ Cria dois modelos públicos (`student_class_enrollments`, `class_attendance_exce
 
 Não havia pausas/suspensões ou histórico de estado completo: a elegibilidade inicial usa a maior data entre criação e aprovação conhecida. Sem data de aprovação, a migração de segurança `20261105025845_ranking_unknown_approval_start.sql` começa a elegibilidade agora, sem tratar a solicitação de entrada como aprovação. Futuras entradas/saídas do estado ativo geram intervalos próprios; dias parciais de ativação/desativação ficam fora. Pausas antigas desconhecidas não podem ser reconstruídas. Não foi criado um fluxo paralelo de suspensão.
 
-A academia usa `America/Sao_Paulo`, fixado por decisão anterior do produto. O ranking agrupa água pelo fuso da academia; a ofensiva pessoal continua usando o fuso do perfil. Se o usuário mudar o perfil para outro fuso, seus fechamentos pessoais podem diferir do ranking. Unificar esses dois calendários requer uma decisão de produto; não alteramos o fuso pessoal silenciosamente.
+A academia usa `America/Sao_Paulo`, fixado por decisão anterior do produto. O ranking agrupa água pelo fuso da academia; a disciplina pessoal continua usando o fuso do perfil. Se o usuário mudar o perfil para outro fuso, seus fechamentos pessoais podem diferir do ranking. Unificar esses dois calendários requer uma decisão de produto; não alteramos o fuso pessoal silenciosamente.
 
 As observações legadas foram originalmente autodeclaradas e não podem ser autenticadas retroativamente. A proteção de escrita e a captura de versões valem a partir desta migração. Consumo de água continua autodeclarado/offline, conforme o produto existente. O ranking não torna esse dado uma medição independente.
 
-Para preservar congelamentos, a RPC devolve o histórico booleano conhecido de hidratação, não apenas a janela. Consultas são indexadas e agregadas numa chamada; em bases com muitos anos/alunos, considerar snapshots de estado da ofensiva ou cálculo no servidor usando o mesmo módulo de domínio antes de aumentar a escala. Não se deve cortar o histórico arbitrariamente porque isso muda o estoque de congelamentos.
+Para preservar congelamentos, a RPC devolve o histórico booleano conhecido de hidratação, não apenas a janela. Consultas são indexadas e agregadas numa chamada; em bases com muitos anos/alunos, considerar snapshots de estado da disciplina ou cálculo no servidor usando o mesmo módulo de domínio antes de aumentar a escala. Não se deve cortar o histórico arbitrariamente porque isso muda o estoque de congelamentos.
 
 ## Arquivos e validação
 

@@ -3,7 +3,7 @@ import { addDays, weekStart } from '@domain/Classes/classesRules';
 import type { LocalDate } from '@domain/Classes/classesTypes';
 
 /**
- * Streaks ("ofensivas") with freezes, computed from history only: the same
+ * Streaks ("disciplina") with freezes, computed from history only: the same
  * history gives the same result on every device, nothing is stored.
  *
  * Walking the periods (days or weeks) from the first completed one:

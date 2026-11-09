@@ -30,7 +30,7 @@ import { WeekCard } from './home/WeekCard';
  * Next class · championship · water · the week ·
  * ranking. Rewards (confirmed check-in) on top.
  */
-export function StudentHome() {
+export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   const { userId } = useSession();
   const { active } = useActiveGym();
   const { selected, modalities } = useActiveModality();
@@ -83,7 +83,9 @@ export function StudentHome() {
       {active
         ? modalities
             .filter((m) => m.link.competitorInvitedAt)
-            .map((m) => <CompetitorInviteCard key={m.id} membership={active} modality={m} />)
+            .map((m) => (
+              <CompetitorInviteCard key={m.id} membership={active} modality={m} onAccepted={onJoinedTeam} />
+            ))
         : null}
 
       <NextClassCard

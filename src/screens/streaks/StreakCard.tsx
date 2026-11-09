@@ -14,7 +14,7 @@ const STATE_ICON: Record<PeriodState, { icon: IconName; color: ColorToken; activ
 };
 
 /**
- * One streak ("ofensiva"): flame + count, today's state, freezes in stock,
+ * One streak ("disciplina"): flame + count, today's state, freezes in stock,
  * record and the last periods (flame, ice, miss, open).
  *  - flame lit (accent, filled): the current day/week is done;
  *  - flame outline: streak alive, still to do today/this week;
