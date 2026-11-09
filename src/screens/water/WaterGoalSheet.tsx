@@ -1,4 +1,4 @@
-import { FeedbackSheet, KimiMascot } from '@components';
+import { FeedbackSheet } from '@components';
 
 import { formatMl } from './format';
 
@@ -26,7 +26,7 @@ export function WaterGoalSheet({
       tone="water"
       title={isLimit ? 'Limite do dia cumprido.' : 'Meta do dia batida.'}
       message={`${formatMl(totalMl)} ml hoje.${days}`}
-      mascot={<KimiMascot size="feedback" pose="streak" />}
+      pose="streak"
       actionLabel="Continuar"
       onAction={onAction}
     />

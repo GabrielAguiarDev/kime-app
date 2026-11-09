@@ -146,6 +146,7 @@ object KimiTokens {
     val mascotHero = 200.dp
     val mascotEmpty = 128.dp
     val mascotFeedback = 80.dp
+    val mascotSheet = 120.dp
     val touchTarget = 44.dp
     val reorderRow = 60.dp
     val filterChip = 32.dp

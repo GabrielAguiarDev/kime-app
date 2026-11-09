@@ -233,6 +233,7 @@ export const tokens = {
     "mascotHero": 200,
     "mascotEmpty": 128,
     "mascotFeedback": 80,
+    "mascotSheet": 120,
     "touchTarget": 44,
     "reorderRow": 60,
     "filterChip": 32

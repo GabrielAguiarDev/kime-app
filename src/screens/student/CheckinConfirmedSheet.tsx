@@ -1,44 +1,22 @@
-import { BottomSheet, Box, Button, KimiMascot, Text } from '@components';
-import { useAppTheme } from '@theme';
+import { FeedbackSheet } from '@components';
 
 interface CheckinConfirmedSheetProps {
-  /** Confirmed check-ins since the last visit; null hides the sheet. */
-  count: number | null;
+  /** Confirmed check-ins since the last visit. */
+  count: number;
   total: number;
-  onClose: () => void;
+  onAction: () => void;
 }
 
-/**
- * Feedback for a confirmed check-in (3.10 content, success tone) shown in a
- * bottom sheet because Início already owns the screen footer.
- */
-export function CheckinConfirmedSheet({ count, total, onClose }: CheckinConfirmedSheetProps) {
-  const theme = useAppTheme();
-  const title = count && count > 1 ? `${count} check-ins confirmados.` : 'Check-in confirmado.';
-
+/** "Check-in confirmado." — the feedback sheet at the bottom of Início (success, animated guard). */
+export function CheckinConfirmedSheet({ count, total, onAction }: CheckinConfirmedSheetProps) {
   return (
-    <BottomSheet visible={count !== null} onRequestClose={onClose} dismissLabel="Continuar">
-      <Box
-        backgroundColor="feedbackSuccess"
-        borderTopWidth={theme.border.width}
-        borderColor="success"
-        borderRadius="lg"
-        padding="s16"
-        gap="s16"
-        marginBottom="s16"
-        accessibilityLiveRegion="polite"
-      >
-        <Box flexDirection="row" alignItems="center" gap="s12">
-          <KimiMascot size="feedback" />
-          <Box flex={1} gap="s4">
-            <Text variant="heading" accessibilityRole="header">
-              {title}
-            </Text>
-            <Text variant="body">{`${total} ${total === 1 ? 'aula confirmada' : 'aulas confirmadas'} no total.`}</Text>
-          </Box>
-        </Box>
-      </Box>
-      <Button title="Continuar" onPress={onClose} />
-    </BottomSheet>
+    <FeedbackSheet
+      tone="success"
+      title={count > 1 ? `${count} check-ins confirmados.` : 'Check-in confirmado.'}
+      message={`${total} ${total === 1 ? 'aula confirmada' : 'aulas confirmadas'} no total.`}
+      animated
+      actionLabel="Continuar"
+      onAction={onAction}
+    />
   );
 }

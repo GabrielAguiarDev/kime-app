@@ -2,14 +2,17 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 
-import { AcademyLogo, Box, FeedbackSheet, HeaderButton, HeaderMenu, Icon, KimiMascot, Screen, Text } from '@components';
+import { AcademyLogo, Box, FeedbackSheet, HeaderButton, HeaderMenu, Icon, Screen, Text } from '@components';
+import { useModalityStats } from '@domain/Classes';
 import { useWaterDay } from '@domain/Water';
 import { StaffHome } from '@screens/staff/StaffHome';
+import { CheckinConfirmedSheet } from '@screens/student/CheckinConfirmedSheet';
 import { StudentHome } from '@screens/student/StudentHome';
 import { WaterCounter } from '@screens/water/WaterCounter';
 import { WaterGoalSheet } from '@screens/water/WaterGoalSheet';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
+import { useClassRewards } from '@services/classRewards';
 import { useSession } from '@services/session';
 import { useJoinRequestNotices } from '@services/joinRequests';
 import { useStreakNotices } from '@services/streaks';
@@ -58,6 +61,13 @@ export function HomeScreen() {
   const streak = useStreakNotices();
   // Accepted a competition team invite (the invite card is gone by then): "Bem-vindo à equipe."
   const [joinedTeam, setJoinedTeam] = useState(false);
+  // Student rewards since the last visit: belt/milestone open the achievement screen; a
+  // confirmed check-in is a feedback sheet here. Staff: no academy → nothing detected.
+  const rewardsAcademyId = isStaff ? undefined : active?.gymId;
+  const rewards = useClassRewards(rewardsAcademyId, userId);
+  const modalityStats = useModalityStats(rewardsAcademyId);
+  const confirmedTotal =
+    modalityStats.data?.find((s) => s.userId === userId && s.modalityId === selected?.id)?.confirmedTotal ?? 0;
 
   return (
     <Screen
@@ -115,10 +125,12 @@ export function HomeScreen() {
           <FeedbackSheet
             tone="success"
             title="Bem-vindo à equipe."
-            mascot={<KimiMascot size="feedback" pose="team" />}
+            pose="team"
             actionLabel="Continuar"
             onAction={() => setJoinedTeam(false)}
           />
+        ) : rewards.confirmedCount !== null ? (
+          <CheckinConfirmedSheet count={rewards.confirmedCount} total={confirmedTotal} onAction={rewards.dismissConfirmed} />
         ) : goalFeedback.visible && water ? (
           <WaterGoalSheet
             isLimit={!!waterSettings?.isLimit}
@@ -131,7 +143,7 @@ export function HomeScreen() {
             key={`${streak.notice.kind}.${streak.notice.count}`}
             tone="accent"
             title={streak.notice.record ? 'Novo recorde.' : 'Nada mal.'}
-            mascot={<KimiMascot size="feedback" pose="streak" />}
+            pose="streak"
             message={
               streak.notice.kind === 'water'
                 ? `${streak.notice.count} dias seguidos cumprindo o objetivo de água.`

@@ -12,34 +12,19 @@ import Animated, {
 import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 
 import { GUARD_EYES, type GuardEye } from './guardEyesShapes';
+import { MASCOT_MOTION, type Range } from './motion';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-/** Eyelid: half the blink down, half up (~150 ms in all). */
-const BLINK_HALF_MS = 75;
-/** Pause between the two blinks of a double blink. */
-const DOUBLE_BLINK_GAP_MS = 90;
-/** Chance of a double blink. */
-const DOUBLE_BLINK_CHANCE = 0.25;
-const BLINK_EVERY_MS: [number, number] = [3000, 7000];
-
-/** Pupils move this much (SVG units) sideways, stay, and come back. */
-const LOOK_OFFSET = 20;
-const LOOK_MOVE_MS = 180;
-const LOOK_HOLD_MS = 1000;
-const LOOK_EVERY_MS: [number, number] = [8000, 15000];
-
-/** Angry brows stay this long. */
-const ANGER_HOLD_MS = 1000;
-const ANGER_FADE_MS = 120;
+const { blink: BLINK, look: LOOK, anger: ANGER } = MASCOT_MOTION;
 
 /** At rest the eyelid sits this far above its closed position: out of the clipped eye. */
 const LID_CLEARANCE = 20;
 
-const between = ([min, max]: [number, number]) => min + Math.random() * (max - min);
+const between = ([min, max]: Range) => min + Math.random() * (max - min);
 
 export interface GuardEyesHandle {
   blink: () => void;
@@ -54,11 +39,11 @@ interface GuardEyesProps {
 }
 
 function blinkTo(lid: SharedValue<number>, double: boolean) {
-  const down = () => withTiming(1, { duration: BLINK_HALF_MS });
-  const up = () => withTiming(0, { duration: BLINK_HALF_MS });
+  const down = () => withTiming(1, { duration: BLINK.halfMs });
+  const up = () => withTiming(0, { duration: BLINK.halfMs });
   lid.set(
     double
-      ? withSequence(down(), up(), withDelay(DOUBLE_BLINK_GAP_MS, down()), up())
+      ? withSequence(down(), up(), withDelay(BLINK.doubleGapMs, down()), up())
       : withSequence(down(), up()),
   );
 }
@@ -81,35 +66,71 @@ export function GuardEyes({ idle, ref }: GuardEyesProps) {
       blink: () => blinkTo(lid, false),
       angry: () => {
         anger.set(withSequence(
-          withTiming(1, { duration: ANGER_FADE_MS }),
-          withDelay(ANGER_HOLD_MS, withTiming(0, { duration: ANGER_FADE_MS })),
+          withTiming(1, { duration: ANGER.fadeMs }),
+          withDelay(ANGER.holdMs, withTiming(0, { duration: ANGER.fadeMs })),
         ));
       },
     }),
     [lid, anger],
   );
 
-  // Idle loop: only while visible (`idle`) and the app is in the foreground.
+  // Idle loop: only while visible (`idle`) and the app is in the foreground. Blinks and
+  // glances run on their own timers; a blink due right around a glance happens mid-move.
   useEffect(() => {
     if (!idle) return;
     let blinkTimer: ReturnType<typeof setTimeout> | undefined;
     let lookTimer: ReturnType<typeof setTimeout> | undefined;
+    let nextBlinkAt = 0;
 
-    const scheduleBlink = () => {
+    const scheduleBlink = (delay = between(BLINK.every)) => {
+      clearTimeout(blinkTimer);
+      nextBlinkAt = Date.now() + delay;
       blinkTimer = setTimeout(() => {
-        blinkTo(lid, Math.random() < DOUBLE_BLINK_CHANCE);
+        blinkTo(lid, Math.random() < BLINK.doubleChance);
         scheduleBlink();
-      }, between(BLINK_EVERY_MS));
+      }, delay);
     };
-    const scheduleLook = () => {
-      lookTimer = setTimeout(() => {
+
+    /** One glance; returns how long it takes (ms). */
+    const glance = (): number => {
+      const roll = Math.random();
+      const move = () => between(LOOK.moveMs);
+      if (roll < LOOK.centerChance) return 0; // keeps looking ahead this time
+      let firstMove: number;
+      let total: number;
+      if (roll < LOOK.centerChance + LOOK.doubleChance) {
+        // Quick double: left, then right (checking both sides), then back.
+        const [m1, m2, m3] = [move(), move(), move()];
+        const stop1 = between(LOOK.doubleFirstHoldMs);
+        const hold = between(LOOK.holdMs);
+        look.set(
+          withSequence(
+            withTiming(-1, { duration: m1 }),
+            withDelay(stop1, withTiming(1, { duration: m2 })),
+            withDelay(hold, withTiming(0, { duration: m3 })),
+          ),
+        );
+        firstMove = m1;
+        total = m1 + stop1 + m2 + hold + m3;
+      } else {
         const side = Math.random() < 0.5 ? -1 : 1;
-        look.set(withSequence(
-          withTiming(side, { duration: LOOK_MOVE_MS }),
-          withDelay(LOOK_HOLD_MS, withTiming(0, { duration: LOOK_MOVE_MS })),
-        ));
-        scheduleLook();
-      }, between(LOOK_EVERY_MS));
+        const [m1, m2] = [move(), move()];
+        const hold = between(LOOK.holdMs);
+        look.set(withSequence(withTiming(side, { duration: m1 }), withDelay(hold, withTiming(0, { duration: m2 }))));
+        firstMove = m1;
+        total = m1 + hold + m2;
+      }
+      // A blink about to happen anyway: in the middle of the move, more natural.
+      if (nextBlinkAt - Date.now() < BLINK.syncWindowMs) scheduleBlink(firstMove / 2);
+      return total;
+    };
+
+    const scheduleLook = (delay = between(LOOK.every)) => {
+      lookTimer = setTimeout(() => {
+        const took = glance();
+        // Next glance counted from this one's start, never before it ends.
+        scheduleLook(Math.max(between(LOOK.every), took + LOOK.moveMs[1]));
+      }, delay);
     };
     const start = () => {
       scheduleBlink();
@@ -166,8 +187,8 @@ function Eye({ eye, clipId, lid, look, anger }: EyeProps) {
   const restOffset = eyelid.height + LID_CLEARANCE;
 
   const lidProps = useAnimatedProps(() => ({ y: eyelid.y - restOffset * (1 - lid.value) }));
-  const pupilProps = useAnimatedProps(() => ({ cx: pupil.cx + LOOK_OFFSET * look.value }));
-  const shineProps = useAnimatedProps(() => ({ cx: shine.cx + LOOK_OFFSET * look.value }));
+  const pupilProps = useAnimatedProps(() => ({ cx: pupil.cx + LOOK.offset * look.value }));
+  const shineProps = useAnimatedProps(() => ({ cx: shine.cx + LOOK.offset * look.value }));
   const angryProps = useAnimatedProps(() => ({ opacity: anger.value }));
   const browProps = useAnimatedProps(() => ({ opacity: 1 - anger.value }));
 

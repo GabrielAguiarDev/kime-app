@@ -215,7 +215,11 @@ Retângulo de 28×10 com a cor da faixa (com borda quando for branca ou preta no
 Equivalente à faixa "Correto!" do Duolingo. Aparece na base da tela após uma ação importante.
 
 - Fundo da cor semântica a 15%, borda superior 2px na cor cheia.
-- Ícone + título heading + uma linha body, e um botão tátil para continuar.
+- Um só componente para todas as mensagens de feedback (inclusive "Check-in confirmado"), colado na base da tela.
+- Padding: 20 em cima e nas laterais; embaixo, área segura + 12.
+- Linha de conteúdo: título (heading) e mensagem (body) com 4pt entre eles. À esquerda, o mascote em recorte de busto (`crop="bust"`, cerca de 120pt de altura), com a base alinhada à base da linha, ou seja, 16pt acima do botão, como o texto, sem espaço extra. Ele não entra na altura da folha, e a parte de cima pode passar da borda superior sem ser cortada. O texto fica alinhado pela base com o mascote e começa 12pt depois do ponto mais à direita do mascote na altura do texto: se as pontas da faixa (ou punhos) estiverem nessa altura, o texto começa depois delas. O contorno de cada busto é gerado por `node scripts/brand/mascot-bust-profile.mjs` (`bustProfile.ts`). Folhas de erro/aviso usam ícone no lugar do mascote, centralizado com o texto.
+- 16pt entre a linha de conteúdo e o botão de largura total. A altura é a soma desses elementos, sem mínimo.
+- Poses: entrada na equipe `team`; disciplina aumentou, novo recorde e meta de água batida `streak`; check-in confirmado `guard` animado. Folhas de erro/aviso usam ícone no lugar do mascote.
 - Usos: check-in enviado, meta de água batida, marco de aulas, nova faixa.
 
 ### 3.11 Estados vazios
@@ -255,12 +259,13 @@ O mascote é um ninja de corpo inteiro: cabeça redonda preta, faixa laranja na 
 - Componente `KimiMascot` (`pose`, padrão `guard`; `animated`, padrão desligado). Só a pose `guard` anima; as outras são sempre estáticas.
 - **Guard animado:** `guard-no-eyes.png` com `guard-eyes.svg` por cima, no mesmo tamanho e posição (sobreposição 1:1). Os olhos são vetoriais (react-native-svg) e se movem com react-native-reanimated:
   - **Piscar** a cada 3 a 7 s (às vezes piscada dupla): as pálpebras (`eyelid-*`) descem e sobem em cerca de 150 ms. Em repouso ficam acima do olho, fora da área recortada.
-  - **Olhar para o lado** a cada 8 a 15 s: as pupilas (`pupil-*`, com o brilho) deslocam cerca de 20 unidades, ficam 1 s e voltam.
+  - **Olhar em volta** a cada 2,5 a 5 s: esquerda ou direita, e às vezes fica olhando para a frente. Em cerca de 1 a cada 4 vezes, olhar rápido duplo (esquerda e logo direita). As pupilas (`pupil-*`, com o brilho) deslocam cerca de 20 unidades em 150 a 200 ms, ficam 0,6 a 1,5 s no lado e voltam. A piscada continua independente; se ela coincidir com um olhar, acontece no meio do movimento. Intervalos em `src/components/KimiMascot/motion.ts`.
   - **Raiva:** as sobrancelhas `brow-*` dão lugar a `brow-*-angry` por cerca de 1 s. Ao tocar no mascote e em erros (estado vazio de erro).
   - Discreto. Pausado quando a tela não está em foco ou o app está em segundo plano. Com "Reduzir movimento", o mascote é o `guard.png` estático.
 - **Professor:** mascote animado só na abertura do app e nos estados vazios; no resto, estático.
 - Nunca em listas, cards comuns ou na tab bar.
-- Tamanhos (o mascote agora tem o corpo inteiro): 200 em telas de marco, onboarding e abertura do app; 128 em estados vazios e na Jornada; 80 na folha de feedback e no balão.
+- Tamanhos (o mascote agora tem o corpo inteiro): 200 em telas de marco, onboarding e abertura do app; 128 em estados vazios e na Jornada; 80 no balão; 120 de altura no busto da folha de feedback.
+- **Recorte de busto** (`crop="bust"`): mostra só a janela da cabeça à cintura de cada pose, sem distorcer (a imagem inteira é desenhada e recortada por um container com overflow oculto; no guard animado, base e olhos são recortados juntos). Janelas em `src/components/KimiMascot/poses.ts` (`BUST_WINDOWS`; depois de mudar, rode `node scripts/brand/mascot-bust-profile.mjs`, coordenadas da imagem 1254×1254): guard 180, 206, 1020×760; team 180, 137; streak 180, 48; graduation 180, 87 (todas 1020×760); thirsty 150, 96, 1050×760 (inclui a garrafa).
 - Nunca recolorir, distorcer ou adicionar contornos e sombras.
 - Os olhos do código vêm do `guard-eyes.svg` (`node scripts/brand/mascot-eyes.mjs` gera `guardEyesShapes.ts`); depois de mudar o SVG, rode o script.
 
@@ -378,7 +383,7 @@ Em formulários, escolhas viram cards tocáveis como as respostas do Duolingo, e
 | Situação | Pose | Onde |
 | --- | --- | --- |
 | Padrão, estados vazios, lembretes | `guard` animado | Estados vazios, balões, Jornada |
-| Check-in confirmado | `guard` | Folha de check-in |
+| Check-in confirmado | `guard` animado (busto) | Folha de check-in |
 | Disciplina aumentou, recorde, meta de água batida | `streak` | Folha de feedback |
 | Entrada na equipe de competição | `team` | Folha de feedback |
 | Nova faixa | `graduation` | Tela de conquista |
