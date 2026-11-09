@@ -38,6 +38,7 @@ import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
@@ -61,13 +62,16 @@ private sealed interface WaterState {
   /** No bottle configured: the button cannot work, open the bottle setup. */
   data object NoBottle : WaterState
 
-  data class Ready(val totalMl: Int, val goalMl: Int?, val bottleMl: Int, val isLimit: Boolean) : WaterState
+  /** [thirsty]: nothing logged today and it is past [WaterStore.THIRSTY_HOUR]; the mascot replaces the ring. */
+  data class Ready(val totalMl: Int, val goalMl: Int?, val bottleMl: Int, val isLimit: Boolean, val thirsty: Boolean) : WaterState
 }
 
 private fun loadState(context: Context): Pair<WaterState, WaterStore.Config?> {
   val config = WaterStore.config(context) ?: return WaterState.SignedOut to null
   val bottle = config.bottleMl ?: return WaterState.NoBottle to config
-  return WaterState.Ready(WaterStore.totalForDay(context, config), config.goalOn(), bottle, config.isLimitOn()) to config
+  val total = WaterStore.totalForDay(context, config)
+  val thirsty = total == 0 && WaterStore.isThirstyHour(config)
+  return WaterState.Ready(total, config.goalOn(), bottle, config.isLimitOn(), thirsty) to config
 }
 
 /**
@@ -83,7 +87,9 @@ class WaterWidget : GlanceAppWidget() {
   override val sizeMode = SizeMode.Responsive(setOf(SMALL, MEDIUM))
 
   override suspend fun provideGlance(context: Context, id: GlanceId) {
-    WaterWidgetAlarm.scheduleMidnight(context, WaterStore.config(context))
+    val config = WaterStore.config(context)
+    WaterWidgetAlarm.scheduleMidnight(context, config)
+    WaterWidgetAlarm.scheduleThirstyHour(context, config)
     provideContent {
       // Read inside the composition and keyed on the store version: a session
       // that stays alive (taps a few seconds apart, app writes, midnight) shows
@@ -167,7 +173,7 @@ private fun EmptyMessage(text: String, showBottle: Boolean = false) {
 private fun SmallLayout(state: WaterState.Ready) {
   Column(modifier = GlanceModifier.fillMaxSize()) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-      Ring(state, KimiTokens.Size.widgetRing)
+      RingOrThirsty(state, KimiTokens.Size.widgetRing)
       Spacer(GlanceModifier.width(KimiTokens.Space.s8))
       Column {
         // Barlow Condensed is not available to RemoteViews: system font, same weight and size steps.
@@ -191,7 +197,7 @@ private fun SmallLayout(state: WaterState.Ready) {
 @Composable
 private fun MediumLayout(state: WaterState.Ready) {
   Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-    Ring(state, KimiTokens.Size.widgetRingMedium)
+    RingOrThirsty(state, KimiTokens.Size.widgetRingMedium)
     Spacer(GlanceModifier.width(KimiTokens.Space.s16))
     Column(modifier = GlanceModifier.defaultWeight()) {
       // `title` instead of display-lg: display-lg plus caption and button do not fit
@@ -253,6 +259,21 @@ private fun AddButton(bottleMl: Int) {
         fontWeight = FontWeight.Bold,
       ),
     )
+  }
+}
+
+/** The ring, or the thirsty mascot in the ring's frame (decorative: the total text stays). */
+@Composable
+private fun RingOrThirsty(state: WaterState.Ready, diameter: Dp) {
+  if (state.thirsty) {
+    Image(
+      provider = ImageProvider(R.drawable.kimi_thirsty),
+      contentDescription = null,
+      contentScale = ContentScale.Fit,
+      modifier = GlanceModifier.size(diameter),
+    )
+  } else {
+    Ring(state, diameter)
   }
 }
 

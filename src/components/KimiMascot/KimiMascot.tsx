@@ -1,132 +1,108 @@
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import { View } from 'react-native';
+import { Image } from 'expo-image';
+import { useIsFocused } from 'expo-router';
+import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
+import { Pressable, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import Rive, { Fit, type RiveRef } from 'rive-react-native';
 
-import { BELT_COLOR_KEYS, BELT_EXTRA_COLOR_KEYS } from '@domain/Classes/classesRules';
-import type { BeltColorKey } from '@domain/Classes/classesTypes';
 import { useAppTheme } from '@theme';
 
-import { Mascot, type MascotExpression, type MascotSize } from '../Mascot/Mascot';
-import KIMI_RIV from './kimiRiv';
+import { GuardEyes, type GuardEyesHandle } from './GuardEyes';
 
-/** Names inside assets/brand/kimi.riv (DEVELOPMENT.md, "Animações do mascote (Rive)"). */
-export const KIMI_ARTBOARD = 'Kimi';
-export const KIMI_STATE_MACHINE = 'Kimi';
+// Poses (DESIGN-SYSTEM.md, section 4): 1254×1254, transparent, same head scale, feet on the
+// same line. Never recolor, distort, or add outlines/shadows.
+const POSES = {
+  guard: require('../../../assets/mascot/guard.png'),
+  team: require('../../../assets/mascot/team.png'),
+  streak: require('../../../assets/mascot/streak.png'),
+  graduation: require('../../../assets/mascot/graduation.png'),
+  thirsty: require('../../../assets/mascot/thirsty.png'),
+} as const;
+const GUARD_NO_EYES = require('../../../assets/mascot/guard-no-eyes.png');
 
-/** Trigger inputs of the "Kimi" state machine. Every animation leaves and returns to the idle state. */
-export type KimiTrigger = 'intro' | 'joinTeam' | 'streak' | 'graduate' | 'celebrate' | 'error';
+export type KimiPose = keyof typeof POSES;
 
-/**
- * Number sent to the `beltColor` input: the position of the color in the main
- * palette followed by the variations (white 0 … red 9, light_gray 10 … dark_red 19).
- */
-export function beltColorInput(key: BeltColorKey): number {
-  return [...BELT_COLOR_KEYS, ...BELT_EXTRA_COLOR_KEYS].indexOf(key);
-}
-
-/** True when the Rive mascot can play: the file exists and "Reduce motion" is off. */
-export function useKimiAnimates(): boolean {
-  const reduceMotion = useReducedMotion();
-  return KIMI_RIV !== null && !reduceMotion;
-}
+/** hero: achievements, onboarding and the app intro; empty: empty states and the Jornada; feedback: feedback sheet and balloon. */
+export type MascotSize = 'hero' | 'empty' | 'feedback';
 
 export interface KimiMascotHandle {
-  /** Fires a trigger input. Does nothing while static (no file, reduce motion, `still`) or still loading. */
-  fire: (trigger: KimiTrigger) => void;
+  /** Angry brows for ~1 s. Does nothing while static. */
+  angry: () => void;
+  /** One blink. Does nothing while static. */
+  blink: () => void;
 }
 
 export interface KimiMascotProps {
   size: MascotSize;
-  /** Expression of the static SVG (fallback). */
-  expression?: MascotExpression;
-  /** Trigger fired once, as soon as the state machine starts. */
-  play?: KimiTrigger;
-  /** Color of the new belt (`beltColor` input), set before `play`. */
-  beltColor?: BeltColorKey | null;
-  isAngry?: boolean;
-  coverEyes?: boolean;
-  /** Where the eyes look, 0 (left) to 100 (right). */
-  lookX?: number;
-  /** Always the static SVG (e.g. staff screens). */
-  still?: boolean;
-  /** Called when the animation starts playing (never while static). */
-  onStart?: () => void;
+  /** Default `guard`. */
+  pose?: KimiPose;
+  /** Micro-animations (blinks, glances, angry brows on tap). Only the `guard` pose animates. */
+  animated?: boolean;
+  /** Plays the angry brows when it turns true (also on mount), e.g. an error. */
+  angry?: boolean;
+  /** Rendered outside a navigator screen (the app intro): screen focus is not tracked. */
+  outsideScreen?: boolean;
   ref?: Ref<KimiMascotHandle>;
 }
 
 /**
- * Kimi mascot with the Rive state machine (assets/brand/kimi.riv). Shows the
- * static SVG (same props) while the file does not exist, when the user turned
- * on "Reduce motion", with `still`, or if the file fails to load.
+ * Kimi mascot. Static PNG of the pose; `guard` + `animated` stacks guard-no-eyes.png and the
+ * vector eyes (GuardEyes). Static with "Reduce motion". The idle loop pauses while the
+ * screen is not focused or the app is in the background.
  */
-export function KimiMascot({
-  size,
-  expression,
-  play,
-  beltColor,
-  isAngry,
-  coverEyes,
-  lookX,
-  still = false,
-  onStart,
-  ref,
-}: KimiMascotProps) {
+export function KimiMascot({ size, pose = 'guard', animated = false, angry, outsideScreen, ref }: KimiMascotProps) {
   const { size: sizes } = useAppTheme();
-  const animates = useKimiAnimates();
-  const [failed, setFailed] = useState(false);
-  const [started, setStarted] = useState(false);
-  const rive = useRef<RiveRef>(null);
-  const played = useRef(false);
-  const live = animates && !still && !failed && KIMI_RIV !== null;
+  const reduceMotion = useReducedMotion();
+  const px = { hero: sizes.mascotHero, empty: sizes.mascotEmpty, feedback: sizes.mascotFeedback }[size];
+
+  if (!animated || pose !== 'guard' || reduceMotion) {
+    return <Image source={POSES[pose]} style={{ width: px, height: px }} contentFit="contain" accessible={false} />;
+  }
+  return outsideScreen ? (
+    <AnimatedGuard px={px} focused angry={angry} handleRef={ref} />
+  ) : (
+    <FocusedGuard px={px} angry={angry} handleRef={ref} />
+  );
+}
+
+interface AnimatedGuardProps {
+  px: number;
+  focused: boolean;
+  angry?: boolean;
+  handleRef?: Ref<KimiMascotHandle>;
+}
+
+function FocusedGuard(props: Omit<AnimatedGuardProps, 'focused'>) {
+  return <AnimatedGuard {...props} focused={useIsFocused()} />;
+}
+
+function AnimatedGuard({ px, focused, angry, handleRef }: AnimatedGuardProps) {
+  const eyes = useRef<GuardEyesHandle>(null);
 
   useImperativeHandle(
-    ref,
+    handleRef,
     () => ({
-      fire: (trigger) => {
-        if (live && started) rive.current?.fireState(KIMI_STATE_MACHINE, trigger);
-      },
+      angry: () => eyes.current?.angry(),
+      blink: () => eyes.current?.blink(),
     }),
-    [live, started],
+    [],
   );
 
-  // State inputs follow the props once the state machine is running.
   useEffect(() => {
-    const r = rive.current;
-    if (!live || !started || !r) return;
-    if (beltColor) r.setInputState(KIMI_STATE_MACHINE, 'beltColor', beltColorInput(beltColor));
-    if (isAngry !== undefined) r.setInputState(KIMI_STATE_MACHINE, 'isAngry', isAngry);
-    if (coverEyes !== undefined) r.setInputState(KIMI_STATE_MACHINE, 'coverEyes', coverEyes);
-    if (lookX !== undefined) r.setInputState(KIMI_STATE_MACHINE, 'lookX', Math.min(100, Math.max(0, lookX)));
-  }, [live, started, beltColor, isAngry, coverEyes, lookX]);
+    if (angry) eyes.current?.angry();
+  }, [angry]);
 
-  // Declared after the inputs: `beltColor` is already set when `graduate` fires.
-  useEffect(() => {
-    if (!live || !started || !play || played.current) return;
-    played.current = true;
-    rive.current?.fireState(KIMI_STATE_MACHINE, play);
-  }, [live, started, play]);
-
-  if (!live || KIMI_RIV === null) return <Mascot size={size} expression={expression} />;
-
-  const px = { hero: sizes.mascotHero, empty: sizes.mascotEmpty, feedback: sizes.mascotFeedback }[size];
   return (
-    <View accessible={false} importantForAccessibility="no-hide-descendants" style={{ width: px, height: px }}>
-      <Rive
-        ref={rive}
-        source={KIMI_RIV}
-        artboardName={KIMI_ARTBOARD}
-        stateMachineName={KIMI_STATE_MACHINE}
-        autoplay
-        fit={Fit.Contain}
-        style={{ width: px, height: px }}
-        onPlay={() => {
-          if (started) return;
-          setStarted(true);
-          onStart?.();
-        }}
-        onError={() => setFailed(true)}
-      />
-    </View>
+    // Decorative: a tap only makes him angry.
+    <Pressable
+      onPress={() => eyes.current?.angry()}
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: px, height: px }}
+    >
+      <View style={{ width: px, height: px }}>
+        <Image source={GUARD_NO_EYES} style={{ width: px, height: px }} contentFit="contain" accessible={false} />
+        <GuardEyes idle={focused} ref={eyes} />
+      </View>
+    </Pressable>
   );
 }

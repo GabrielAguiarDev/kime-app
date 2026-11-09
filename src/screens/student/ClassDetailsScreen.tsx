@@ -41,6 +41,8 @@ export function ClassDetailsScreen() {
       ) : !schedule || !date ? <EmptyState title="Aula não encontrada." /> : (
         <FlatList
           contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
           style={{ flex: 1, backgroundColor: theme.colors.bg }}
           contentContainerStyle={{ paddingHorizontal: theme.spacing.screenMargin, paddingBottom: theme.spacing.s24 }}
           data={people}

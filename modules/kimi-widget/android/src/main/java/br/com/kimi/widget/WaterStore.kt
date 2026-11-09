@@ -28,6 +28,9 @@ object WaterStore {
   const val CONFIG_KEY = "water.config"
   const val LOG_PREFIX = "water.log."
 
+  /** Local hour (profile time zone) from which a day with nothing logged shows the thirsty mascot. */
+  const val THIRSTY_HOUR = 18
+
   data class Config(
     val userId: String,
     val bottleMl: Int?,
@@ -129,6 +132,22 @@ object WaterStore {
     calendar.set(Calendar.MINUTE, 0)
     calendar.set(Calendar.SECOND, 0)
     calendar.set(Calendar.MILLISECOND, 0)
+    return calendar.timeInMillis
+  }
+
+  /** True from [THIRSTY_HOUR]:00 on, in the profile time zone. */
+  fun isThirstyHour(config: Config, now: Date = Date()): Boolean =
+    Calendar.getInstance(config.timeZone).apply { time = now }.get(Calendar.HOUR_OF_DAY) >= THIRSTY_HOUR
+
+  /** Next [THIRSTY_HOUR]:00 in the profile time zone (today's when still ahead, else tomorrow's). */
+  fun nextThirstyHour(config: Config?, now: Date = Date()): Long {
+    val calendar = Calendar.getInstance(config?.timeZone ?: TimeZone.getDefault())
+    calendar.time = now
+    calendar.set(Calendar.HOUR_OF_DAY, THIRSTY_HOUR)
+    calendar.set(Calendar.MINUTE, 0)
+    calendar.set(Calendar.SECOND, 0)
+    calendar.set(Calendar.MILLISECOND, 0)
+    if (calendar.timeInMillis <= now.time) calendar.add(Calendar.DAY_OF_YEAR, 1)
     return calendar.timeInMillis
   }
 }

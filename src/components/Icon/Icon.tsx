@@ -5,6 +5,7 @@ import { ArrowLeft } from 'phosphor-react-native/src/icons/ArrowLeft';
 import { ArrowUp } from 'phosphor-react-native/src/icons/ArrowUp';
 import { ArrowsDownUp } from 'phosphor-react-native/src/icons/ArrowsDownUp';
 import { Barbell } from 'phosphor-react-native/src/icons/Barbell';
+import { Bug } from 'phosphor-react-native/src/icons/Bug';
 import { Camera } from 'phosphor-react-native/src/icons/Camera';
 import { CalendarBlank } from 'phosphor-react-native/src/icons/CalendarBlank';
 import { CaretDownIcon as CaretDown } from 'phosphor-react-native/src/icons/CaretDown';
@@ -90,6 +91,7 @@ const ICONS = {
   apple: AppleLogo,
   back: ArrowLeft,
   barbell: Barbell,
+  bug: Bug,
   belt: GraduationCap,
   camera: Camera,
   image: Image,

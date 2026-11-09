@@ -8,7 +8,6 @@ import { errorMessage } from '@infra';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
 import { haptics } from '@utils/haptics';
 
-import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
 
 import { formatMl, formatTime } from './format';
@@ -34,7 +33,6 @@ export function WaterScreen() {
   const goalMl = settings?.goalMl ?? null;
   const isLimit = settings?.isLimit ?? false;
   const totalMl = day.data?.totalMl ?? 0;
-  const { isStaff } = useActiveGym();
   const goalFeedback = useWaterGoalFeedback(userId, day.data?.date, day.data?.totalMl, goalMl, isLimit);
   const water = useWaterStreak(userId, timeZone, goalMl, isLimit);
   const { modalities } = useActiveModality();
@@ -107,7 +105,6 @@ export function WaterScreen() {
             isLimit={!!isLimit}
             totalMl={totalMl}
             streak={water.streak?.current}
-            still={isStaff}
             onAction={goalFeedback.dismiss}
           />
         ) : undefined

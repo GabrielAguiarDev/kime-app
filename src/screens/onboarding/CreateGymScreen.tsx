@@ -2,7 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Share } from 'react-native';
 
-import { BigCounter, Box, Button, Card, Mascot, ProgressBar, Screen, Text, TextButton } from '@components';
+import { BigCounter, Box, Button, Card, KimiMascot, ProgressBar, Screen, Text, TextButton } from '@components';
 import {
   DEFAULT_PLAN,
   isValidAcademyName,
@@ -200,7 +200,7 @@ function Done({ gymId, name, logoSaved }: { gymId: string; name: string; logoSav
     >
       <Stack.Screen options={{ gestureEnabled: false }} />
       <Box flex={1} alignItems="center" justifyContent="center" gap="s24">
-        <Mascot expression="celebrating" size="hero" />
+        <KimiMascot size="hero" />
         <Text variant="title" textAlign="center" accessibilityRole="header">
           Sua academia está pronta
         </Text>

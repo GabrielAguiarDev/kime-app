@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, Alert } from 'react-native';
 
-import { AcademyLogo, Box, Card, Mascot, Screen, StatusBadge, Text, TextButton } from '@components';
+import { AcademyLogo, Box, Card, KimiMascot, Screen, StatusBadge, Text, TextButton } from '@components';
 import { useLeaveGym } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
@@ -83,7 +83,7 @@ export function WaitingScreen() {
         <Text variant="title" textAlign="center">
           {first.gymName}
         </Text>
-        <Mascot size="empty" />
+        <KimiMascot size="empty" />
         <Text variant="body" color="textMuted" textAlign="center">
           Pedido enviado. Aguardando aprovação {approver}.
         </Text>

@@ -230,9 +230,9 @@ export const tokens = {
     "iconInline": 20,
     "icon": 24,
     "iconEmpty": 48,
-    "mascotHero": 160,
-    "mascotEmpty": 96,
-    "mascotFeedback": 56,
+    "mascotHero": 200,
+    "mascotEmpty": 128,
+    "mascotFeedback": 80,
     "touchTarget": 44,
     "reorderRow": 60,
     "filterChip": 32

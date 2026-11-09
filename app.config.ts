@@ -22,10 +22,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        image: './assets/splash-icon.png',
-        imageWidth: tokens.size.mascotHero,
-        // The app opens in the dark theme by default (the user can change it in Perfil),
-        // so the splash is dark regardless of the system appearance.
+        // Background color only, no image: the app intro (screens/intro/AppIntro) draws the
+        // mascot and hides this splash once it is on screen. The app opens in the dark
+        // theme by default, so the splash is dark regardless of the system appearance.
         backgroundColor: tokens.color.dark.bg,
       },
     ],

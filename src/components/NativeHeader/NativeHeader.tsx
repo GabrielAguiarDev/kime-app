@@ -46,6 +46,9 @@ export function useNativeHeaderOptions(): NativeStackNavigationOptions {
       headerTransparent: true,
       // Blur only on the compact (standard) appearance; the large-title area stays clear.
       headerBlurEffect: 'systemChromeMaterialDark',
+      // iOS 26 adds its own top scroll-edge effect under the bar; with the blur above they
+      // overlap (react-native-screens warns). Keep only the blur.
+      scrollEdgeEffects: { top: 'hidden' },
       headerLargeStyle: { backgroundColor: 'transparent' },
       headerShadowVisible: false,
       headerLargeTitleShadowVisible: false,

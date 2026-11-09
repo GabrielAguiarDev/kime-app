@@ -285,6 +285,7 @@ function PresetChips({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      showsVerticalScrollIndicator={false}
       style={{ marginHorizontal: -spacing.screenMargin }}
       contentContainerStyle={{ paddingHorizontal: spacing.screenMargin, gap: spacing.s8 }}
       accessibilityLabel="Predefinições"

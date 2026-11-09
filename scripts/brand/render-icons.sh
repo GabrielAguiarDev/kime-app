@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerates the Android icon layers, favicon and splash from the brand sources in
+# Regenerates the Android icon layers and favicon from the brand sources in
 # assets/brand (macOS only). Then run `npx expo prebuild --clean` so the native projects
 # pick them up.
 #
@@ -21,7 +21,6 @@ ICON=$B/kimi-icon-light.png
 "$TMP/render" "$ICON" assets/android-icon-foreground.png 512 512 0.14
 "$TMP/monochrome" "$ICON" assets/android-icon-monochrome.png 432 0.14
 
-# Web favicon and splash (default mascot).
+# Web favicon. (The native splash is the background color only: no image.)
 sips -s format png -z 48 48 "$ICON" --out assets/favicon.png >/dev/null
-"$TMP/render" $B/kimi-mascot.svg assets/splash-icon.png 1024 1024
 echo "Brand PNGs regenerated."

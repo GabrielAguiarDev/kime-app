@@ -220,7 +220,7 @@ Equivalente à faixa "Correto!" do Duolingo. Aparece na base da tela após uma a
 
 ### 3.11 Estados vazios
 
-Mascote em tamanho médio (ou ícone de 48 em text-muted em espaços pequenos), uma frase curta em body e, quando houver ação, um botão secundário. Nenhuma outra ilustração além do mascote.
+Mascote `guard` animado em tamanho 128 (ou ícone de 48 em text-muted em espaços pequenos), uma frase curta em body e, quando houver ação, um botão secundário. Nenhuma outra ilustração além do mascote.
 
 ### 3.13 Bottom sheet
 
@@ -239,20 +239,32 @@ Sem barras de rolagem visíveis em nenhuma lista ou tela (`showsVerticalScrollIn
 
 ## 4. Mascote e ícone do app
 
-O mascote é um ninja em forma de bloco: cabeça e corpo numa única forma arredondada, faixa laranja como máscara na altura dos olhos, pano do rosto em cinza mais claro, gola de quimono em V, faixa laranja na cintura, punhos e pés em tabi pequenos.
+O mascote é um ninja de corpo inteiro: cabeça redonda preta, faixa laranja na altura dos olhos amarrada atrás da cabeça, quimono preto com gola em V, faixa laranja na cintura e detalhes laranja nos punhos e tornozelos. A expressão fica nos olhos e nas sobrancelhas.
 
-| Parte | Cor |
-| --- | --- |
-| Corpo | `#2A2C30` |
-| Pano do rosto e gola | `#3A3D42` |
-| Máscara e faixa da cintura | accent (`#D9400A`) |
-| Olhos | `#FFFFFF`, pupilas `#2A2C30` com brilho branco |
+**Poses** (`assets/mascot/`, PNG 1254×1254, fundo transparente, mesma escala de cabeça e pés na mesma linha):
 
-- Expressões: **bravo** (padrão: topo dos olhos cortado na diagonal em direção ao centro) e **comemorando** (olhos redondos). Ele não tem boca; toda a expressão está nos olhos.
-- Onde aparece: estados vazios, folha de feedback (versão comemorando), onboarding e telas de marco (nova faixa, sequência). Nunca em listas, cards comuns ou na tab bar.
-- Tamanhos: 160 em telas de marco e onboarding, 96 em estados vazios, 56 na folha de feedback.
-- O mascote pode ter cantos mais arredondados que a interface; essa exceção vale só para ele.
-- Arquivos em `assets/brand/` como SVG. Nunca recolorir, distorcer ou adicionar contornos e sombras.
+| Pose | Arquivo | Onde |
+| --- | --- | --- |
+| `guard` (padrão) | `guard.png` | Todos os outros pontos (onboarding, folhas de feedback, marco de aulas, timer, guia do widget) |
+| `guard` animado | `guard-no-eyes.png` + `guard-eyes.svg` | Abertura do app (splash), estados vazios, balão da Início do aluno, Jornada |
+| `team` | `team.png` | Folha "Bem-vindo à equipe." ao entrar na equipe de competição |
+| `streak` | `streak.png` | Folhas de feedback da disciplina ("Nada mal.", "Novo recorde.", meta de água batida) |
+| `graduation` | `graduation.png` | Tela de conquista de nova faixa |
+| `thirsty` | `thirsty.png` | Widget de água a partir das 18h sem registro no dia |
+
+- Componente `KimiMascot` (`pose`, padrão `guard`; `animated`, padrão desligado). Só a pose `guard` anima; as outras são sempre estáticas.
+- **Guard animado:** `guard-no-eyes.png` com `guard-eyes.svg` por cima, no mesmo tamanho e posição (sobreposição 1:1). Os olhos são vetoriais (react-native-svg) e se movem com react-native-reanimated:
+  - **Piscar** a cada 3 a 7 s (às vezes piscada dupla): as pálpebras (`eyelid-*`) descem e sobem em cerca de 150 ms. Em repouso ficam acima do olho, fora da área recortada.
+  - **Olhar para o lado** a cada 8 a 15 s: as pupilas (`pupil-*`, com o brilho) deslocam cerca de 20 unidades, ficam 1 s e voltam.
+  - **Raiva:** as sobrancelhas `brow-*` dão lugar a `brow-*-angry` por cerca de 1 s. Ao tocar no mascote e em erros (estado vazio de erro).
+  - Discreto. Pausado quando a tela não está em foco ou o app está em segundo plano. Com "Reduzir movimento", o mascote é o `guard.png` estático.
+- **Professor:** mascote animado só na abertura do app e nos estados vazios; no resto, estático.
+- Nunca em listas, cards comuns ou na tab bar.
+- Tamanhos (o mascote agora tem o corpo inteiro): 200 em telas de marco, onboarding e abertura do app; 128 em estados vazios e na Jornada; 80 na folha de feedback e no balão.
+- Nunca recolorir, distorcer ou adicionar contornos e sombras.
+- Os olhos do código vêm do `guard-eyes.svg` (`node scripts/brand/mascot-eyes.mjs` gera `guardEyesShapes.ts`); depois de mudar o SVG, rode o script.
+
+**Abertura do app:** a splash nativa é só a cor de fundo, sem imagem; ela some assim que a animação está na tela. O ninja é **revelado** pela fumaça, nunca visto aparecendo. As poses são centralizadas pela cabeça; só na splash o mascote vai cerca de 1% da largura dele para a esquerda ((640 − 627) / 1254), para o corpo da guard (tronco e pernas) ficar no centro da tela, alinhado com o "KIMI" e com a fumaça; as pontas da faixa passam para a direita. São 5 nuvens (`smoke-cloud` do `kimi-props.svg`) agrupadas na área do ninja, na frente dele: no pico o conjunto fica centrado no corpo, com mais ou menos a largura do ninja com as pontas da faixa e uma pequena folga, sem chegar às bordas da tela. Movimento único e contínuo, sem fases: 0–0,45 s, as nuvens nascem pequenas na linha dos pés e crescem subindo até cobrir o ninja inteiro, as de baixo primeiro e as de cima por último. Em 0,4 s, já totalmente coberto, o ninja (guard animado) liga de uma vez, sem fade e sem escala. 0,45–1,0 s: a fumaça se dissipa no lugar, continuando a subir um pouco, crescendo levemente e sumindo, sem se afastar para os lados (haptic leve no início). As nuvens ficam totalmente opacas até a dissipação começar. 1,0–1,3 s: uma piscada e a raiva. 1,1–1,4 s: "KIMI" em Barlow Condensed ExtraBold sobe 12pt e aparece. Depois do texto, uma pausa de 0,6 s com o nome e o mascote na tela; sai aos 2,0 s se o app já carregou; senão, o mascote fica parado com as microanimações até carregar. Saída: escala 0,92 e opacidade 0 em 250 ms. Mesma animação para professor e aluno; só na abertura a frio, não ao voltar do segundo plano. Com "Reduzir movimento": sem fumaça e sem escala, mascote estático e texto com fade simples.
 
 Ícone do app: `assets/brand/kimi-icon.svg` é a fonte oficial; as aparências do iOS ficam em `kimi-icon-{light,dark,tinted}.png` (1024×1024, sangrado, sem transparência) — recorte do rosto do mascote preenchendo o quadro, com a faixa laranja e os olhos bravos. Exportar sem cantos arredondados (o sistema aplica a máscara) e manter os olhos dentro da área segura do ícone adaptativo do Android.
 
@@ -280,11 +292,12 @@ Direto, curto, como um professor no tatame. Frases afirmativas, no máximo uma e
 | Toque em botão tátil | Impacto leve |
 | Registro de água | Impacto médio |
 | Check-in confirmado, meta batida, nova faixa | Sucesso (notification success) |
+| Fumaça começa a dissipar na abertura do app | Impacto leve |
 | Erro | Erro (notification error) |
 
 ## 8. Movimento
 
-Não implemente animações nem transições. O movimento será adicionado manualmente depois. Exceções decididas pelo produto: o bottom sheet (3.13), o anel de água (3.4), que enche com uma transição suave (~700 ms, desacelerando) quando a quantidade muda, e a barra de progresso das etapas do cadastro da academia (~450 ms, desacelerando). Todas respeitam "Reduzir movimento" do sistema.
+Não implemente animações nem transições. O movimento será adicionado manualmente depois. Exceções decididas pelo produto: o bottom sheet (3.13), o anel de água (3.4), que enche com uma transição suave (~700 ms, desacelerando) quando a quantidade muda, a barra de progresso das etapas do cadastro da academia (~450 ms, desacelerando), as microanimações do mascote e a abertura do app (seção 4). Todas respeitam "Reduzir movimento" do sistema.
 
 - Defina cada estado como um estilo separado: repouso, pressionado, concluído, comemoração.
 - Mudanças de estado são instantâneas.
@@ -334,20 +347,20 @@ O coração da tela Aulas, no lugar da trilha de lições do Duolingo.
 
 - Trilha vertical de **nós circulares em zigue-zague**, cada nó representando um bloco de aulas (o tamanho do bloco é a meta da faixa dividida em etapas).
 - **Concluído:** círculo de 72 em `accent` com borda inferior 3D `accent-edge` e ícone de check branco.
-- **Atual:** círculo de 88 em `accent`, anel de progresso ao redor e o mascote em tamanho 96 ao lado.
+- **Atual:** círculo de 88 em `accent`, anel de progresso ao redor e o mascote `guard` animado em tamanho 128 ao lado.
 - **Futuro:** círculo de 72 em `surface`, borda 2px `border`, borda inferior `edge`, ícone em `disabled`.
 - **Último nó:** a próxima faixa, desenhada com a cor dela.
 - Tocar em um nó abre um balão com "Aulas 21–30 · 4 de 10 feitas".
 
 ### 11.3 Balão do mascote
 
-Mascote em tamanho 56 à esquerda e um balão à direita: fundo `surface`, borda 2px `border`, raio `radius-lg`, com uma ponta apontando para o mascote. Texto `body`, no máximo duas linhas. Usos: dica do dia, lembrete de água ("Faltam 1.200 ml hoje"), aviso de check-in pendente, mensagem do professor.
+Mascote `guard` animado em tamanho 80 à esquerda e um balão à direita: fundo `surface`, borda 2px `border`, raio `radius-lg`, com uma ponta apontando para o mascote. Texto `body`, no máximo duas linhas. Usos: dica do dia, lembrete de água ("Faltam 1.200 ml hoje"), aviso de check-in pendente, mensagem do professor.
 
 ### 11.4 Tela de conquista
 
 Tela cheia após marcos: check-in confirmado, meta de água batida, nova faixa, sequência de semanas.
 
-- Mascote comemorando em 160, centralizado.
+- Mascote em 200, centralizado: pose `graduation` na nova faixa, `guard` nos outros marcos.
 - Título em `title` ("Faixa azul conquistada").
 - Linha com 2 ou 3 cards de estatística: cabeçalho colorido com o rótulo em `caption` caixa alta e branco, corpo `surface` com o número em `display-lg` (ex. "AULAS · 120", "SEMANAS · 8").
 - Botão primário "CONTINUAR" fixo na base.
@@ -362,12 +375,15 @@ Em formulários, escolhas viram cards tocáveis como as respostas do Duolingo, e
 
 ### 11.6 Reações do mascote
 
-| Situação | Expressão | Onde |
+| Situação | Pose | Onde |
 | --- | --- | --- |
-| Padrão, estados vazios, lembretes | Bravo | Estados vazios, balões |
-| Check-in pendente | Bravo | Balão na Início |
-| Check-in confirmado, meta batida | Comemorando | Folha de feedback |
-| Nova faixa, sequência | Comemorando | Tela de conquista |
+| Padrão, estados vazios, lembretes | `guard` animado | Estados vazios, balões, Jornada |
+| Check-in confirmado | `guard` | Folha de check-in |
+| Disciplina aumentou, recorde, meta de água batida | `streak` | Folha de feedback |
+| Entrada na equipe de competição | `team` | Folha de feedback |
+| Nova faixa | `graduation` | Tela de conquista |
+| Sem água registrada até as 18h | `thirsty` | Widget de água |
+| Erro | `guard` animado com raiva | Estado vazio de erro |
 
 ### 11.7 Sons
 

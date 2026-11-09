@@ -15,13 +15,12 @@ export { CodeField } from './CodeField/CodeField';
 export { Screen } from './Screen/Screen';
 export { Card } from './Card/Card';
 export { EmptyState } from './EmptyState/EmptyState';
-export { Mascot, type MascotExpression, type MascotSize } from './Mascot/Mascot';
 export {
   KimiMascot,
-  useKimiAnimates,
   type KimiMascotHandle,
   type KimiMascotProps,
-  type KimiTrigger,
+  type KimiPose,
+  type MascotSize,
 } from './KimiMascot/KimiMascot';
 export { ProgressBar } from './ProgressBar/ProgressBar';
 export { WaterRing } from './WaterRing/WaterRing';

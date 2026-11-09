@@ -7,7 +7,7 @@ import { useAppTheme, type ColorToken } from '@theme';
 import { Box } from '../Box/Box';
 import { Button, type ButtonVariant } from '../Button/Button';
 import { Icon, type IconName } from '../Icon/Icon';
-import { Mascot } from '../Mascot/Mascot';
+import { KimiMascot } from '../KimiMascot/KimiMascot';
 import { Text } from '../Text/Text';
 
 export type FeedbackTone = 'success' | 'accent' | 'water' | 'warning' | 'danger';
@@ -26,9 +26,9 @@ interface FeedbackSheetProps {
   message?: string;
   actionLabel: string;
   onAction: () => void;
-  /** Icon on the left. When omitted, the celebrating mascot (56) is shown instead. */
+  /** Icon on the left. When omitted, the static guard mascot is shown instead. */
   icon?: IconName;
-  /** Replaces the default mascot (e.g. an animated `KimiMascot` size "feedback"). Ignored with `icon`. */
+  /** Replaces the default mascot (e.g. `KimiMascot` with another pose, size "feedback"). Ignored with `icon`. */
   mascot?: ReactNode;
 }
 
@@ -60,7 +60,7 @@ export function FeedbackSheet({ tone, title, message, actionLabel, onAction, ico
         style={{ paddingBottom: bottom + theme.spacing.s16 }}
       >
         <Box flexDirection="row" alignItems="center" gap="s12">
-          {icon ? <Icon name={icon} color={t.line} active /> : (mascot ?? <Mascot size="feedback" expression="celebrating" />)}
+          {icon ? <Icon name={icon} color={t.line} active /> : (mascot ?? <KimiMascot size="feedback" />)}
           <Box flex={1} gap="s4">
             <Text variant="heading" accessibilityRole="header">
               {title}

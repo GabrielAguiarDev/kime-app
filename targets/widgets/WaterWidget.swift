@@ -10,7 +10,8 @@ struct WaterEntry: TimelineEntry {
     case signedOut
     /// No bottle configured: the button cannot work, open the bottle setup.
     case noBottle
-    case ready(totalMl: Int, goalMl: Int?, bottleMl: Int, isLimit: Bool)
+    /// `thirsty`: nothing logged today and it is past `WaterStore.thirstyHour`; the mascot replaces the ring.
+    case ready(totalMl: Int, goalMl: Int?, bottleMl: Int, isLimit: Bool, thirsty: Bool)
   }
 
   let date: Date
@@ -19,26 +20,30 @@ struct WaterEntry: TimelineEntry {
 
 struct WaterProvider: TimelineProvider {
   func placeholder(in context: Context) -> WaterEntry {
-    WaterEntry(date: Date(), state: .ready(totalMl: 1_500, goalMl: 2_500, bottleMl: 500, isLimit: false))
+    WaterEntry(date: Date(), state: .ready(totalMl: 1_500, goalMl: 2_500, bottleMl: 500, isLimit: false, thirsty: false))
   }
 
   func getSnapshot(in context: Context, completion: @escaping (WaterEntry) -> Void) {
     completion(context.isPreview ? placeholder(in: context) : entry(at: Date()))
   }
 
-  /// Now, plus an entry at local midnight so the day starts over at zero without the app.
+  /// Now, an entry at today's thirsty hour (when still ahead) so the mascot shows up without the
+  /// app, and one at local midnight so the day starts over at zero.
   func getTimeline(in context: Context, completion: @escaping (Timeline<WaterEntry>) -> Void) {
     let now = Date()
     let zone = WaterStore.config()?.zone ?? .current
     let midnight = WaterStore.nextMidnight(after: now, in: zone)
-    completion(Timeline(entries: [entry(at: now), entry(at: midnight)], policy: .after(midnight)))
+    let thirstyStart = WaterStore.thirstyStart(on: now, in: zone)
+    let dates = thirstyStart > now ? [now, thirstyStart, midnight] : [now, midnight]
+    completion(Timeline(entries: dates.map(entry(at:)), policy: .after(midnight)))
   }
 
   private func entry(at date: Date) -> WaterEntry {
     guard let config = WaterStore.config() else { return WaterEntry(date: date, state: .signedOut) }
     guard let bottle = config.bottleMl else { return WaterEntry(date: date, state: .noBottle) }
     let total = WaterStore.total(for: config, on: date)
-    return WaterEntry(date: date, state: .ready(totalMl: total, goalMl: config.goal(on: date), bottleMl: bottle, isLimit: config.isLimit(on: date)))
+    let thirsty = total == 0 && date >= WaterStore.thirstyStart(on: date, in: config.zone)
+    return WaterEntry(date: date, state: .ready(totalMl: total, goalMl: config.goal(on: date), bottleMl: bottle, isLimit: config.isLimit(on: date), thirsty: thirsty))
   }
 }
 
@@ -84,12 +89,12 @@ struct WaterWidgetView: View {
     case .noBottle:
       EmptyMessage(text: "Configure sua garrafa", showBottle: true)
         .widgetURL(URL(string: "kimi://agua/configurar"))
-    case let .ready(total, goal, bottle, isLimit):
+    case let .ready(total, goal, bottle, isLimit, thirsty):
       Group {
         if family == .systemMedium {
-          MediumLayout(totalMl: total, goalMl: goal, bottleMl: bottle, isLimit: isLimit)
+          MediumLayout(totalMl: total, goalMl: goal, bottleMl: bottle, isLimit: isLimit, thirsty: thirsty)
         } else {
-          SmallLayout(totalMl: total, goalMl: goal, bottleMl: bottle, isLimit: isLimit)
+          SmallLayout(totalMl: total, goalMl: goal, bottleMl: bottle, isLimit: isLimit, thirsty: thirsty)
         }
       }
       .widgetURL(URL(string: "kimi://agua"))
@@ -123,11 +128,12 @@ private struct SmallLayout: View {
   let goalMl: Int?
   let bottleMl: Int
   let isLimit: Bool
+  let thirsty: Bool
 
   var body: some View {
     VStack(alignment: .leading, spacing: KimiTokens.Space.s8) {
       HStack(spacing: KimiTokens.Space.s8) {
-        WaterRingView(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit, diameter: KimiTokens.Size.widgetRing)
+        RingOrThirsty(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit, thirsty: thirsty, diameter: KimiTokens.Size.widgetRing)
         VStack(alignment: .leading, spacing: 0) {
           Text(formatMl(totalMl))
             .font(KimiTokens.Typography.displayLg)
@@ -149,10 +155,11 @@ private struct MediumLayout: View {
   let goalMl: Int?
   let bottleMl: Int
   let isLimit: Bool
+  let thirsty: Bool
 
   var body: some View {
     HStack(spacing: KimiTokens.Space.s16) {
-      WaterRingView(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit, diameter: KimiTokens.Size.widgetRingMedium)
+      RingOrThirsty(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit, thirsty: thirsty, diameter: KimiTokens.Size.widgetRingMedium)
       VStack(alignment: .leading, spacing: KimiTokens.Space.s4) {
         Text("\(formatMl(totalMl)) ml")
           .font(KimiTokens.Typography.displayLg)
@@ -198,6 +205,27 @@ private struct AddWaterButton: View {
     }
     .buttonStyle(.plain)
     .accessibilityLabel("Registrar \(formatMl(bottleMl)) ml de água")
+  }
+}
+
+/// The ring, or the thirsty mascot in the ring's frame (decorative: the total text stays).
+private struct RingOrThirsty: View {
+  let totalMl: Int
+  let goalMl: Int?
+  let isLimit: Bool
+  let thirsty: Bool
+  let diameter: CGFloat
+
+  var body: some View {
+    if thirsty {
+      Image("kimiThirsty")
+        .resizable()
+        .scaledToFit()
+        .frame(width: diameter, height: diameter)
+        .accessibilityHidden(true)
+    } else {
+      WaterRingView(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit, diameter: diameter)
+    }
   }
 }
 
