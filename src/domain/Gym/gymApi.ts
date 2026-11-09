@@ -13,7 +13,8 @@ async function create(name: string, modalities: string[]) {
 async function createWithSetup(name: string, planTier: string | null, modalities: Json) {
   const { data, error } = await supabase.rpc('create_academy_with_setup', {
     p_name: name,
-    p_plan_tier: planTier,
+    // Null is valid for the RPC (no plan chosen); the generated type says string.
+    p_plan_tier: planTier as string,
     p_modalities: modalities,
   });
   if (error) throw error;

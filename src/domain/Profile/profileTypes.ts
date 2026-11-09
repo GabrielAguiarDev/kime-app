@@ -3,6 +3,8 @@ export interface Profile {
   fullName: string;
   weightKg: number | null;
   heightCm: number | null;
+  /** Arm span, fingertip to fingertip (cm). */
+  reachCm: number | null;
   /** Null until the bottle is set up (the water widget needs it). */
   bottleMl: number | null;
   personalWaterGoalMl?: number | null;
@@ -27,11 +29,18 @@ export interface PersonalData {
   birthDate: string | null;
   weightKg: number | null;
   heightCm: number | null;
+  reachCm: number | null;
 }
 
-/** Water setup (Sua garrafa): weight and bottle. Height lives in Meus dados only. */
+/** Water setup (Garrafa e meta de água): bottle and personal goal. Body data lives in Meus dados only. */
 export interface BodyAndBottle {
-  weightKg: number | null;
   bottleMl: number | null;
   personalWaterGoalMl?: number | null;
+}
+
+/** Body data of a member, read by staff (only when the member competes). */
+export interface BodyData {
+  weightKg: number | null;
+  heightCm: number | null;
+  reachCm: number | null;
 }

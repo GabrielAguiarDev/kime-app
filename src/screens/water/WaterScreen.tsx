@@ -40,7 +40,7 @@ export function WaterScreen() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const settingsAction = {
     icon: 'settings' as const,
-    accessibilityLabel: 'Garrafa e peso',
+    accessibilityLabel: 'Garrafa e meta de água',
     onPress: () => router.push('/agua/configurar'),
   };
 

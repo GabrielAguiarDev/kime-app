@@ -38,19 +38,22 @@ import {
 import { membershipLabel, useGymMembers, useRemoveMembership, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { CompetitorSection } from '@screens/competition/CompetitorSection';
+import { FightRecordSection } from '@screens/competition/FightRecord';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
 import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
+import { BodyDataCard } from './BodyDataCard';
 import { formatDate, SheetForm } from './shared';
 import { StudentModalitiesSection } from './StudentModalitiesSection';
 
 /**
  * Staff: one member of the academy.
  *  - owner / instructor: photo, name, role and classes taught (they do not train in the app);
- *  - student: classes and belt progress per modality, belt history, "Definir faixa".
+ *  - student: body data (competitors), classes and belt progress per modality,
+ *    competition team, record ("Cartel") and championships, belt history, "Definir faixa".
  */
 export function MemberDetailScreen() {
   const { membershipId } = useLocalSearchParams<{ membershipId: string }>();
@@ -160,6 +163,7 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
     >
       <Box gap="s24">
         <MemberHeader member={member} />
+        <BodyDataCard userId={member.userId} />
         {loading ? <ActivityIndicator /> : null}
         {failed.length > 0 ? (
           <LoadError title="Não foi possível carregar as aulas" onRetry={() => failed.forEach((q) => void q.refetch())} />
@@ -195,6 +199,16 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
         <StudentModalitiesSection member={member} modalities={allModalities} />
 
         <CompetitorSection member={member} modalities={allModalities} />
+
+        {member.isCompetitor ? (
+          <FightRecordSection
+            academyId={academyId}
+            athleteId={member.userId}
+            modalities={allModalities}
+            modalityIds={member.modalities.filter((l) => l.isCompetitor).map((l) => l.modalityId)}
+            title="Cartel e campeonatos"
+          />
+        ) : null}
 
         <Box gap="s12">
           <Text variant="captionCaps">Histórico de faixas</Text>

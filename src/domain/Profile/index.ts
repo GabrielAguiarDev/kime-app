@@ -4,6 +4,7 @@ export { profileService } from './profileService';
 export {
   useAvatarMutations,
   useAvatarUrl,
+  useBodyData,
   useMyProfile,
   useSetShowInRanking,
   useUpdateBodyAndBottle,

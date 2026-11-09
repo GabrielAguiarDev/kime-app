@@ -1,7 +1,7 @@
 import { supabase } from '@infra/supabase';
 
 /**
- * Body data (weight, height, sex, birth date) is not readable from the table:
+ * Body data (weight, height, reach, sex, birth date) is not readable from the table:
  * get_profile_details returns it for the user themselves or for staff of an
  * academy where the user is a competitor (null otherwise).
  */
@@ -20,9 +20,17 @@ async function getById(userId: string) {
     ...profile.data,
     weight_kg: details.data?.weight_kg ?? null,
     height_cm: details.data?.height_cm ?? null,
+    reach_cm: details.data?.reach_cm ?? null,
     sex: details.data?.sex ?? null,
     birth_date: details.data?.birth_date ?? null,
   };
+}
+
+/** Weight, height and reach of a member (zero rows when the caller may not read them). */
+async function getBodyData(userId: string) {
+  const { data, error } = await supabase.rpc('get_profile_details', { p_user_id: userId }).maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 async function updateName(userId: string, fullName: string) {
@@ -31,7 +39,7 @@ async function updateName(userId: string, fullName: string) {
   if (data.length === 0) throw new Error('forbidden');
 }
 
-/** "Meus dados": name, sex, birth date, weight and height (own profile only, RLS). */
+/** "Meus dados": name, sex, birth date, weight, height and reach (own profile only, RLS). */
 async function updatePersonalData(
   userId: string,
   patch: {
@@ -40,6 +48,7 @@ async function updatePersonalData(
     birth_date: string | null;
     weight_kg: number | null;
     height_cm: number | null;
+    reach_cm: number | null;
   },
 ) {
   const { data, error } = await supabase.from('profiles').update(patch).eq('id', userId).select('id');
@@ -92,7 +101,7 @@ async function signedAvatarUrl(path: string, expiresInSeconds: number) {
 
 async function updateBodyAndBottle(
   userId: string,
-  patch: { weight_kg: number | null; bottle_ml: number | null; personal_water_goal_ml?: number | null },
+  patch: { bottle_ml: number | null; personal_water_goal_ml?: number | null },
 ) {
   // RLS: own profile only. Zero rows means it did not apply.
   const { data, error } = await supabase.from('profiles').update(patch).eq('id', userId).select('id');
@@ -102,6 +111,7 @@ async function updateBodyAndBottle(
 
 export const profileApi = {
   getById,
+  getBodyData,
   updateName,
   updateBodyAndBottle,
   updatePersonalData,

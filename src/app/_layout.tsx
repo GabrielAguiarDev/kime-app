@@ -123,6 +123,10 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="agua/index" options={header} />
         <Stack.Screen name="agua/configurar" options={header} />
         <Stack.Screen name="conta/dados" options={header} />
+        <Stack.Screen name="conta/academias" options={header} />
+        <Stack.Screen name="cartel" options={header} />
+        <Stack.Screen name="conta/email" options={header} />
+        <Stack.Screen name="conta/senha" options={header} />
         <Stack.Screen name="dieta" options={header} />
         <Stack.Screen name="aula" options={header} />
         <Stack.Screen name="relatorio" options={header} />

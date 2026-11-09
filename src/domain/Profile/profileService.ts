@@ -3,7 +3,7 @@ import { toAppError } from '@infra/supabase';
 import { prepareSquareImage } from '@utils/squareImage';
 
 import { profileApi, type ProfileRowApi } from './profileApi';
-import type { BodyAndBottle, PersonalData, Profile, Sex } from './profileTypes';
+import type { BodyAndBottle, BodyData, PersonalData, Profile, Sex } from './profileTypes';
 
 const toNumber = (value: number | string | null): number | null => (value === null ? null : Number(value));
 
@@ -12,6 +12,7 @@ const toProfile = (row: ProfileRowApi): Profile => ({
   fullName: row.full_name,
   weightKg: toNumber(row.weight_kg),
   heightCm: toNumber(row.height_cm),
+  reachCm: toNumber(row.reach_cm),
   bottleMl: row.bottle_ml,
   personalWaterGoalMl: row.personal_water_goal_ml,
   timeZone: row.timezone,
@@ -29,6 +30,17 @@ async function getById(userId: string): Promise<Profile> {
   }
 }
 
+/** Null when the caller may not read them (RLS rule of get_profile_details). */
+async function getBodyData(userId: string): Promise<BodyData | null> {
+  try {
+    const row = await profileApi.getBodyData(userId);
+    if (!row) return null;
+    return { weightKg: toNumber(row.weight_kg), heightCm: toNumber(row.height_cm), reachCm: toNumber(row.reach_cm) };
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
 async function updateName(userId: string, fullName: string): Promise<void> {
   try {
     await profileApi.updateName(userId, fullName.trim());
@@ -40,7 +52,6 @@ async function updateName(userId: string, fullName: string): Promise<void> {
 async function updateBodyAndBottle(userId: string, input: BodyAndBottle): Promise<void> {
   try {
     await profileApi.updateBodyAndBottle(userId, {
-      weight_kg: input.weightKg,
       bottle_ml: input.bottleMl,
       personal_water_goal_ml: input.personalWaterGoalMl,
     });
@@ -57,6 +68,7 @@ async function updatePersonalData(userId: string, input: PersonalData): Promise<
       birth_date: input.birthDate,
       weight_kg: input.weightKg,
       height_cm: input.heightCm,
+      reach_cm: input.reachCm,
     });
   } catch (e) {
     throw toAppError(e);
@@ -121,6 +133,7 @@ async function avatarUrl(path: string): Promise<string> {
 
 export const profileService = {
   getById,
+  getBodyData,
   updateName,
   updateBodyAndBottle,
   updatePersonalData,

@@ -38,3 +38,11 @@ export function formatBirthDate(iso: string | null | undefined): string {
   const [y, m, d] = iso.split('-');
   return y && m && d ? `${d}/${m}/${y}` : '';
 }
+
+/** Reach ("Alcance"): fingertip to fingertip with the arms open, in cm. */
+export const REACH_RANGE_CM = { min: 80, max: 260 } as const;
+
+/** 182.5 → "182,5"; whole numbers without decimals. */
+export function formatBodyNumber(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+}

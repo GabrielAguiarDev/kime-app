@@ -1,4 +1,5 @@
 import type { BeltLook } from '@domain/Classes';
+import type { FightTally, Placement } from '@domain/Competition/fightRecordTypes';
 import type { MembershipRole } from '@domain/Membership';
 
 /** A modality the viewer and the classmate share. */
@@ -23,12 +24,15 @@ export interface Classmate {
   modalities: SharedModality[];
 }
 
-/** A competitor entered in a championship (name, photo and belt in its modality). */
+/** A competitor entered in a championship (name, photo, belt in its modality and the results). */
 export interface ChampionshipCompetitor {
   userId: string;
   fullName: string;
   avatarPath: string | null;
   belt: BeltLook | null;
+  placement: Placement | null;
+  /** Fights of this championship. */
+  tally: FightTally;
 }
 
 const MONTH_NAMES = [
