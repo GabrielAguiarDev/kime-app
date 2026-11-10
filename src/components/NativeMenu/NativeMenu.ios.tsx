@@ -1,7 +1,8 @@
 import { requireOptionalNativeModule } from 'expo';
+import type { ButtonProps } from '@expo/ui/swift-ui';
 
-import { HeaderButton } from '../NativeHeader/NativeHeader';
-import type { HeaderMenuProps } from './types';
+import { DefaultTrigger } from './DefaultTrigger';
+import type { NativeMenuProps } from './types';
 
 // @expo/ui loads its native views at import time: only require it when the
 // build has the module, so an older dev client keeps the plain button.
@@ -10,22 +11,23 @@ const hasExpoUI = !!requireOptionalNativeModule('ExpoUI');
 /**
  * Native UIMenu (SwiftUI `Menu`, opened with one tap; iOS 26 draws it in
  * glass). The options are an inline picker, so the selected one shows the
- * system check; `extraAction` comes after a divider.
+ * system check. `actions` come after a divider.
  */
-export function HeaderMenu({
+export function NativeMenu({
   label,
   accessibilityLabel,
   options,
   selectedId,
   onSelect,
-  extraAction,
+  actions,
+  Trigger = DefaultTrigger,
   onFallbackPress,
-}: HeaderMenuProps) {
+}: NativeMenuProps) {
   if (!hasExpoUI) {
     return (
-      <HeaderButton accessibilityLabel={accessibilityLabel} onPress={onFallbackPress}>
+      <Trigger accessibilityLabel={accessibilityLabel} onPress={onFallbackPress}>
         {label}
-      </HeaderButton>
+      </Trigger>
     );
   }
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy: native module may be absent
@@ -52,10 +54,17 @@ export function HeaderMenu({
             </ui.Text>
           ))}
         </ui.Picker>
-        {extraAction ? (
+        {actions?.length ? (
           <>
             <ui.Divider />
-            <ui.Button label={extraAction.title} onPress={extraAction.onPress} />
+            {actions.map((a) => (
+              <ui.Button
+                key={a.title}
+                label={a.title}
+                systemImage={a.systemImage as ButtonProps['systemImage']}
+                onPress={a.onPress}
+              />
+            ))}
           </>
         ) : null}
       </ui.Menu>

@@ -27,6 +27,7 @@ export function WaterGoalSheet({
       title={isLimit ? 'Limite do dia cumprido.' : 'Meta do dia batida.'}
       message={`${formatMl(totalMl)} ml hoje.${days}`}
       pose="streak"
+      animated
       actionLabel="Continuar"
       onAction={onAction}
     />

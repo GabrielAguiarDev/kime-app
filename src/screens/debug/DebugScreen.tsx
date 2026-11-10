@@ -9,7 +9,7 @@ import { WaterGoalSheet } from '@screens/water/WaterGoalSheet';
 
 const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-type Sheet = 'team' | 'streak' | 'record' | 'water' | 'checkin' | null;
+type Sheet = 'team' | 'streak' | 'record' | 'water' | 'thirsty' | 'checkin' | null;
 type Inline = 'empty' | 'emptyError' | 'balloon' | 'thirsty' | null;
 
 /**
@@ -31,6 +31,7 @@ export function DebugScreen() {
         tone="success"
         title="Bem-vindo à equipe."
         pose="team"
+        animated
         actionLabel="Continuar"
         onAction={close}
       />
@@ -40,12 +41,24 @@ export function DebugScreen() {
         tone="accent"
         title={sheet === 'record' ? 'Novo recorde.' : 'Nada mal.'}
         pose="streak"
+        animated
         message="4 semanas seguidas treinando."
         actionLabel={sheet === 'record' ? 'Ver disciplina' : 'Continuar'}
         onAction={close}
       />
     ) : sheet === 'water' ? (
       <WaterGoalSheet isLimit={false} totalMl={2500} streak={3} onAction={close} />
+    ) : sheet === 'thirsty' ? (
+      // Preview only: in the app this pose lives in the native water widget (static).
+      <FeedbackSheet
+        tone="water"
+        title="Bora beber água."
+        pose="thirsty"
+        animated
+        message="0 ml hoje. Meta: 2.500 ml."
+        actionLabel="Continuar"
+        onAction={close}
+      />
     ) : sheet === 'checkin' ? (
       <CheckinConfirmedSheet count={1} total={42} onAction={close} />
     ) : undefined;
@@ -59,15 +72,16 @@ export function DebugScreen() {
           <Button title="Ver splash" variant="secondary" onPress={() => setIntro(true)} />
         </Section>
 
-        <Section title="Folhas de feedback" pose="team, streak, guard animado">
+        <Section title="Folhas de feedback" pose="team, streak, thirsty e guard animados">
           <Button title="Entrar na equipe" variant="secondary" onPress={() => setSheet('team')} />
           <Button title="Disciplina aumentou" variant="secondary" onPress={() => setSheet('streak')} />
           <Button title="Novo recorde" variant="secondary" onPress={() => setSheet('record')} />
           <Button title="Meta de água batida" variant="secondary" onPress={() => setSheet('water')} />
+          <Button title="Com sede (thirsty)" variant="secondary" onPress={() => setSheet('thirsty')} />
           <Button title="Check-in confirmado" variant="secondary" onPress={() => setSheet('checkin')} />
         </Section>
 
-        <Section title="Telas de conquista" pose="graduation, guard">
+        <Section title="Telas de conquista" pose="graduation espiando, guard">
           <Button
             title="Nova faixa"
             variant="secondary"
@@ -80,7 +94,7 @@ export function DebugScreen() {
           />
         </Section>
 
-        <Section title="Na tela" pose="guard animado, thirsty">
+        <Section title="Na tela" pose="guard e thirsty animados">
           <Button title="Estado vazio" variant="secondary" onPress={() => toggle('empty')} />
           <Button title="Estado vazio de erro" variant="secondary" onPress={() => toggle('emptyError')} />
           <Button title="Balão do mascote" variant="secondary" onPress={() => toggle('balloon')} />
@@ -100,7 +114,7 @@ export function DebugScreen() {
         ) : inline === 'thirsty' ? (
           // The real one is the native widget; this only previews the pose it uses.
           <Card flexDirection="row" alignItems="center" gap="s16">
-            <KimiMascot size="feedback" pose="thirsty" />
+            <KimiMascot size="feedback" pose="thirsty" animated />
             <Box flex={1} gap="s4">
               <Text variant="displayLg">0 ml</Text>
               <Text variant="caption" color="textMuted">

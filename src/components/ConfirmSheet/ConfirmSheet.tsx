@@ -18,6 +18,8 @@ interface ConfirmSheetProps extends ConfirmOptions {
   onConfirm: () => void;
   onCancel: () => void;
   onClosed?: () => void;
+  /** See BottomSheet: present in landscape too. */
+  allowLandscape?: boolean;
 }
 
 /** Confirmation in the app's language: a bottom sheet with one action and "Cancelar". */
@@ -31,9 +33,10 @@ export function ConfirmSheet({
   onConfirm,
   onCancel,
   onClosed,
+  allowLandscape,
 }: ConfirmSheetProps) {
   return (
-    <BottomSheet visible={visible} onRequestClose={onCancel} onClosed={onClosed} dismissLabel={cancelLabel}>
+    <BottomSheet visible={visible} onRequestClose={onCancel} onClosed={onClosed} dismissLabel={cancelLabel} allowLandscape={allowLandscape}>
       <Box gap="s24">
         <Box gap="s8">
           <Text variant="heading" accessibilityRole="header">

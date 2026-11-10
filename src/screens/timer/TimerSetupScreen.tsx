@@ -1,28 +1,26 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView } from 'react-native';
+import { ActivityIndicator, useWindowDimensions } from 'react-native';
 
-import { BottomSheet, Box, Button, Card, Icon, RoundButton, Screen, Text } from '@components';
+import { BottomSheet, Box, Button, Card, Icon, NativeMenu, RoundButton, Screen, Text } from '@components';
 import { useModalities } from '@domain/Classes';
 import {
   BUILT_IN_PRESETS,
-  builtInFor,
   formatClock,
+  presetForModality,
   sameConfig,
   summaryLine,
-  useHiddenBuiltInPresets,
-  usePersonalTimerPresets,
-  useTimerPresets,
+  useMyTimerPresets,
   type TimerConfig,
   type TimerPreset,
 } from '@domain/Timer';
 import { keyValueStorage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
+import { useActiveModality } from '@services/activeModality';
 import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
 import { startTimer, timerSoundsAvailable, useTimerSession } from '@services/timer';
 import { useAppTheme } from '@theme';
-import { haptics } from '@utils/haptics';
 
 import { AdjustSheet, PresetForm } from './TimerSheets';
 
@@ -33,10 +31,10 @@ const toConfig = (p: TimerConfig): TimerConfig => ({
   warningSeconds: p.warningSeconds,
 });
 
-/** Last preset started (adjustments are for one session, so only the id counts). */
-function readLastPresetId(scope: string): string | null {
+/** Last preset the user started (adjustments are for one session, so only the id counts). */
+function readLastPresetId(userId: string | undefined): string | null {
   try {
-    const raw = keyValueStorage.getScoped('timerLast', scope);
+    const raw = keyValueStorage.getScoped('timerLast', userId ?? '');
     return raw ? ((JSON.parse(raw) as { presetId?: string }).presetId ?? null) : null;
   } catch {
     return null;
@@ -46,60 +44,74 @@ function readLastPresetId(scope: string): string | null {
 /** Every preset removed: the timer still opens, with the first ready-made config. */
 const FALLBACK: TimerPreset = { ...BUILT_IN_PRESETS[0]!, id: 'fallback', name: 'Timer' };
 
-type Sheet = { kind: 'adjust' } | { kind: 'create' } | { kind: 'edit'; preset: TimerPreset };
+type Sheet = { kind: 'adjust' } | { kind: 'create' };
 
 /**
- * Timer (a tab for everyone). Check and start in a
- * few seconds: preset chips on top (the last one used is selected), the
- * round length in the middle, "Ajustar" for this session, and a big round
- * start button within thumb reach. Chips: the user's own presets, the
- * academy's, then the ready-made ones. Anyone creates presets of their own
- * with "+" (the owner may share one with the academy) and edits / deletes
- * them with a long press on the chip.
+ * Timer (a tab for everyone). Check and start in a few seconds: one pill on
+ * top with the selected preset ("Muay Thai ▾") opening the native menu of the
+ * user's presets ("Nova predefinição" and "Gerenciar predefinições" at
+ * the end), the round length in the middle, "Ajustar" for
+ * this session, and a big round start button within thumb reach.
+ *
+ * Opens with the last preset the user started; without one, a student gets
+ * the preset of the modality selected on Início (when the list has one), and
+ * coming from a class (`?modality=`) opens that modality's preset.
  */
 export function TimerSetupScreen() {
   const { modality: modalityParam } = useLocalSearchParams<{ modality?: string }>();
   const { userId } = useSession();
-  const { active, isOwner } = useActiveGym();
-  const academyId = active?.gymId;
-  const presets = useTimerPresets(academyId);
-  const personalPresets = usePersonalTimerPresets(userId);
-  const hiddenBuiltIns = useHiddenBuiltInPresets(userId);
-  const modalities = useModalities(academyId);
+  const { active, isStaff } = useActiveGym();
+  const { selected: headerModality } = useActiveModality();
+  const modalities = useModalities(modalityParam ? active?.gymId : undefined);
+  const mine = useMyTimerPresets(userId);
   const running = useTimerSession();
   const confirm = useConfirm();
-  const scope = `${userId ?? ''}.${academyId ?? ''}`;
 
-  const builtIns = BUILT_IN_PRESETS.filter((p) => !hiddenBuiltIns.hidden.includes(p.id));
-  const all = [...(personalPresets.data ?? []), ...(presets.data ?? []), ...builtIns];
-  const loading = presets.isLoading || personalPresets.isLoading || hiddenBuiltIns.isLoading || modalities.isLoading;
-  const [picked, setPicked] = useState<TimerPreset | null>(null);
+  const presets = mine.presets;
+  const loading = mine.isLoading;
+  const [pickedId, setPickedId] = useState<string | null>(null);
   const [config, setConfig] = useState<TimerConfig | null>(null);
+  // The picked preset's values when last synced: an edit in "Gerenciar" follows here unless adjusted.
+  const [base, setBase] = useState<TimerConfig | null>(null);
   const [appliedModality, setAppliedModality] = useState<string | undefined>(undefined);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  const pick = (p: TimerPreset) => {
+    setPickedId(p.id);
+    setConfig(toConfig(p));
+    setBase(toConfig(p));
+  };
+
   // Adjusted while rendering (React's "adjust state on prop change" pattern), not in effects.
-  // First open: the last preset used, else the first one.
-  if (!picked && !loading) {
-    const lastId = readLastPresetId(scope);
-    const preset = all.find((p) => p.id === lastId) ?? all[0] ?? FALLBACK;
-    setPicked(preset);
-    setConfig(toConfig(preset));
+  // First open: the last preset used; else (student) the selected modality's; else the first one.
+  if (!pickedId && !loading) {
+    const lastId = readLastPresetId(userId);
+    const preset =
+      presets.find((p) => p.id === lastId) ??
+      (!isStaff && headerModality ? presetForModality(presets, headerModality.name) : undefined) ??
+      presets[0] ??
+      FALLBACK;
+    pick(preset);
   }
-  // Coming from a class: that modality's preset, when the academy has one.
-  if (modalityParam && modalityParam !== appliedModality && presets.data && modalities.data) {
+  // Coming from a class: that modality's preset, when the list has one.
+  if (modalityParam && modalityParam !== appliedModality && !loading && modalities.data) {
     setAppliedModality(modalityParam);
     const name = modalities.data.find((m) => m.id === modalityParam)?.name;
-    // The academy's preset of the modality, else the ready-made one for it.
-    const preset = presets.data.find((p) => p.modalityId === modalityParam) ?? (name ? builtInFor(name) : undefined);
-    if (preset) {
-      setPicked(preset);
-      setConfig(toConfig(preset));
-    }
+    const preset = name ? presetForModality(presets, name) : undefined;
+    if (preset) pick(preset);
   }
 
-  if (!picked || !config) {
+  const selected = pickedId === FALLBACK.id ? FALLBACK : presets.find((p) => p.id === pickedId);
+  // Deleted or removed in "Gerenciar": back to the first one.
+  if (pickedId && !loading && !selected) pick(presets[0] ?? FALLBACK);
+  // Edited in "Gerenciar": take the new values (unless adjusted for this session).
+  if (selected && config && base && !sameConfig(selected, base)) {
+    if (sameConfig(config, base)) setConfig(toConfig(selected));
+    setBase(toConfig(selected));
+  }
+
+  if (!selected || !config) {
     return (
       <Screen nativeHeader title="Timer" bottomInset={false}>
         <ActivityIndicator accessibilityLabel="Carregando" />
@@ -107,30 +119,8 @@ export function TimerSetupScreen() {
     );
   }
 
-  // Just saved: the list brings it back with its real id.
-  const selected = picked.id.startsWith('new:')
-    ? (all.find((p) => !p.builtIn && !!p.personal === !!picked.personal && p.name === picked.name) ?? picked)
-    : picked;
   const adjusted = !sameConfig(config, selected);
-  // Saved presets: edit / delete (the academy's only by the owner). Ready-made: remove from the list.
-  const canEdit = (p: TimerPreset) => p.builtIn || (!p.id.startsWith('new:') && (!!p.personal || isOwner));
 
-  const removeBuiltIn = async (p: TimerPreset) => {
-    const ok = await confirm({
-      title: 'Remover predefinição?',
-      message: `"${p.name}" sai da sua lista. Para trazer de volta, toque em + e depois em "Restaurar predefinições prontas".`,
-      confirmLabel: 'Remover',
-      tone: 'danger',
-    });
-    if (!ok) return;
-    hiddenBuiltIns.set.mutate([...hiddenBuiltIns.hidden, p.id]);
-    if (p.id === selected.id) pick(all.find((o) => o.id !== p.id) ?? FALLBACK);
-  };
-
-  const pick = (p: TimerPreset) => {
-    setPicked(p);
-    setConfig(toConfig(p));
-  };
   const openSheet = (next: Sheet) => {
     setSheet(next);
     setSheetOpen(true);
@@ -145,7 +135,7 @@ export function TimerSetupScreen() {
       });
       if (!ok) return;
     }
-    keyValueStorage.setScoped('timerLast', scope, JSON.stringify({ presetId: selected.id }));
+    keyValueStorage.setScoped('timerLast', userId ?? '', JSON.stringify({ presetId: selected.id }));
     await startTimer(selected.name, config);
     router.push('/timer/run');
   };
@@ -162,15 +152,6 @@ export function TimerSetupScreen() {
       }
     >
       <Box gap="s24">
-        <PresetChips
-          presets={all}
-          selectedId={selected.id}
-          onPick={pick}
-          canEdit={canEdit}
-          onLongPress={(p) => (p.builtIn ? void removeBuiltIn(p) : openSheet({ kind: 'edit', preset: p }))}
-          onCreate={userId ? () => openSheet({ kind: 'create' }) : undefined}
-        />
-
         {running && running.state.phase !== 'done' ? (
           <Card
             selected
@@ -192,7 +173,33 @@ export function TimerSetupScreen() {
         ) : null}
 
         {/* What is about to start. */}
-        <Box alignItems="center" gap="s4" paddingVertical="s48">
+        <Box alignItems="center" gap="s4" paddingVertical="s24">
+          <Box marginBottom="s24">
+            <NativeMenu
+              accessibilityLabel={`Predefinição: ${selected.name}. Trocar`}
+              label={<PresetPill name={selected.name} />}
+              options={presets.map((p) => ({ id: p.id, title: p.name }))}
+              selectedId={selected.id}
+              onSelect={(id) => {
+                const p = presets.find((o) => o.id === id);
+                if (p) pick(p);
+              }}
+              actions={
+                userId
+                  ? [
+                      { title: 'Nova predefinição', systemImage: 'plus', onPress: () => openSheet({ kind: 'create' }) },
+                      { title: 'Gerenciar predefinições', systemImage: 'list.bullet', onPress: () => router.push('/timer/presets') },
+                    ]
+                  : undefined
+              }
+              // Build without the native menu: each tap moves to the next preset.
+              onFallbackPress={() => {
+                const i = presets.findIndex((p) => p.id === selected.id);
+                const next = presets[(i + 1) % presets.length];
+                if (next) pick(next);
+              }}
+            />
+          </Box>
           <Text variant="displayXl" accessibilityLabel={`Round de ${formatClock(config.roundSeconds * 1000)}`}>
             {formatClock(config.roundSeconds * 1000)}
           </Text>
@@ -220,38 +227,25 @@ export function TimerSetupScreen() {
             onSaveAsPreset={userId ? () => setSheet({ kind: 'create' }) : undefined}
           />
         ) : null}
-        {(sheet?.kind === 'create' || sheet?.kind === 'edit') && userId ? (
+        {sheet?.kind === 'create' && userId ? (
           <PresetForm
-            key={sheet.kind === 'edit' ? sheet.preset.id : 'create'}
-            academyId={academyId}
             userId={userId}
-            canShare={isOwner}
-            initial={sheet.kind === 'edit' ? toConfig(sheet.preset) : config}
-            editing={sheet.kind === 'edit' ? sheet.preset : undefined}
+            initial={config}
             onRestoreBuiltIns={
-              sheet.kind === 'create' && hiddenBuiltIns.hidden.length > 0
+              mine.hiddenCount > 0
                 ? () => {
-                    hiddenBuiltIns.set.mutate([]);
+                    mine.restoreBuiltIns();
                     setSheetOpen(false);
                   }
                 : undefined
             }
-            onSaved={(name, saved, personal) => {
+            onSaved={(id) => {
               setSheetOpen(false);
-              if (sheet.kind === 'create') {
-                setPicked({ id: `new:${name}`, name, builtIn: false, personal, ...saved });
-                setConfig(saved);
-              } else if (sheet.preset.id === selected.id) {
-                setPicked({ ...sheet.preset, name, ...saved });
-                setConfig(saved);
-              }
+              // The list was refetched before this runs: the new preset is in it.
+              setPickedId(id);
+              setBase(config);
             }}
-            onDeleted={() => {
-              setSheetOpen(false);
-              if (sheet.kind === 'edit' && sheet.preset.id === selected.id) {
-                pick(all.find((p) => p.id !== sheet.preset.id) ?? FALLBACK);
-              }
-            }}
+            onDeleted={() => setSheetOpen(false)}
           />
         ) : null}
       </BottomSheet>
@@ -259,115 +253,26 @@ export function TimerSetupScreen() {
   );
 }
 
-/**
- * One horizontal line of compact selection chips (name only), scrolling
- * sideways without a bar. Selected: accent border + accent at 8%. "+" at the
- * end creates; a long press edits a saved preset or removes a ready-made one.
- */
-function PresetChips({
-  presets,
-  selectedId,
-  onPick,
-  canEdit,
-  onLongPress,
-  onCreate,
-}: {
-  presets: TimerPreset[];
-  selectedId: string;
-  onPick: (p: TimerPreset) => void;
-  canEdit: (p: TimerPreset) => boolean;
-  onLongPress: (p: TimerPreset) => void;
-  onCreate?: () => void;
-}) {
-  const { spacing } = useAppTheme();
+/** "Muay Thai ▾": surface pill with the selected preset (the native menu opens on tap). */
+function PresetPill({ name }: { name: string }) {
+  const { size, border, spacing } = useAppTheme();
+  const { width } = useWindowDimensions();
   return (
-    // Bleeds to the screen edges so chips scroll under the margins.
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      showsVerticalScrollIndicator={false}
-      style={{ marginHorizontal: -spacing.screenMargin }}
-      contentContainerStyle={{ paddingHorizontal: spacing.screenMargin, gap: spacing.s8 }}
-      accessibilityLabel="Predefinições"
+    <Box
+      height={size.touchTarget}
+      flexDirection="row"
+      alignItems="center"
+      gap="s8"
+      paddingHorizontal="s16"
+      borderWidth={border.width}
+      borderColor="border"
+      backgroundColor="surface"
+      style={{ borderRadius: size.touchTarget / 2, maxWidth: width - spacing.screenMargin * 2 }}
     >
-      {presets.map((p) => {
-        const editable = canEdit(p);
-        return (
-          <Chip
-            key={p.id}
-            label={p.name}
-            selected={p.id === selectedId}
-            onPress={() => onPick(p)}
-            onLongPress={
-              editable
-                ? () => {
-                    haptics.tap();
-                    onLongPress(p);
-                  }
-                : undefined
-            }
-            accessibilityHint={
-              !editable ? undefined : p.builtIn ? 'Toque longo para remover' : 'Toque longo para editar ou apagar'
-            }
-          />
-        );
-      })}
-      {onCreate ? <Chip icon="plus" label="Nova predefinição" selected={false} onPress={onCreate} /> : null}
-    </ScrollView>
-  );
-}
-
-function Chip({
-  label,
-  icon,
-  selected,
-  onPress,
-  onLongPress,
-  accessibilityHint,
-}: {
-  label: string;
-  /** Icon-only chip ("+"); `label` becomes its accessibility label. */
-  icon?: 'plus';
-  selected: boolean;
-  onPress: () => void;
-  onLongPress?: () => void;
-  accessibilityHint?: string;
-}) {
-  const { size, border } = useAppTheme();
-  return (
-    <Pressable
-      onPress={() => {
-        haptics.tap();
-        onPress();
-      }}
-      onLongPress={onLongPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityHint={accessibilityHint}
-      accessibilityState={{ selected }}
-    >
-      {({ pressed }) => (
-        // TODO(motion): chip selection changing (border / fill).
-        <Box
-          height={size.touchTarget}
-          minWidth={size.touchTarget}
-          paddingHorizontal={icon ? 's8' : 's16'}
-          alignItems="center"
-          justifyContent="center"
-          borderRadius="sm"
-          borderWidth={border.width}
-          borderColor={selected ? 'accent' : 'border'}
-          backgroundColor={selected ? 'accentSelected' : pressed ? 'surfaceRaised' : 'surface'}
-        >
-          {icon ? (
-            <Icon name={icon} color="accent" />
-          ) : (
-            <Text variant="bodyStrong" color={selected ? 'accent' : 'text'} numberOfLines={1}>
-              {label}
-            </Text>
-          )}
-        </Box>
-      )}
-    </Pressable>
+      <Text variant="bodyStrong" numberOfLines={1} flexShrink={1}>
+        {name}
+      </Text>
+      <Icon name="chevronDown" color="textMuted" size={size.iconInline} />
+    </Box>
   );
 }

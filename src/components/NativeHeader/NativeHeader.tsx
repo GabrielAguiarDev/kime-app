@@ -32,6 +32,7 @@ export function useNativeHeaderOptions(): NativeStackNavigationOptions {
     if (Platform.OS !== 'ios') {
       return {
         headerShown: true,
+        orientation: 'portrait',
         headerTitleAlign: 'left',
         headerTitleStyle: titleStyle,
         headerStyle: { backgroundColor: colors.bg },
@@ -42,6 +43,7 @@ export function useNativeHeaderOptions(): NativeStackNavigationOptions {
     }
     return {
       headerShown: true,
+      orientation: 'portrait',
       headerLargeTitleEnabled: true,
       headerTransparent: true,
       // Blur only on the compact (standard) appearance; the large-title area stays clear.

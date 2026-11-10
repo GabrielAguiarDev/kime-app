@@ -13,7 +13,7 @@ import { useRouteAccess } from '@services/access';
 export default function OnboardingLayout() {
   const access = useRouteAccess();
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, orientation: 'portrait' }}>
       <Stack.Protected guard={access.noAcademy} redirectTo={access.home}>
         <Stack.Screen name="academia" />
         <Stack.Screen name="codigo-academia" />

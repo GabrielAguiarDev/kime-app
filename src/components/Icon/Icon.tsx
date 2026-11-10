@@ -21,6 +21,7 @@ import { Copy } from 'phosphor-react-native/src/icons/Copy';
 import { Crown } from 'phosphor-react-native/src/icons/Crown';
 import { CloudSlash } from 'phosphor-react-native/src/icons/CloudSlash';
 import { DeviceMobile } from 'phosphor-react-native/src/icons/DeviceMobile';
+import { DeviceRotate } from 'phosphor-react-native/src/icons/DeviceRotate';
 import { DotsSixVertical } from 'phosphor-react-native/src/icons/DotsSixVertical';
 import { Drop } from 'phosphor-react-native/src/icons/Drop';
 import { Fire } from 'phosphor-react-native/src/icons/Fire';
@@ -101,6 +102,7 @@ const ICONS = {
   clock: Clock,
   confirmations: ListChecks,
   device: DeviceMobile,
+  rotate: DeviceRotate,
   drop: Drop,
   home: House,
   light: Sun,

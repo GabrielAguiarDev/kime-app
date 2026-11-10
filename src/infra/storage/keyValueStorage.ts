@@ -10,6 +10,8 @@ export const StorageKeys = {
   pendingCode: 'kimi.pendingCode',
   /** Path chosen on the first screen (student | professor): how to enter, not a role. */
   entryPath: 'kimi.entryPath',
+  /** How the running round timer is shown on this device: 'portrait' | 'landscape'. */
+  timerOrientation: 'kimi.timerOrientation.v1',
 } as const;
 
 type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];
@@ -32,7 +34,7 @@ const ScopedKeys = {
   classReminders: 'kimi.classReminders.v1',
   /** Signature of the reminders last scheduled, per user (skip rescheduling when unchanged). */
   classRemindersPlan: 'kimi.classRemindersPlan.v1',
-  /** Last round timer used (JSON {presetId, config}), per user + academy. */
+  /** Last round timer preset started (JSON {presetId}), per user. */
   timerLast: 'kimi.timerLast.v1',
   /** First day the water goal was met ('YYYY-MM-DD'), or 'seen' once the widget link was opened, per user. */
   widgetHint: 'kimi.widgetHint.v1',

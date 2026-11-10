@@ -53,7 +53,8 @@ export function AchievementScreen() {
     <Screen scrollable={false} footer={<Button title="Continuar" onPress={() => router.back()} />}>
       {/* TODO(motion): title and stat cards entrance. */}
       <Box flex={1} alignItems="center" justifyContent="center" gap="s24">
-        <KimiMascot size="hero" pose={belt ? 'graduation' : 'guard'} />
+        {/* New belt: graduation peeking with one eye (twice, then still). */}
+        <KimiMascot size="hero" pose={belt ? 'graduation' : 'guard'} animated={!!belt} />
         <Text variant="title" textAlign="center" accessibilityRole="header">
           {title}
         </Text>
@@ -115,7 +116,9 @@ function StatCard({
           {label}
         </Text>
       </Box>
-      <Box backgroundColor="surface" paddingVertical="s16" alignItems="center" justifyContent="center" flex={1}>
+      {/* flexGrow, not flex: flex={1} is a 0 basis, and in a card of auto height that left the
+          body 0 tall (only the header showed). It still grows to match the tallest card. */}
+      <Box backgroundColor="surface" paddingVertical="s16" alignItems="center" justifyContent="center" flexGrow={1}>
         <Text variant={compact ? 'heading' : 'displayLg'} numberOfLines={1} adjustsFontSizeToFit>
           {value}
         </Text>

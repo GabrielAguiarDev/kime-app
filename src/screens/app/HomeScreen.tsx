@@ -126,6 +126,7 @@ export function HomeScreen() {
             tone="success"
             title="Bem-vindo à equipe."
             pose="team"
+            animated
             actionLabel="Continuar"
             onAction={() => setJoinedTeam(false)}
           />
@@ -144,6 +145,7 @@ export function HomeScreen() {
             tone="accent"
             title={streak.notice.record ? 'Novo recorde.' : 'Nada mal.'}
             pose="streak"
+            animated
             message={
               streak.notice.kind === 'water'
                 ? `${streak.notice.count} dias seguidos cumprindo o objetivo de água.`
