@@ -33,17 +33,3 @@ export function useSetStudentModalities() {
       ]),
   });
 }
-
-/** Staff set a student's weekly class goal in a modality (null = the modality's goal). */
-export function useSetStudentWeeklyGoal() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ membershipId, modalityId, goal }: { membershipId: string; modalityId: string; goal: number | null }) =>
-      membershipService.setStudentWeeklyGoal(membershipId, modalityId, goal),
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: [QueryKeys.GymMembers] }),
-        queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking] }),
-      ]),
-  });
-}

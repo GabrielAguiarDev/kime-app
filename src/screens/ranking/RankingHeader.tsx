@@ -30,7 +30,7 @@ export function RankingHeader({ modalityName }: { modalityName: string }) {
       <BottomSheet visible={open} onRequestClose={() => setOpen(false)}>
         <SheetForm title="Como funciona a pontuação">
           <Rule title={`Presença · ${pct(RANKING_CONFIG.attendanceWeight)}`}>
-            Aulas confirmadas em relação à sua meta semanal de aulas. Cada semana conta no máximo 100% da meta.
+            Aulas confirmadas em relação às aulas da grade da modalidade. Ir a todas as aulas da semana vale 100%.
           </Rule>
           <Rule title={`Constância de água · ${pct(RANKING_CONFIG.hydrationWeight)}`}>
             Dias em que você bateu a sua meta de água. Conta a meta cumprida, nunca o volume.

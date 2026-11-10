@@ -12,6 +12,9 @@ import {
   targetsToArray,
   upcomingChampionships,
   weightDelta,
+  filterWeights,
+  weightMonths,
+  weightYears,
 } from '../competitionRules';
 import type { Championship, WaterPlan } from '../competitionTypes';
 
@@ -32,6 +35,7 @@ const champ = (name: string, eventDate: string): Championship => ({
   name,
   eventDate,
   location: '',
+  countsInRecord: true,
 });
 
 describe('water plan in force', () => {
@@ -115,5 +119,22 @@ describe('dates and weight', () => {
         { id: '2', loggedOn: '2026-11-03', weightKg: 79.4 },
       ]),
     ).toBe(-0.6);
+  });
+});
+
+describe('weight history filters', () => {
+  const w = (loggedOn: string) => ({ id: loggedOn, loggedOn, weightKg: 70 });
+  const logs = [w('2025-12-20'), w('2026-11-04'), w('2026-03-02'), w('2026-11-01'), w('2025-01-10')];
+
+  it('lists the years and the months of a year with weigh-ins, newest first', () => {
+    expect(weightYears(logs)).toEqual(['2026', '2025']);
+    expect(weightMonths(logs, '2026')).toEqual([11, 3]);
+    expect(weightMonths(logs, '2024')).toEqual([]);
+  });
+
+  it('filters by year and month, newest first', () => {
+    expect(filterWeights(logs, null, null).map((l) => l.loggedOn)).toEqual(['2026-11-04', '2026-11-01', '2026-03-02', '2025-12-20', '2025-01-10']);
+    expect(filterWeights(logs, '2025', null).map((l) => l.loggedOn)).toEqual(['2025-12-20', '2025-01-10']);
+    expect(filterWeights(logs, '2026', 11).map((l) => l.loggedOn)).toEqual(['2026-11-04', '2026-11-01']);
   });
 });

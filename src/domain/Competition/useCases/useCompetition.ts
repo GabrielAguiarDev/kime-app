@@ -104,10 +104,11 @@ export function useChampionshipMutations(academyId: string) {
 }
 
 // ------------------------------------------------------------ weight ---
-export function useWeightLogs(athleteId: string | undefined) {
+/** Latest weigh-ins (120); `all` = every one (the weight history screen). */
+export function useWeightLogs(athleteId: string | undefined, { all = false }: { all?: boolean } = {}) {
   return useQuery({
-    queryKey: [QueryKeys.WeightLogs, athleteId],
-    queryFn: () => service.listWeights(athleteId!),
+    queryKey: [QueryKeys.WeightLogs, athleteId, all],
+    queryFn: () => service.listWeights(athleteId!, all ? null : undefined),
     enabled: !!athleteId,
   });
 }

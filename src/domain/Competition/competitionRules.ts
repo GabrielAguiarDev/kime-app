@@ -109,6 +109,28 @@ export function sortWeights(logs: WeightLog[]): WeightLog[] {
   return [...logs].sort((a, b) => b.loggedOn.localeCompare(a.loggedOn));
 }
 
+export const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+] as const;
+
+/** Years with weigh-ins, newest first ("2026", "2025"). */
+export function weightYears(logs: WeightLog[]): string[] {
+  return [...new Set(logs.map((l) => l.loggedOn.slice(0, 4)))].sort((a, b) => b.localeCompare(a));
+}
+
+/** Months (1–12) of `year` with weigh-ins, newest first. */
+export function weightMonths(logs: WeightLog[], year: string): number[] {
+  const months = logs.filter((l) => l.loggedOn.startsWith(`${year}-`)).map((l) => Number(l.loggedOn.slice(5, 7)));
+  return [...new Set(months)].sort((a, b) => b - a);
+}
+
+/** Weigh-ins of a year and, optionally, a month (null = all), newest first. */
+export function filterWeights(logs: WeightLog[], year: string | null, month: number | null): WeightLog[] {
+  const prefix = year ? (month ? `${year}-${String(month).padStart(2, '0')}-` : `${year}-`) : '';
+  return sortWeights(logs.filter((l) => l.loggedOn.startsWith(prefix)));
+}
+
 /** Change from the previous weigh-in (kg, one decimal), or null with fewer than two. */
 export function weightDelta(logs: WeightLog[]): number | null {
   const [latest, previous] = sortWeights(logs);

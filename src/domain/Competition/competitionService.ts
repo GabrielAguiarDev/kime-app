@@ -29,6 +29,7 @@ function toChampionship(row: ChampionshipRowApi): Championship {
     name: row.name,
     eventDate: row.event_date,
     location: row.location,
+    countsInRecord: row.counts_in_record,
   };
 }
 
@@ -53,9 +54,9 @@ export const competitionService = {
   listMyChampionships: (athleteId: string): Promise<Championship[]> =>
     call(async () => (await api.listMyChampionships(athleteId)).map(toChampionship)),
   createChampionship: (academyId: string, input: ChampionshipInput) =>
-    call(() => api.createChampionship(academyId, input.modalityId, input.name.trim(), input.eventDate, input.location.trim())),
+    call(() => api.createChampionship(academyId, input.modalityId, input.name.trim(), input.eventDate, input.location.trim(), input.countsInRecord)),
   updateChampionship: (id: string, input: ChampionshipInput) =>
-    call(() => api.updateChampionship(id, input.modalityId, input.name.trim(), input.eventDate, input.location.trim())),
+    call(() => api.updateChampionship(id, input.modalityId, input.name.trim(), input.eventDate, input.location.trim(), input.countsInRecord)),
   deleteChampionship: (id: string) => call(() => api.deleteChampionship(id)),
   listEntries: (academyId: string): Promise<ChampionshipEntry[]> =>
     call(async () =>
@@ -63,9 +64,9 @@ export const competitionService = {
     ),
   setEntries: (championshipId: string, athleteIds: string[]) => call(() => api.setEntries(championshipId, athleteIds)),
 
-  listWeights: (athleteId: string): Promise<WeightLog[]> =>
+  listWeights: (athleteId: string, limit?: number | null): Promise<WeightLog[]> =>
     call(async () =>
-      (await api.listWeights(athleteId)).map((r) => ({ id: r.id, loggedOn: r.logged_on, weightKg: Number(r.weight_kg) })),
+      (await api.listWeights(athleteId, limit)).map((r) => ({ id: r.id, loggedOn: r.logged_on, weightKg: Number(r.weight_kg) })),
     ),
   /** One weigh-in per day: an existing day is corrected instead. */
   saveWeight: (athleteId: string, loggedOn: LocalDate, weightKg: number, existingId?: string) =>

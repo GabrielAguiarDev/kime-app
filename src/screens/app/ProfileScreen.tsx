@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Pressable } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable } from 'react-native';
 
 import {
   AcademyLogo,
@@ -178,7 +178,12 @@ function ProfileHeader({
       from === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
     const asset = result.canceled ? null : result.assets[0];
     if (!asset) return;
-    avatar.change.mutate({ uri: asset.uri, previousPath: avatarPath }, { onSuccess: () => haptics.success() });
+    // On iOS, the captured profile photo comes back mirrored after the native camera flow.
+    // Correct the saved avatar and its thumbnail; gallery images are already oriented as chosen.
+    avatar.change.mutate(
+      { uri: asset.uri, previousPath: avatarPath, mirror: from === 'camera' && Platform.OS === 'ios' },
+      { onSuccess: () => haptics.success() },
+    );
   };
 
   const remove = async () => {

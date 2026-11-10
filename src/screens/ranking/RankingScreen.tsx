@@ -364,9 +364,8 @@ function OwnNumbers({ entry: e }: { entry: RankingEntry }) {
   return (
     <Box gap="s8">
       <Text variant="caption">
-        Presença: {percent(e.attendanceRate)} · {e.confirmedClasses}{' '}
-        {e.confirmedClasses === 1 ? 'aula confirmada' : 'aulas confirmadas'} · meta de {e.weeklyGoal}{' '}
-        {e.weeklyGoal === 1 ? 'aula' : 'aulas'} por semana
+        Presença: {percent(e.attendanceRate)} · {e.confirmedClasses} de {e.scheduledClasses}{' '}
+        {e.scheduledClasses === 1 ? 'aula' : 'aulas'} da grade
       </Text>
       <Text variant="caption">
         Água: {e.eligibleHydrationDays ? percent(e.hydrationRate) : 'sem meta registrada'} ·{' '}

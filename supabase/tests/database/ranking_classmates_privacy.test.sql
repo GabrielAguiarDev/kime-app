@@ -36,7 +36,7 @@ insert into public.checkins(user_id,academy_id,schedule_id,class_date,status) va
 insert into public.ranking_snapshots(academy_id,modality_id,user_id,period_from,period_to,full_name,score,status)
 values(pg_temp.id('academy'),pg_temp.id('BJJ'),'a1000000-0000-0000-0000-000000000002',current_date-28,current_date-1,'BJJ',50,'ranked'),
 (pg_temp.id('academy'),pg_temp.id('BJJ'),'a1000000-0000-0000-0000-000000000003',current_date-28,current_date-1,'Peer',70,'ranked');
-insert into public.ranking_details(academy_id,modality_id,user_id,attendance_rate,hydration_rate,confirmed_classes,weekly_goal,weeks,hydration_goals_achieved,eligible_hydration_days,protected_days,eligible_days,days_to_qualify)
+insert into public.ranking_details(academy_id,modality_id,user_id,attendance_rate,hydration_rate,confirmed_classes,scheduled_classes,weeks,hydration_goals_achieved,eligible_hydration_days,protected_days,eligible_days,days_to_qualify)
 select academy_id,modality_id,user_id,0.5,0.5,2,2,4,10,20,1,28,0 from public.ranking_snapshots where academy_id=pg_temp.id('academy');
 insert into storage.objects(bucket_id,name,owner_id) values
 ('avatars','a1000000-0000-0000-0000-000000000002/avatar.jpg','a1000000-0000-0000-0000-000000000002'),

@@ -45,6 +45,8 @@ export interface ChampionshipResult {
   placement: Placement | null;
   /** Previous championship ("Registro anterior"): before the app, only in this athlete's history. */
   isHistorical: boolean;
+  /** False = internal championship: listed in the history, left out of the record. */
+  countsInRecord: boolean;
   fights: Fight[];
 }
 
@@ -77,4 +79,5 @@ export interface PreviousChampionshipInput {
   name: string;
   eventDate: LocalDate;
   location: string;
+  countsInRecord: boolean;
 }

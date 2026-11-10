@@ -82,7 +82,6 @@ export const classesService = {
     call(() => api.createModality(academyId, name.trim(), position, usesBelts)),
   updateModality: (id: string, name: string, usesBelts: boolean) =>
     call(() => api.updateModality(id, { name: name.trim(), uses_belts: usesBelts })),
-  setModalityWeeklyGoal: (id: string, goal: number) => call(() => api.setModalityWeeklyGoal(id, goal)),
   /** Fails with modality_has_schedules (23503) while schedules point at it. */
   deleteModality: (id: string) => call(() => api.deleteModality(id)),
 

@@ -1,4 +1,4 @@
-import { CartelScreen } from '@screens/competition/FightRecord';
+import { CartelRoute } from '@screens/competition/CartelRoute';
 import { withFinanceGate } from '@screens/finance/StudentFinance';
 
-export default withFinanceGate(CartelScreen, 'Cartel');
+export default withFinanceGate(CartelRoute, 'Cartel');

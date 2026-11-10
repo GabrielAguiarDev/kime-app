@@ -13,5 +13,4 @@ export { usePendingRequests } from './useCases/usePendingRequests';
 export {
   useApproveStudent,
   useSetStudentModalities,
-  useSetStudentWeeklyGoal,
 } from './useCases/useStudentModalities';

@@ -37,8 +37,8 @@ export function useAvatarMutations(userId: string | undefined) {
   const onSuccess = () => queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile, userId] });
   return {
     change: useMutation({
-      mutationFn: ({ uri, previousPath }: { uri: string; previousPath: string | null }) =>
-        profileService.changeAvatar(userId!, uri, previousPath),
+      mutationFn: ({ uri, previousPath, mirror }: { uri: string; previousPath: string | null; mirror?: boolean }) =>
+        profileService.changeAvatar(userId!, uri, previousPath, mirror),
       onSuccess,
     }),
     remove: useMutation({ mutationFn: (path: string) => profileService.removeAvatar(userId!, path), onSuccess }),

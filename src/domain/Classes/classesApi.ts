@@ -74,7 +74,7 @@ async function deleteSchedules(ids: string[]) {
 async function listModalities(academyId: string) {
   const { data, error } = await supabase
     .from('academy_modalities')
-    .select('id, name, position, uses_belts, weekly_class_goal')
+    .select('id, name, position, uses_belts')
     .eq('academy_id', academyId)
     .order('position');
   if (error) throw error;
@@ -93,11 +93,6 @@ async function updateModality(id: string, patch: { name: string; uses_belts: boo
   if (error) throw error;
 }
 
-/** Owner: weekly class goal of a modality (ranking presence). */
-async function setModalityWeeklyGoal(id: string, goal: number) {
-  const { error } = await supabase.from('academy_modalities').update({ weekly_class_goal: goal }).eq('id', id);
-  if (error) throw error;
-}
 
 async function deleteModality(id: string) {
   const { error } = await supabase.from('academy_modalities').delete().eq('id', id);
@@ -335,7 +330,6 @@ export const classesApi = {
   listModalities,
   createModality,
   updateModality,
-  setModalityWeeklyGoal,
   deleteModality,
   listBelts,
   createBelt,

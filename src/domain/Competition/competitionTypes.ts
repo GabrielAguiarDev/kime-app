@@ -9,6 +9,8 @@ export interface Championship {
   /** Academy-local date of the event. */
   eventDate: LocalDate;
   location: string;
+  /** False = internal championship: its fights stay out of the athletes' record (cartel). */
+  countsInRecord: boolean;
 }
 
 export interface ChampionshipInput {
@@ -16,6 +18,7 @@ export interface ChampionshipInput {
   name: string;
   eventDate: LocalDate;
   location: string;
+  countsInRecord: boolean;
 }
 
 /** A competitor entered in a championship. */

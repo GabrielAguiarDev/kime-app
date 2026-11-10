@@ -118,7 +118,7 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
         today={today.data}
         trainedDays={trainedDays}
         waterDoneDays={waterDoneDays}
-        weeklyGoal={selected?.link.weeklyClassGoal ?? selected?.weeklyClassGoal ?? 2}
+        classDays={new Set(modalitySchedules.map((s) => s.weekday)).size}
         training={training}
         water={waterStreak.streak}
         timeZone={water.timeZone}

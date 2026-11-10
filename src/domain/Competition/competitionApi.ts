@@ -29,7 +29,7 @@ async function removeCompetitor(membershipId: string, modalityId: string) {
 async function listChampionships(academyId: string) {
   const { data, error } = await supabase
     .from('championships')
-    .select('id, academy_id, modality_id, name, event_date, location')
+    .select('id, academy_id, modality_id, name, event_date, location, counts_in_record')
     .eq('academy_id', academyId)
     .eq('is_historical', false)
     .order('event_date');
@@ -41,27 +41,41 @@ async function listChampionships(academyId: string) {
 async function listMyChampionships(athleteId: string) {
   const { data, error } = await supabase
     .from('championship_entries')
-    .select('championship:championships!inner(id, academy_id, modality_id, name, event_date, location)')
+    .select('championship:championships!inner(id, academy_id, modality_id, name, event_date, location, counts_in_record)')
     .eq('athlete_id', athleteId)
     .eq('championship.is_historical', false);
   if (error) throw error;
   return data.map((row) => row.championship);
 }
 
-async function createChampionship(academyId: string, modalityId: string, name: string, eventDate: string, location: string) {
+async function createChampionship(
+  academyId: string,
+  modalityId: string,
+  name: string,
+  eventDate: string,
+  location: string,
+  countsInRecord: boolean,
+) {
   const { data, error } = await supabase
     .from('championships')
-    .insert({ academy_id: academyId, modality_id: modalityId, name, event_date: eventDate, location })
+    .insert({ academy_id: academyId, modality_id: modalityId, name, event_date: eventDate, location, counts_in_record: countsInRecord })
     .select('id')
     .single();
   if (error) throw error;
   return data.id;
 }
 
-async function updateChampionship(id: string, modalityId: string, name: string, eventDate: string, location: string) {
+async function updateChampionship(
+  id: string,
+  modalityId: string,
+  name: string,
+  eventDate: string,
+  location: string,
+  countsInRecord: boolean,
+) {
   const { data, error } = await supabase
     .from('championships')
-    .update({ modality_id: modalityId, name, event_date: eventDate, location })
+    .update({ modality_id: modalityId, name, event_date: eventDate, location, counts_in_record: countsInRecord })
     .eq('id', id)
     .select('id');
   if (error) throw error;
@@ -92,13 +106,14 @@ async function setEntries(championshipId: string, athleteIds: string[]) {
 }
 
 // ------------------------------------------------------------ weight ---
-async function listWeights(athleteId: string) {
-  const { data, error } = await supabase
+/** Newest first; `limit` null = every weigh-in (the weight history screen). */
+async function listWeights(athleteId: string, limit: number | null = 120) {
+  const query = supabase
     .from('weight_logs')
     .select('id, logged_on, weight_kg')
     .eq('athlete_id', athleteId)
-    .order('logged_on', { ascending: false })
-    .limit(120);
+    .order('logged_on', { ascending: false });
+  const { data, error } = await (limit === null ? query : query.limit(limit));
   if (error) throw error;
   return data;
 }

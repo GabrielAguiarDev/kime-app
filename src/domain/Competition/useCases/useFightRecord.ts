@@ -83,6 +83,7 @@ export function useFightHistory(academyId: string | undefined, athleteId: string
           location: r.location,
           placement: (r.placement ?? null) as Placement | null,
           isHistorical: r.is_historical,
+          countsInRecord: r.counts_in_record,
           fights: ((r.fights ?? []) as unknown as FightJson[]).map(toFight),
         })),
       ),
@@ -195,12 +196,21 @@ export function usePreviousHistoryMutations(academyId: string, athleteId: string
     }),
     createChampionship: useMutation({
       mutationFn: (input: PreviousChampionshipInput) =>
-        call(() => api.createPreviousChampionship(academyId, athleteId, { ...input, name: input.name.trim(), location: input.location.trim() })),
+        call(async () => {
+          const name = input.name.trim();
+          const location = input.location.trim();
+          const id = await api.createPreviousChampionship(academyId, athleteId, { ...input, name, location });
+          // The RPC creates it counting in the record; an internal one is flagged right after.
+          if (!input.countsInRecord) {
+            await competitionApi.updateChampionship(id, input.modalityId, name, input.eventDate, location, false);
+          }
+          return id;
+        }),
       onSuccess,
     }),
     updateChampionship: useMutation({
       mutationFn: ({ id, input }: { id: string; input: PreviousChampionshipInput }) =>
-        call(() => competitionApi.updateChampionship(id, input.modalityId, input.name.trim(), input.eventDate, input.location.trim())),
+        call(() => competitionApi.updateChampionship(id, input.modalityId, input.name.trim(), input.eventDate, input.location.trim(), input.countsInRecord)),
       onSuccess,
     }),
     deleteChampionship: useMutation({

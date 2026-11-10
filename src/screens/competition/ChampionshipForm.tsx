@@ -1,19 +1,22 @@
 import { useState } from 'react';
+import { Switch } from 'react-native';
 
-import { Box, Button, SelectionCard, Text, TextField } from '@components';
+import { Box, Button, Card, SelectionCard, Text, TextField } from '@components';
 import type { Modality } from '@domain/Classes';
 import type { LocalDate } from '@domain/Classes/classesTypes';
 import { isPastDate, parseBrDate, toBrDate, type ChampionshipInput } from '@domain/Competition';
 import { maskBirthDate } from '@domain/Profile';
 import { errorMessage } from '@infra';
 import { SheetForm } from '@screens/professor/shared';
+import { useAppTheme } from '@theme';
 
 const NAME_MIN = 2;
 const NAME_MAX = 120;
 const LOCATION_MAX = 200;
 
 /**
- * Sheet form: create or edit a championship (modality — required —, name, date, location).
+ * Sheet form: create or edit a championship (modality — required —, name, date, location and
+ * whether it counts in the athletes' record: an internal championship does not).
  * `pastBefore` (academy-local today): a previous championship, whose date must be before it.
  */
 export function ChampionshipForm({
@@ -40,6 +43,8 @@ export function ChampionshipForm({
   const [name, setName] = useState(initial?.name ?? '');
   const [date, setDate] = useState(initial ? toBrDate(initial.eventDate) : '');
   const [location, setLocation] = useState(initial?.location ?? '');
+  const [countsInRecord, setCountsInRecord] = useState(initial?.countsInRecord ?? true);
+  const { colors } = useAppTheme();
   const [modalityId, setModalityId] = useState<string | null>(
     initial?.modalityId ?? (modalities.length === 1 ? (modalities[0]?.id ?? null) : null),
   );
@@ -79,7 +84,7 @@ export function ChampionshipForm({
           title="Salvar"
           disabled={!valid}
           loading={saving}
-          onPress={() => eventDate && modalityId && onSave({ modalityId, name: trimmed, eventDate, location })}
+          onPress={() => eventDate && modalityId && onSave({ modalityId, name: trimmed, eventDate, location, countsInRecord })}
         />
       }
     >
@@ -117,6 +122,20 @@ export function ChampionshipForm({
         placeholder="Cidade ou ginásio"
         maxLength={LOCATION_MAX}
       />
+      <Card flexDirection="row" alignItems="center" gap="s12">
+        <Box flex={1} gap="s4">
+          <Text variant="bodyStrong">Conta no cartel</Text>
+          <Text variant="caption">Desligue para um campeonato interno: as lutas não somam no cartel.</Text>
+        </Box>
+        <Switch
+          value={countsInRecord}
+          onValueChange={setCountsInRecord}
+          trackColor={{ true: colors.accent, false: colors.border }}
+          thumbColor={colors.text}
+          ios_backgroundColor={colors.border}
+          accessibilityLabel="Conta no cartel"
+        />
+      </Card>
       {error ? (
         <Text variant="caption" color="danger">
           {errorMessage(error)}

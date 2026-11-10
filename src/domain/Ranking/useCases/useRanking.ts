@@ -37,7 +37,7 @@ export async function fetchRanking({ academyId, modalityId }: RankingRequest): P
         modalityId: r.modality_id, userId: r.user_id, fullName: r.full_name, avatarPath: r.avatar_path,
         position: r.position, rankingScore: Number(r.score), status: r.status as RankingEntry['status'],
         attendanceRate: Number(d?.attendance_rate ?? 0), hydrationRate: Number(d?.hydration_rate ?? 0),
-        confirmedClasses: d?.confirmed_classes ?? 0, weeklyGoal: d?.weekly_goal ?? 0,
+        confirmedClasses: d?.confirmed_classes ?? 0, scheduledClasses: d?.scheduled_classes ?? 0,
         weeks: d?.weeks ?? 0, hydrationGoalsAchieved: d?.hydration_goals_achieved ?? 0,
         eligibleHydrationDays: d?.eligible_hydration_days ?? 0, protectedDays: d?.protected_days ?? 0,
         eligibleDays: d?.eligible_days ?? 0, daysToQualify: d?.days_to_qualify ?? r.days_to_qualify,

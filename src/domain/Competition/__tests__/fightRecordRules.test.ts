@@ -11,6 +11,7 @@ import {
   recordsByModality,
   tallyAccessibilityLabel,
   tallyFights,
+  previousMedals,
 } from '../fightRecordRules';
 import type { ChampionshipResult, Fight, PreviousRecord } from '../fightRecordTypes';
 
@@ -34,6 +35,7 @@ const champ = (modalityId: string, placement: ChampionshipResult['placement'], f
   location: '',
   placement,
   isHistorical: false,
+  countsInRecord: true,
   fights,
 });
 
@@ -86,6 +88,17 @@ describe('fight record rules', () => {
     expect(isPastDate('2026-11-09', '2026-11-08')).toBe(true);
     expect(isPastDate('2026-11-09', '2026-11-09')).toBe(false);
     expect(isPastDate('2026-11-09', '2027-01-01')).toBe(false);
+  });
+
+  it('leaves an internal championship out of the record', () => {
+    const internal = { ...champ('bjj', 'gold', [fight('win'), fight('win')]), countsInRecord: false };
+    const [record] = recordsByModality([internal, champ('bjj', 'none', [fight('loss')])], ['bjj']);
+    expect(record).toMatchObject({ wins: 0, losses: 1, gold: 0, championships: 1 });
+  });
+
+  it('derives the previous medals from the fights: win = gold, loss = silver, draw = none', () => {
+    expect(previousMedals({ wins: 3, losses: 1 })).toEqual({ gold: 3, silver: 1, bronze: 0 });
+    expect(previousMedals({ wins: 0, losses: 0 })).toEqual({ gold: 0, silver: 0, bronze: 0 });
   });
 
   it('parses the numbers of the previous record', () => {

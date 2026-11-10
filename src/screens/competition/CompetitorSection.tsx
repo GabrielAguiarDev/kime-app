@@ -29,10 +29,7 @@ export function CompetitorSection({ member, modalities }: { member: GymMember; m
   return (
     <Section title="Equipe de competição">
       {!member.isCompetitor && !linked.some((l) => l.link.competitorInvitedAt) ? (
-        <Text variant="body" color="textMuted">
-          O convite é por modalidade e chega no app do aluno, que precisa aceitar. Na equipe, ele recebe campeonatos,
-          plano de água e dieta. Ao aceitar, ele autoriza você a ver o peso e os registros de água dele.
-        </Text>
+        <Text variant="caption">Convite por modalidade. Ao aceitar, o aluno libera peso e água para você.</Text>
       ) : null}
       {linked.map(({ modality, link }) => (
         <ModalityTeamCard key={modality.id} member={member} modality={modality} link={link} />

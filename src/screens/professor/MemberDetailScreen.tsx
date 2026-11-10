@@ -12,7 +12,9 @@ import {
   Card,
   ChoiceRow,
   EmptyState,
+  Icon,
   LoadError,
+  NativeMenu,
   ProgressBar,
   Screen,
   SelectionCard,
@@ -28,7 +30,6 @@ import {
   useBeltHistory,
   useBelts,
   useInstructorStats,
-  useMemberStats,
   useModalities,
   useModalityStats,
   type Modality,
@@ -39,7 +40,6 @@ import { membershipLabel, useGymMembers, useRemoveMembership, type GymMember } f
 import { errorMessage } from '@infra';
 import { CompetitorSection } from '@screens/competition/CompetitorSection';
 import { FightRecordSection } from '@screens/competition/FightRecord';
-import { PreviousHistorySection } from '@screens/competition/PreviousHistorySection';
 import { StudentBillingSection } from '@screens/finance/StudentBillingSection';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
@@ -55,8 +55,8 @@ import { StudentModalitiesSection } from './StudentModalitiesSection';
  * Staff: one member of the academy.
  *  - owner / instructor: photo, name, role and classes taught (they do not train in the app);
  *  - student: body data (competitors), classes and belt progress per modality,
- *    competition team, record ("Cartel") and championships, history before the app
- *    ("Histórico anterior"), belt history, "Definir faixa".
+ *    competition team, record ("Cartel": tapping it opens the Cartel screen, where staff also
+ *    edit the history before the app), belt history, "Definir faixa".
  */
 export function MemberDetailScreen() {
   const { membershipId } = useLocalSearchParams<{ membershipId: string }>();
@@ -141,23 +141,21 @@ function StaffMemberDetail({ academyId, member }: { academyId: string; member: G
 
 function StudentDetail({ academyId, member }: { academyId: string; member: GymMember }) {
   const { isOwner } = useActiveGym();
-  const stats = useMemberStats(academyId);
   const modalityStats = useModalityStats(academyId);
   const modalities = useModalities(academyId);
   const belts = useBelts(academyId);
   const history = useBeltHistory(member.id);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
-  const loading = stats.isLoading || modalityStats.isLoading || modalities.isLoading || belts.isLoading;
-  const failed = [stats, modalityStats, modalities, belts].filter((q) => q.isError);
-  const total = stats.data?.find((s) => s.membershipId === member.id)?.confirmedTotal ?? 0;
+  const loading = modalityStats.isLoading || modalities.isLoading || belts.isLoading;
+  const failed = [modalityStats, modalities, belts].filter((q) => q.isError);
   const own = (modalityStats.data ?? []).filter((s) => s.membershipId === member.id);
   const allModalities = modalities.data ?? [];
   const trained = trainedModalities(allModalities, own);
   const selected = trained.find((m) => m.id === selectedId) ?? trained[0] ?? null;
   const withBelts = allModalities.filter((m) => m.usesBelts);
-  const modalityName = (id: string) => allModalities.find((m) => m.id === id)?.name ?? 'Modalidade removida';
 
   return (
     <Screen nativeHeader
@@ -174,7 +172,8 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
             athleteId={member.userId}
             modalities={allModalities}
             modalityIds={member.modalities.filter((l) => l.isCompetitor).map((l) => l.modalityId)}
-            title="Cartel e campeonatos"
+            athleteName={member.fullName}
+            title="Cartel"
           />
         ) : null}
         <BodyDataCard userId={member.userId} />
@@ -183,9 +182,6 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
           <LoadError title="Não foi possível carregar as aulas" onRetry={() => failed.forEach((q) => void q.refetch())} />
         ) : null}
 
-        <Card>
-          <BigCounter value={total} label="Aulas confirmadas · todas as modalidades" />
-        </Card>
         <Button
           title="Relatório de treinos"
           variant="secondary"
@@ -193,20 +189,14 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
           onPress={() => router.push({ pathname: '/relatorio', params: { userId: member.userId, name: member.fullName } })}
         />
 
-        {trained.length > 1 && selected ? (
-          <ChoiceRow
-            accessibilityLabel="Modalidade"
-            options={trained.map((m) => ({ value: m.id, label: m.name }))}
-            value={selected.id}
-            onChange={setSelectedId}
-          />
-        ) : null}
-
         {selected ? (
           <ModalityCard
             modality={selected}
+            modalities={trained}
+            onSelect={setSelectedId}
             belts={beltsOf(belts.data ?? [], selected.id)}
             stats={own.find((s) => s.modalityId === selected.id)}
+            onPress={selected.usesBelts ? () => setHistoryOpen(true) : undefined}
           />
         ) : null}
 
@@ -214,34 +204,34 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
 
         <CompetitorSection member={member} modalities={allModalities} />
 
-        {member.isCompetitor ? (
-          <PreviousHistorySection academyId={academyId} member={member} modalities={allModalities} />
-        ) : null}
-
-        <Box gap="s12">
-          <Text variant="captionCaps">Histórico de faixas</Text>
-          {history.isLoading ? <ActivityIndicator /> : null}
-          {history.data?.length === 0 ? (
-            <Text variant="body" color="textMuted">
-              Nenhuma graduação registrada.
-            </Text>
-          ) : null}
-          {history.data?.map((award) => (
-            <Card key={award.id} flexDirection="row" alignItems="center" justifyContent="space-between" gap="s12">
-              <Box gap="s4" flex={1}>
-                <BeltChip belt={award.belt} />
-                <Text variant="caption">{modalityName(award.modalityId)}</Text>
-              </Box>
-              <Text variant="caption">{formatDate(award.awardedAt)}</Text>
-            </Card>
-          ))}
-        </Box>
-
         {/* Owner only (finance on): monthly fee and charge history. */}
         {isOwner ? <StudentBillingSection academyId={academyId} member={member} /> : null}
 
         <RemoveMemberSection member={member} />
       </Box>
+
+      {/* Belt history of the modality on the card (tapping the card opens it). */}
+      <BottomSheet visible={historyOpen && !!selected} onRequestClose={() => setHistoryOpen(false)}>
+        {selected ? (
+          <SheetForm title={`Histórico de faixas · ${selected.name}`}>
+            {history.isLoading ? <ActivityIndicator /> : null}
+            {history.isError ? <LoadError title="Não foi possível carregar o histórico" onRetry={() => void history.refetch()} /> : null}
+            {history.data && !history.data.some((a) => a.modalityId === selected.id) ? (
+              <Text variant="body" color="textMuted">
+                Nenhuma graduação registrada.
+              </Text>
+            ) : null}
+            {history.data
+              ?.filter((award) => award.modalityId === selected.id)
+              .map((award) => (
+                <Card key={award.id} flexDirection="row" alignItems="center" justifyContent="space-between" gap="s12">
+                  <BeltChip belt={award.belt} />
+                  <Text variant="caption">{formatDate(award.awardedAt)}</Text>
+                </Card>
+              ))}
+          </SheetForm>
+        ) : null}
+      </BottomSheet>
 
       <BottomSheet visible={sheetOpen} onRequestClose={() => setSheetOpen(false)}>
         <AwardForm
@@ -258,19 +248,70 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
   );
 }
 
-function ModalityCard({
+/**
+ * Card title: the modality name. More than one trained modality: name + caret opening the
+ * native menu (same pattern as the Início header), so long names and many modalities fit.
+ */
+function ModalityPicker({
   modality,
-  belts,
-  stats,
+  modalities,
+  onSelect,
 }: {
   modality: Modality;
+  modalities: Modality[];
+  onSelect: (id: string) => void;
+}) {
+  const { size } = useAppTheme();
+  const title = (
+    <Text variant="bodyStrong" numberOfLines={1} flexShrink={1}>
+      {modality.name}
+    </Text>
+  );
+  if (modalities.length < 2) return title;
+  return (
+    <NativeMenu
+      accessibilityLabel={`Modalidade: ${modality.name}. Trocar`}
+      label={
+        <Box flexDirection="row" alignItems="center" gap="s8" alignSelf="flex-start">
+          {title}
+          <Icon name="chevronDown" color="textMuted" size={size.iconInline} />
+        </Box>
+      }
+      options={modalities.map((m) => ({ id: m.id, title: m.name }))}
+      selectedId={modality.id}
+      onSelect={onSelect}
+      // Build without the native menu: each tap moves to the next modality.
+      onFallbackPress={() => {
+        const i = modalities.findIndex((m) => m.id === modality.id);
+        const next = modalities[(i + 1) % modalities.length];
+        if (next) onSelect(next.id);
+      }}
+    />
+  );
+}
+
+function ModalityCard({
+  modality,
+  modalities,
+  onSelect,
+  belts,
+  stats,
+  onPress,
+}: {
+  modality: Modality;
+  modalities: Modality[];
+  onSelect: (id: string) => void;
   belts: ModalityBelt[];
   stats: ModalityStats | undefined;
+  /** Opens the belt history of the modality. */
+  onPress?: () => void;
 }) {
   const modalityTotal = stats?.confirmedTotal ?? 0;
+  const picker = <ModalityPicker modality={modality} modalities={modalities} onSelect={onSelect} />;
   if (!modality.usesBelts) {
     return (
-      <Card>
+      <Card gap="s16">
+        {picker}
         <BigCounter value={modalityTotal} label={`Aulas de ${modality.name}`} />
       </Card>
     );
@@ -278,8 +319,14 @@ function ModalityCard({
   const current = belts.find((b) => b.id === stats?.beltId) ?? null;
   const progress = beltProgress(belts, current?.id ?? null, stats?.confirmedSinceBelt ?? 0);
   return (
-    <Card gap="s16">
-      {current ? <BeltChip belt={current} /> : <Text variant="caption">{`Sem faixa em ${modality.name}`}</Text>}
+    <Card gap="s16" onPress={onPress} accessibilityLabel={`${modality.name}. Ver histórico de faixas`}>
+      <Box flexDirection="row" alignItems="center" gap="s12">
+        <Box flex={1} alignItems="flex-start">
+          {picker}
+        </Box>
+        {onPress ? <Icon name="chevronRight" color="textMuted" size={20} /> : null}
+      </Box>
+      {current ? <BeltChip belt={current} /> : <Text variant="caption">Sem faixa</Text>}
       {progress.next && progress.required > 0 ? (
         <ProgressBar
           value={progress.done}
