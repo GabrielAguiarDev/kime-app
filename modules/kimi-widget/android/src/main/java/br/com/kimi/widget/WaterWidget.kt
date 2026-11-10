@@ -41,6 +41,7 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -62,16 +63,23 @@ private sealed interface WaterState {
   /** No bottle configured: the button cannot work, open the bottle setup. */
   data object NoBottle : WaterState
 
-  /** [thirsty]: nothing logged today and it is past [WaterStore.THIRSTY_HOUR]; the mascot replaces the ring. */
-  data class Ready(val totalMl: Int, val goalMl: Int?, val bottleMl: Int, val isLimit: Boolean, val thirsty: Boolean) : WaterState
+  data class Ready(val totalMl: Int, val goalMl: Int?, val bottleMl: Int, val isLimit: Boolean) : WaterState
+
+  /**
+   * Nothing logged today, past [WaterStore.THIRSTY_HOUR], not a limit day:
+   * the thirsty mascot, "Ei. Água." and the button.
+   */
+  data class Thirsty(val bottleMl: Int) : WaterState
 }
 
 private fun loadState(context: Context): Pair<WaterState, WaterStore.Config?> {
   val config = WaterStore.config(context) ?: return WaterState.SignedOut to null
   val bottle = config.bottleMl ?: return WaterState.NoBottle to config
   val total = WaterStore.totalForDay(context, config)
-  val thirsty = total == 0 && WaterStore.isThirstyHour(config)
-  return WaterState.Ready(total, config.goalOn(), bottle, config.isLimitOn(), thirsty) to config
+  val isLimit = config.isLimitOn()
+  val thirsty = total == 0 && !isLimit && WaterStore.isThirstyHour(config)
+  if (thirsty) return WaterState.Thirsty(bottle) to config
+  return WaterState.Ready(total, config.goalOn(), bottle, isLimit) to config
 }
 
 /**
@@ -123,7 +131,7 @@ private fun WidgetContent(state: WaterState) {
   val target = when (state) {
     WaterState.SignedOut -> "kimi://"
     WaterState.NoBottle -> "kimi://agua/configurar"
-    is WaterState.Ready -> "kimi://agua"
+    is WaterState.Ready, is WaterState.Thirsty -> "kimi://agua"
   }
   // The system gives the widget its own corner radius (section 9: do not force one).
   Box(
@@ -141,6 +149,8 @@ private fun WidgetContent(state: WaterState) {
       WaterState.NoBottle -> EmptyMessage("Configure sua garrafa", showBottle = true)
       is WaterState.Ready ->
         if (LocalSize.current.width >= MEDIUM.width) MediumLayout(state) else SmallLayout(state)
+      is WaterState.Thirsty ->
+        if (LocalSize.current.width >= MEDIUM.width) ThirstyMediumLayout(state) else ThirstySmallLayout(state)
     }
   }
 }
@@ -173,7 +183,7 @@ private fun EmptyMessage(text: String, showBottle: Boolean = false) {
 private fun SmallLayout(state: WaterState.Ready) {
   Column(modifier = GlanceModifier.fillMaxSize()) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-      RingOrThirsty(state, KimiTokens.Size.widgetRing)
+      Ring(state, KimiTokens.Size.widgetRing)
       Spacer(GlanceModifier.width(KimiTokens.Space.s8))
       Column {
         // Barlow Condensed is not available to RemoteViews: system font, same weight and size steps.
@@ -197,7 +207,7 @@ private fun SmallLayout(state: WaterState.Ready) {
 @Composable
 private fun MediumLayout(state: WaterState.Ready) {
   Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-    RingOrThirsty(state, KimiTokens.Size.widgetRingMedium)
+    Ring(state, KimiTokens.Size.widgetRingMedium)
     Spacer(GlanceModifier.width(KimiTokens.Space.s16))
     Column(modifier = GlanceModifier.defaultWeight()) {
       // `title` instead of display-lg: display-lg plus caption and button do not fit
@@ -262,18 +272,67 @@ private fun AddButton(bottleMl: Int) {
   }
 }
 
-/** The ring, or the thirsty mascot in the ring's frame (decorative: the total text stays). */
+/**
+ * Bust of the thirsty mascot (assets/mascot/thirsty.png, BUST_WINDOWS.thirsty, ~400 px for the
+ * widget memory limit). Decorative: the text says it.
+ */
 @Composable
-private fun RingOrThirsty(state: WaterState.Ready, diameter: Dp) {
-  if (state.thirsty) {
-    Image(
-      provider = ImageProvider(R.drawable.kimi_thirsty),
-      contentDescription = null,
-      contentScale = ContentScale.Fit,
-      modifier = GlanceModifier.size(diameter),
+private fun ThirstyMascot(modifier: GlanceModifier) {
+  Image(
+    provider = ImageProvider(R.drawable.kimi_thirsty),
+    contentDescription = null,
+    contentScale = ContentScale.Fit,
+    modifier = modifier,
+  )
+}
+
+/** Small, thirsty: the bust on top, "Ei. Água." and the button at the bottom. */
+@Composable
+private fun ThirstySmallLayout(state: WaterState.Thirsty) {
+  Column(modifier = GlanceModifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+    ThirstyMascot(GlanceModifier.fillMaxWidth().defaultWeight())
+    Text(
+      text = "Ei. Água.",
+      maxLines = 1,
+      style = TextStyle(
+        color = KimiTokens.Colors.text,
+        fontSize = KimiTokens.Typography.heading,
+        fontWeight = FontWeight.Bold,
+      ),
     )
-  } else {
-    Ring(state, diameter)
+    Spacer(GlanceModifier.height(KimiTokens.Space.s4))
+    AddButton(state.bottleMl)
+  }
+}
+
+/** Medium, thirsty: the bust on the left at the widget's height; text and the button on the right. */
+@Composable
+private fun ThirstyMediumLayout(state: WaterState.Thirsty) {
+  Row(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+    ThirstyMascot(GlanceModifier.fillMaxHeight().defaultWeight())
+    Spacer(GlanceModifier.width(KimiTokens.Space.s16))
+    Column(modifier = GlanceModifier.fillMaxHeight().defaultWeight()) {
+      Text(
+        text = "Ei. Água.",
+        maxLines = 1,
+        style = TextStyle(
+          color = KimiTokens.Colors.text,
+          fontSize = KimiTokens.Typography.title,
+          fontWeight = FontWeight.Bold,
+        ),
+      )
+      Text(
+        text = "Você ainda não bebeu nada hoje.",
+        maxLines = 2,
+        style = TextStyle(
+          color = KimiTokens.Colors.textMuted,
+          fontSize = KimiTokens.Typography.caption,
+          fontWeight = FontWeight.Medium,
+        ),
+      )
+      Spacer(GlanceModifier.defaultWeight())
+      AddButton(state.bottleMl)
+    }
   }
 }
 

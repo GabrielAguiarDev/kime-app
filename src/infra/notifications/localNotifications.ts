@@ -1,10 +1,11 @@
 import { requireOptionalNativeModule } from 'expo';
+import { File, Paths } from 'expo-file-system';
 import type * as NotificationsModule from 'expo-notifications';
 import { Platform } from 'react-native';
 
 /**
  * Local notifications (scheduled on the device, no server): class reminders,
- * event reminders and the "new / cancelled event" notices.
+ * event reminders, the "new / cancelled event" notices and the 18:00 water reminder.
  * expo-notifications, SDK 58 (DATE trigger, NotificationBehavior with
  * shouldShowBanner/shouldShowList). The plugin is set with
  * enableRemoteNotifications: false — no push entitlement needed.
@@ -14,9 +15,16 @@ import { Platform } from 'react-native';
  */
 const CHANNEL_ID = 'class-reminders';
 const EVENTS_CHANNEL_ID = 'academy-events';
+const WATER_CHANNEL_ID = 'water-reminders';
 
 /** Each group replaces only its own scheduled notifications (`data.kind`). */
-export type NotificationKind = 'class-reminder' | 'event-reminder';
+export type NotificationKind = 'class-reminder' | 'event-reminder' | 'water-reminder';
+
+const CHANNEL_BY_KIND: Record<NotificationKind, string> = {
+  'class-reminder': CHANNEL_ID,
+  'event-reminder': EVENTS_CHANNEL_ID,
+  'water-reminder': WATER_CHANNEL_ID,
+};
 
 const available = !!requireOptionalNativeModule('ExpoNotificationScheduler');
 
@@ -55,6 +63,11 @@ export async function configureNotifications(): Promise<void> {
       description: 'Novos eventos, cancelamentos e lembrete na véspera.',
       importance: N.AndroidImportance.DEFAULT,
     });
+    await N.setNotificationChannelAsync(WATER_CHANNEL_ID, {
+      name: 'Lembrete de água',
+      description: 'Aviso às 18h quando você ainda não bebeu água no dia.',
+      importance: N.AndroidImportance.DEFAULT,
+    });
   }
 }
 
@@ -91,6 +104,23 @@ export interface LocalNotification {
   title: string;
   body: string;
   data?: Record<string, string>;
+  /** Local PNG (file://) shown with the notification. iOS only: expo-notifications has no image on Android. */
+  imageUri?: string;
+}
+
+/**
+ * iOS attachment: the system MOVES the file into its own store when the notification is
+ * scheduled, so each notification gets its own copy in the cache. A failed copy only drops the image.
+ */
+function iosAttachment(imageUri: string | undefined, index: number): NotificationsModule.NotificationContentAttachmentIos[] | undefined {
+  if (Platform.OS !== 'ios' || !imageUri) return undefined;
+  try {
+    const copy = new File(Paths.cache, `notification-${Date.now()}-${index}.png`);
+    new File(imageUri).copy(copy);
+    return [{ identifier: 'image', url: copy.uri, type: 'public.png' }];
+  } catch {
+    return undefined;
+  }
 }
 
 /** Replaces the scheduled notifications of one kind with `items` (the other kinds stay). */
@@ -99,10 +129,11 @@ export async function replaceScheduledNotifications(items: LocalNotification[], 
   if (!N) return;
   await configureNotifications();
   await cancelScheduledNotifications(kind);
-  const channelId = kind === 'class-reminder' ? CHANNEL_ID : EVENTS_CHANNEL_ID;
-  for (const item of items) {
+  const channelId = CHANNEL_BY_KIND[kind];
+  for (const [index, item] of items.entries()) {
+    const attachments = iosAttachment(item.imageUri, index);
     await N.scheduleNotificationAsync({
-      content: { title: item.title, body: item.body, data: { ...item.data, kind } },
+      content: { title: item.title, body: item.body, data: { ...item.data, kind }, ...(attachments ? { attachments } : {}) },
       trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: item.at, channelId },
     });
   }
