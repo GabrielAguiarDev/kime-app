@@ -44,6 +44,8 @@ const ScopedKeys = {
   eventNotices: 'kimi.eventNotices.v1',
   /** Signature of the event reminders last scheduled, per user. */
   eventRemindersPlan: 'kimi.eventRemindersPlan.v1',
+  /** Signature of the 18:00 water reminders last scheduled, per user. */
+  thirstyRemindersPlan: 'kimi.thirstyRemindersPlan.v1',
 } as const;
 
 type ScopedKey = keyof typeof ScopedKeys;

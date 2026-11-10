@@ -22,7 +22,7 @@ import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
 import { ActiveModalityProvider } from "@services/activeModality";
 import { ConfirmProvider } from "@services/confirm";
 import { useConsumePendingCode } from "@services/entry";
-import { useRecordWaterGoal, useWaterSync, useWidgetConfig } from "@services/water";
+import { useRecordWaterGoal, useThirstyReminder, useWaterSync, useWidgetConfig } from "@services/water";
 import { SessionProvider, useSession } from "@services/session";
 import { AppIntro } from "@screens/intro/AppIntro";
 import { fontAssets, useSchemeTheme } from "@theme";
@@ -93,6 +93,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   useCountdownWidget();
   useRecordWaterGoal();
   useClassReminders();
+  useThirstyReminder();
 
   // Gate only the boot. After that the Stack stays mounted; screens show their
   // own loading state (e.g. memberships loading right after sign-in).
