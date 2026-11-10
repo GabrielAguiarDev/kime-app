@@ -81,14 +81,12 @@ export function useSetInstructorBelt(academyId: string, membershipId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ modalityId, beltId }: { modalityId: string; beltId: string | null }) => {
-      const { error } = beltId
-        ? await supabase
-            .from('instructor_belts')
-            .upsert(
-              { membership_id: membershipId, academy_id: academyId, modality_id: modalityId, belt_id: beltId },
-              { onConflict: 'membership_id,modality_id' },
-            )
-        : await supabase.from('instructor_belts').delete().eq('membership_id', membershipId).eq('modality_id', modalityId);
+      // RPC: update, else insert (an upsert would need UPDATE on the key columns).
+      const { error } = await supabase.rpc('set_instructor_belt', {
+        p_membership_id: membershipId,
+        p_modality_id: modalityId,
+        p_belt_id: beltId,
+      });
       if (error) throw toAppError(error);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.InstructorProfile, academyId] }),

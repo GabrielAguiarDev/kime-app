@@ -257,8 +257,14 @@ function GroupForm({
     if (!valid || !modalityId) return;
     const plan = planScheduleGroup(all, group?.schedules ?? [], time, modalityId, days);
     saveGroup.mutate(
-      // An instructor who left the academy is not offered: saving clears them.
-      { plan, startTime: time, modalityId, instructorId: staff.some((m) => m.userId === instructorId) ? instructorId : null },
+      {
+        plan,
+        startTime: time,
+        modalityId,
+        // An instructor who left the academy is not offered: saving clears them.
+        // Members not loaded (slow network, error): keep what was chosen.
+        instructorId: !members.data || staff.some((m) => m.userId === instructorId) ? instructorId : null,
+      },
       {
         onSuccess: () => {
           haptics.success();
