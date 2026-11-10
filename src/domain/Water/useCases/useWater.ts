@@ -25,6 +25,7 @@ function useAfterLocalChange(userId: string | undefined) {
     if (userId) waterService.sync(userId).then(() => Promise.all([
       queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking] }),
       queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterDays, userId] }),
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.Discipline, userId] }),
     ])).catch(() => undefined);
   };
 }

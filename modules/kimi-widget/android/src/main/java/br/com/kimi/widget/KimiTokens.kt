@@ -22,6 +22,7 @@ object KimiTokens {
     val accentEdge = ColorProvider(day = Color(0xFFA63008), night = Color(0xFFB8420F))
     val water = ColorProvider(day = Color(0xFF1E88E5), night = Color(0xFF3D9BF0))
     val waterEdge = ColorProvider(day = Color(0xFF1565B0), night = Color(0xFF2373C0))
+    val ice = ColorProvider(day = Color(0xFF5AB4DC), night = Color(0xFF9AD8F2))
     val success = ColorProvider(day = Color(0xFF1F9D57), night = Color(0xFF2FB86A))
     val successEdge = ColorProvider(day = Color(0xFF177641), night = Color(0xFF238A50))
     val warning = ColorProvider(day = Color(0xFFF2A100), night = Color(0xFFF5B32E))
