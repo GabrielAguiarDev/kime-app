@@ -1025,6 +1025,76 @@ export type Database = {
           },
         ]
       }
+      discipline_streaks: {
+        Row: {
+          current_weeks: number
+          freezes: number
+          record_weeks: number
+          updated_at: string
+          user_id: string
+          week_done: boolean
+          week_start: string
+        }
+        Insert: {
+          current_weeks?: number
+          freezes?: number
+          record_weeks?: number
+          updated_at?: string
+          user_id: string
+          week_done?: boolean
+          week_start: string
+        }
+        Update: {
+          current_weeks?: number
+          freezes?: number
+          record_weeks?: number
+          updated_at?: string
+          user_id?: string
+          week_done?: boolean
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discipline_streaks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discipline_weeks: {
+        Row: {
+          confirmed_classes: number
+          state: string
+          user_id: string
+          water_days: number
+          week_start: string
+        }
+        Insert: {
+          confirmed_classes: number
+          state: string
+          user_id: string
+          water_days: number
+          week_start: string
+        }
+        Update: {
+          confirmed_classes?: number
+          state?: string
+          user_id?: string
+          water_days?: number
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discipline_weeks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diet_plan_meals: {
         Row: {
           created_at: string
@@ -2557,6 +2627,7 @@ export type Database = {
           overdue_months: string[]
         }[]
       }
+      my_discipline: { Args: never; Returns: Json }
       my_water_days: {
         Args: never
         Returns: {
