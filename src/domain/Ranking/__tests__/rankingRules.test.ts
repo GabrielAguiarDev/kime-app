@@ -4,7 +4,9 @@ import { RANKING_CONFIG, type RankingConfig } from '../rankingConfig';
 import {
   calculateRanking as calculateModalityRanking,
   rankingPeriod,
-  visibleRanking,
+  rankingSections,
+  rankingTrend,
+  type RankingEntry,
   weeklyPresence,
   type AttendanceFact,
   type HydrationFact,
@@ -152,8 +154,30 @@ describe('ranking formula', () => {
     const entries = calculateRanking(
       Array.from({ length: 25 }, (_, i) => facts({ userId: `u${String(i).padStart(2, '0')}`, weeklyGoal: i + 1 })),
     );
-    const { rows, own } = visibleRanking(entries, 'u24');
-    expect(rows).toHaveLength(20);
-    expect(own?.userId).toBe('u24');
+    const { list, ownBelow } = rankingSections(entries, 'u24');
+    expect(list).toHaveLength(20);
+    expect(ownBelow?.userId).toBe('u24');
+  });
+});
+
+describe('ranking screen sections', () => {
+  const entry = (userId: string, position: number | null, extra: Partial<RankingEntry> = {}) =>
+    ({ userId, position, fullName: userId, status: position == null ? 'qualifying' : 'ranked', daysToQualify: 0, ...extra }) as RankingEntry;
+
+  it('splits ranked and qualifying, never mixed', () => {
+    const entries = [entry('a', 1), entry('b', 2), entry('c', 3), entry('d', 4), entry('q2', null, { daysToQualify: 5 }), entry('q1', null, { daysToQualify: 2 })];
+    const s = rankingSections(entries, 'q2');
+    expect(s.list.map((e) => e.userId)).toEqual(['a', 'b', 'c', 'd']);
+    expect(s.qualifying.map((e) => e.userId)).toEqual(['q1', 'q2']);
+    expect(s.own?.userId).toBe('q2');
+    expect(s.ownBelow).toBeNull();
+  });
+
+  it('trend compares with the previous day', () => {
+    expect(rankingTrend({ position: 4, previousPosition: 6 })).toBe('up');
+    expect(rankingTrend({ position: 6, previousPosition: 4 })).toBe('down');
+    expect(rankingTrend({ position: 4, previousPosition: 4 })).toBeNull();
+    expect(rankingTrend({ position: 4, previousPosition: null })).toBeNull();
+    expect(rankingTrend({ position: null, previousPosition: 2 })).toBeNull();
   });
 });

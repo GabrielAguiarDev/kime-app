@@ -16,7 +16,10 @@ import {
   type LocalDate,
 } from '@domain/Classes';
 import { formatLocalDate } from '@domain/Competition';
+import { eventsOn, goingCount, useEventRsvps, useEvents } from '@domain/Events';
 import { DietWeekPicker } from '@screens/diet/DietWeekPicker';
+import { EventAgendaRow } from '@screens/events/EventAgendaRow';
+import { newEvent } from '@screens/events/parts';
 import { useActiveGym } from '@services/activeGym';
 
 import { ModalityFilter } from './ModalityFilter';
@@ -24,8 +27,8 @@ import { ModalityFilter } from './ModalityFilter';
 /**
  * Aulas (staff): days of the week on top (today selected), the classes of the
  * chosen day with confirmed / pending counts, filtered by modality ("Todas"
- * by default); a class opens its attendance list. The owner manages the
- * schedules from the header.
+ * by default); a class opens its attendance list. Academy events show on
+ * their day. "Novo evento" (staff) and the schedules (owner) in the header.
  */
 export function StaffClassesScreen() {
   const { active, isOwner } = useActiveGym();
@@ -40,10 +43,19 @@ export function StaffClassesScreen() {
   const date = picked ?? today.data;
   const week = monday ?? (today.data ? weekStart(today.data) : undefined);
   const checkins = useAcademyCheckins(academyId, date);
+  const events = useEvents(academyId);
+  const rsvps = useEventRsvps(academyId);
 
-  const headerRight = isOwner ? (
-    <HeaderButton icon="settings" accessibilityLabel="Horários das aulas" onPress={() => router.push('/academy/schedules')} />
-  ) : undefined;
+  // "Novo evento" for owner and professors; the schedules (owner) next to it.
+  const headerRight = (
+    // Both icons share one glass pill on iOS: room between them and from its edges.
+    <Box flexDirection="row" alignItems="center" gap="s20" paddingHorizontal="s8">
+      <HeaderButton icon="newEvent" accessibilityLabel="Novo evento" onPress={newEvent} />
+      {isOwner ? (
+        <HeaderButton icon="settings" accessibilityLabel="Horários das aulas" onPress={() => router.push('/academy/schedules')} />
+      ) : null}
+    </Box>
+  );
 
   // Always render the Screen (its ScrollView) on the first render: iOS only
   // places a scroll view under the large-title header when it is there as the
@@ -79,7 +91,10 @@ export function StaffClassesScreen() {
   const all = modality ? schedules.data.filter((s) => s.modalityId === modality) : schedules.data;
   const classes = classesOn(all, date);
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
-  const withClasses = new Set(days.filter((d) => classesOn(all, d).length > 0));
+  const allEvents = events.data ?? [];
+  const withClasses = new Set(days.filter((d) => classesOn(all, d).length > 0 || eventsOn(allEvents, d).length > 0));
+  // Events show on their day for every modality filter (they are not classes).
+  const dayEvents = eventsOn(allEvents, date);
 
   return (
     <Screen nativeHeader title="Aulas" bottomInset={false} headerRight={headerRight}>
@@ -101,6 +116,9 @@ export function StaffClassesScreen() {
 
         <Box gap="s12">
           <Text variant="captionCaps">{date === today.data ? 'Hoje' : formatLocalDate(date)}</Text>
+          {dayEvents.map((e) => (
+            <EventAgendaRow key={e.id} event={e} going={goingCount(rsvps.data ?? [], e.id)} />
+          ))}
           {schedules.data.length === 0 ? (
             <EmptyState
               visual="icon"

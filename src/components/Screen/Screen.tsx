@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useState, type ReactNode } from "react";
-import { Platform, Pressable, ScrollView } from "react-native";
+import { Platform, Pressable, ScrollView, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@theme";
@@ -43,6 +43,8 @@ interface ScreenProps {
   subtitle?: string;
   /** Without nativeHeader: content above the title (e.g. the signed-in account row). */
   header?: ReactNode;
+  /** Scroll events of the content (throttled), e.g. to pin a row that left the screen. */
+  onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }
 
 export function Screen({
@@ -60,6 +62,7 @@ export function Screen({
   largeTitle = true,
   subtitle,
   header: topContent,
+  onScroll,
 }: ScreenProps) {
   const { bottom } = useSafeAreaInsets();
   const { spacing, size, colors } = useAppTheme();
@@ -80,6 +83,7 @@ export function Screen({
         footer={footer}
         feedback={feedback}
         bottomInset={bottomInset}
+        onScroll={onScroll}
       >
         {children}
       </NativeHeaderScreen>
@@ -170,6 +174,8 @@ export function Screen({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           automaticallyAdjustKeyboardInsets
+          onScroll={onScroll}
+          scrollEventThrottle={onScroll ? 64 : undefined}
           contentContainerStyle={{
             paddingHorizontal: spacing.screenMargin,
             paddingBottom: hasBottom ? spacing.s16 : paddingBottom,
@@ -233,6 +239,7 @@ function NativeHeaderScreen({
   footer,
   feedback,
   bottomInset = true,
+  onScroll,
 }: Omit<ScreenProps, "nativeHeader">) {
   const { bottom } = useSafeAreaInsets();
   const { spacing, colors } = useAppTheme();
@@ -279,6 +286,8 @@ function NativeHeaderScreen({
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
+        onScroll={onScroll}
+        scrollEventThrottle={onScroll ? 64 : undefined}
         // No flexGrow: with automatic insets (header on top, tab bar below) a
         // content stretched to the frame height ends up taller than the
         // visible area by the insets, so short/empty screens would scroll.

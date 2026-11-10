@@ -1,6 +1,7 @@
 package br.com.kimi.widget
 
 import android.content.Context
+import androidx.core.os.bundleOf
 import androidx.glance.appwidget.updateAll
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -18,6 +19,17 @@ class KimiWidgetModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("KimiWidget")
+
+    /** Round timer notification buttons (pause / resume / skip), see RoundTimerService. */
+    Events("onRoundTimerCommand")
+
+    OnCreate {
+      RoundTimerService.commandListener = { action -> sendEvent("onRoundTimerCommand", bundleOf("action" to action)) }
+    }
+
+    OnDestroy {
+      RoundTimerService.commandListener = null
+    }
 
     Function("getItem") { key: String ->
       WaterStore.prefs(context).getString(key, null)

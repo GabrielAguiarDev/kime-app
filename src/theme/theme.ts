@@ -57,6 +57,14 @@ function buildColors(scheme: Scheme) {
     beltLightBrown: belt.lightBrown,
     beltDarkRed: belt.darkRed,
 
+    // Ranking podium medals (fixed in both schemes; dark text on top).
+    medalGold: tokens.color.medal.gold,
+    medalGoldEdge: tokens.color.medal.goldEdge,
+    medalSilver: tokens.color.medal.silver,
+    medalSilverEdge: tokens.color.medal.silverEdge,
+    medalBronze: tokens.color.medal.bronze,
+    medalBronzeEdge: tokens.color.medal.bronzeEdge,
+
     transparent: 'transparent',
   };
 }

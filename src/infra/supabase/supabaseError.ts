@@ -36,6 +36,11 @@ export type AppErrorCode =
   | 'owner_must_transfer'
   | 'join_cooldown'
   | 'previous_championship_not_past'
+  | 'event_full'
+  | 'event_rsvp_closed'
+  | 'event_cancelled'
+  | 'invalid_modality'
+  | 'not_found'
   | 'already_present'
   | 'modality_in_use'
   | 'belt_in_use'
@@ -86,6 +91,11 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'owner_must_transfer',
   'join_cooldown',
   'previous_championship_not_past',
+  'event_full',
+  'event_rsvp_closed',
+  'event_cancelled',
+  'invalid_modality',
+  'not_found',
   'rate_limited',
 ];
 
@@ -196,6 +206,11 @@ const MESSAGES: Record<AppErrorCode, string> = {
   join_cooldown: 'Seu pedido para esta academia foi recusado. Você pode pedir de novo 24 horas depois da resposta.',
   diet_copy_same_day: 'Escolha outro dia para copiar.',
   previous_championship_not_past: 'Um campeonato anterior precisa ter data no passado.',
+  event_full: 'As vagas deste evento esgotaram.',
+  event_rsvp_closed: 'O prazo para confirmar presença neste evento terminou.',
+  event_cancelled: 'Este evento foi cancelado.',
+  invalid_modality: 'Escolha modalidades desta academia.',
+  not_found: 'Não encontrado. Ele pode ter sido removido.',
   weight_day_taken: 'Já existe um peso registrado neste dia.',
   modality_in_use: 'Esta modalidade tem horários cadastrados. Remova os horários dela antes.',
   belt_in_use: 'Esta faixa já foi entregue a alunos e fica no histórico deles. Ela não pode ser removida.',

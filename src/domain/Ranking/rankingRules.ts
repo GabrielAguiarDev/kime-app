@@ -43,6 +43,8 @@ export interface RankingEntry {
   eligibleDays: number;
   daysToQualify: number;
   status: 'ranked' | 'qualifying';
+  /** Position in the previous day's calculation (null: not ranked then, or unknown). */
+  previousPosition?: number | null;
 }
 
 /** Inclusive, complete days only; the current day is deliberately left open. */
@@ -111,7 +113,7 @@ export function calculateRanking(facts: RankingFacts[], modalityId: string, conf
       rankingScore: Math.max(config.score.min, Math.min(config.score.max, score)),
       attendanceRate: presence.rate, hydrationRate, confirmedClasses, weeklyGoal: f.weeklyGoal, weeks: presence.weeks,
       hydrationGoalsAchieved, eligibleHydrationDays: water.length, protectedDays,
-      eligibleDays, daysToQualify, status: daysToQualify ? 'qualifying' : 'ranked',
+      eligibleDays, daysToQualify, status: daysToQualify ? 'qualifying' : 'ranked', previousPosition: null,
     };
   });
   // Tie-break: score, confirmed classes in the period, water rate, then a stable id.
@@ -125,10 +127,34 @@ export function calculateRanking(facts: RankingFacts[], modalityId: string, conf
 }
 
 export const RANKING_TOP = 20;
-export function visibleRanking(entries: RankingEntry[], viewerId: string | undefined, top = RANKING_TOP) {
-  const rows = entries.slice(0, top);
+
+export type RankingTrend = 'up' | 'down' | null;
+
+/** Versus the previous day's calculation; nothing when unchanged or not ranked on both days. */
+export function rankingTrend(e: Pick<RankingEntry, 'position' | 'previousPosition'>): RankingTrend {
+  if (e.position == null || e.previousPosition == null || e.position === e.previousPosition) return null;
+  return e.position < e.previousPosition ? 'up' : 'down';
+}
+
+/** Places that get a medal (gold, silver, bronze) instead of the number. */
+export const MEDAL_PLACES = 3;
+
+/**
+ * Ranking screen sections: the ranked list up to `top`, the viewer's ranked
+ * row when below `top`, and the students still qualifying (never mixed with
+ * the ranked ones), closest to qualifying first.
+ */
+export function rankingSections(entries: RankingEntry[], viewerId: string | undefined, top = RANKING_TOP) {
+  const ranked = entries
+    .filter((e) => e.status === 'ranked' && e.position != null)
+    .sort((a, b) => a.position! - b.position!);
+  const qualifying = entries
+    .filter((e) => e.status !== 'ranked' || e.position == null)
+    .sort((a, b) => a.daysToQualify - b.daysToQualify || a.fullName.localeCompare(b.fullName, 'pt-BR'));
+  const list = ranked.slice(0, top);
   const own = entries.find((e) => e.userId === viewerId) ?? null;
-  return { rows, own: own && !rows.includes(own) ? own : null };
+  const ownBelow = own && ranked.indexOf(own) >= top ? own : null;
+  return { list, ownBelow, qualifying, own };
 }
 
 /** Retained for attendance summaries outside the competitive ranking. */

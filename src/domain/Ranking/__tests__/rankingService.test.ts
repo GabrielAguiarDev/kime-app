@@ -20,11 +20,11 @@ beforeEach(() => from.mockReset());
 it('reads only prepared snapshots and separately protected details', async () => {
   from.mockImplementation((table: string) => query(table === 'ranking_snapshots' ? [{
     academy_id: 'academy', modality_id: 'mt', user_id: 'student', full_name: 'Student', avatar_path: null,
-    position: 1, score: 72.5, status: 'ranked',
-  }] : []));
+    position: 1, score: 72.5, status: 'ranked', period_to: '2026-11-28',
+  }] : table === 'ranking_position_history' ? [{ user_id: 'student', position: 3 }] : []));
   const rows = await fetchRanking(request('mt'));
-  expect(from.mock.calls.map(([table]) => table)).toEqual(['ranking_snapshots', 'ranking_details']);
-  expect(rows[0]).toMatchObject({ modalityId: 'mt', rankingScore: 72.5, position: 1 });
+  expect(from.mock.calls.map(([table]) => table)).toEqual(['ranking_snapshots', 'ranking_details', 'ranking_position_history']);
+  expect(rows[0]).toMatchObject({ modalityId: 'mt', rankingScore: 72.5, position: 1, previousPosition: 3 });
 });
 
 it('keeps modalities and intervals independent in cache', async () => {

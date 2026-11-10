@@ -62,6 +62,7 @@ export function TextField({
   onBlur,
   onPressIn,
   onPressOut,
+  style,
   ...inputProps
 }: TextFieldProps) {
   const theme = useAppTheme();
@@ -97,14 +98,18 @@ export function TextField({
           accessibilityLabel={label}
           placeholderTextColor={theme.colors.textMuted}
           selectionColor={theme.colors.accent}
-          style={{
-            flex: 1,
-            minHeight: theme.size.input - 2 * theme.border.width,
-            fontFamily: body.fontFamily,
-            fontSize: body.fontSize,
-            fontVariant: body.fontVariant,
-            color: theme.colors.text,
-          }}
+          style={[
+            {
+              flex: 1,
+              minHeight: theme.size.input - 2 * theme.border.width,
+              fontFamily: body.fontFamily,
+              fontSize: body.fontSize,
+              fontVariant: body.fontVariant,
+              color: theme.colors.text,
+            },
+            // Extra layout (e.g. a taller multiline field) on top of the base text style.
+            style,
+          ]}
           // Touch-down moves the highlight here at once (and off the previous field).
           onPressIn={(e) => {
             focusHighlight.set(id);

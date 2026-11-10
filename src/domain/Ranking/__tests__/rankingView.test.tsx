@@ -83,3 +83,20 @@ it('staff always rank one modality: the first by default, then the picked one (n
   RankingView({ academyId: 'academy' });
   expect(useRanking).toHaveBeenLastCalledWith('academy', 'bjj', period);
 });
+
+it('a qualifying student gets the card on top and is kept out of the ranked list', () => {
+  mockStaff = false;
+  mockStudentModality = 'mt';
+  (useRanking as jest.Mock).mockImplementation((_a, modality) => ({
+    data: [
+      { ...entry(modality), userId: 'other', position: 1 },
+      { ...entry(modality), position: null, status: 'qualifying', daysToQualify: 3 },
+    ],
+    isLoading: false,
+    isError: false,
+  }));
+  const tree = elements(RankingView({ academyId: 'academy' }));
+  const text = tree.filter((e) => e.type === 'Text').map((e) => [e.props.children].flat().join(''));
+  expect(text).toContain('Você entra no ranking em 3 dias. Continue treinando e batendo sua meta de água.');
+  expect(text).toContain('Em classificação (1)');
+});

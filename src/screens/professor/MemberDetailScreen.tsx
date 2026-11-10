@@ -106,7 +106,7 @@ export function MemberDetailScreen() {
 function MemberHeader({ member }: { member: GymMember }) {
   return (
     <Box alignItems="center" gap="s12">
-      <Avatar name={member.fullName} path={member.avatarPath} size="large" />
+      <Avatar name={member.fullName} path={member.avatarPath} size="large" competitor={member.isCompetitor} />
       {/* The name is the header title. */}
       <Text variant="captionCaps">{membershipLabel(member)}</Text>
     </Box>
@@ -165,6 +165,16 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
     >
       <Box gap="s24">
         <MemberHeader member={member} />
+        {/* A competitor's cartel comes right after the name (user decision, 2026-11-10). */}
+        {member.isCompetitor ? (
+          <FightRecordSection
+            academyId={academyId}
+            athleteId={member.userId}
+            modalities={allModalities}
+            modalityIds={member.modalities.filter((l) => l.isCompetitor).map((l) => l.modalityId)}
+            title="Cartel e campeonatos"
+          />
+        ) : null}
         <BodyDataCard userId={member.userId} />
         {loading ? <ActivityIndicator /> : null}
         {failed.length > 0 ? (
@@ -201,16 +211,6 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
         <StudentModalitiesSection member={member} modalities={allModalities} />
 
         <CompetitorSection member={member} modalities={allModalities} />
-
-        {member.isCompetitor ? (
-          <FightRecordSection
-            academyId={academyId}
-            athleteId={member.userId}
-            modalities={allModalities}
-            modalityIds={member.modalities.filter((l) => l.isCompetitor).map((l) => l.modalityId)}
-            title="Cartel e campeonatos"
-          />
-        ) : null}
 
         {member.isCompetitor ? (
           <PreviousHistorySection academyId={academyId} member={member} modalities={allModalities} />

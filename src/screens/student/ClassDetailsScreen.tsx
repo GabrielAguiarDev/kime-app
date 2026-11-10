@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, FlatList } from 'react-native';
 
-import { BeltChip, Box, Button, Card, EmptyState, LoadError, PersonRow, Screen, StatusBadge, Text, TextButton } from '@components';
+import { BeltChip, Box, Button, EmptyState, LoadError, PersonRow, Screen, StatusBadge, Text, TextButton } from '@components';
 import { useAcademyToday, useSchedules, useMyCheckins, useClassAttendees, useCheckIn, useCancelCheckin, type BeltColorKey } from '@domain/Classes';
 import { formatLocalDate } from '@domain/Competition';
 import { errorMessage } from '@infra';
@@ -57,18 +57,33 @@ export function ClassDetailsScreen() {
               {checkIn.error || cancel.error ? <Text variant="caption" color="danger">{errorMessage(checkIn.error ?? cancel.error)}</Text> : null}
             </Box>
           }
-          renderItem={({ item }) => (
-            <Box paddingBottom="s8">
-              <Card>
-                <PersonRow name={item.user_id === userId ? `${item.full_name} (você)` : item.full_name} avatarPath={item.avatar_path} last secondary={
+          // One surface container for the whole list (thin dividers, no card per person).
+          renderItem={({ item, index }) => {
+            const first = index === 0;
+            const last = index === people.length - 1;
+            return (
+              <Box
+                backgroundColor="surface"
+                borderColor="border"
+                borderLeftWidth={theme.border.width}
+                borderRightWidth={theme.border.width}
+                borderTopWidth={first ? theme.border.width : 0}
+                borderBottomWidth={last ? theme.border.width : 0}
+                borderTopLeftRadius={first ? 'lg' : undefined}
+                borderTopRightRadius={first ? 'lg' : undefined}
+                borderBottomLeftRadius={last ? 'lg' : undefined}
+                borderBottomRightRadius={last ? 'lg' : undefined}
+                paddingHorizontal="s16"
+              >
+                <PersonRow name={item.user_id === userId ? `${item.full_name} (você)` : item.full_name} avatarPath={item.avatar_path} last={last} secondary={
                   <Box flexDirection="row" alignItems="center" gap="s8">
                     {item.belt_primary ? <BeltChip belt={{ primary: item.belt_primary as BeltColorKey, tip: item.belt_tip as BeltColorKey | null }} /> : null}
                     {item.status === 'pending' ? <StatusBadge status="pending" /> : null}
                   </Box>
                 } />
-              </Card>
-            </Box>
-          )}
+              </Box>
+            );
+          }}
           ListEmptyComponent={
             <Box justifyContent="center" alignItems="center" paddingVertical="s32">
               {attendees.isLoading ? <ActivityIndicator accessibilityLabel="Carregando alunos" /> : attendees.isError ? (

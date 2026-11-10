@@ -37,4 +37,7 @@ export enum QueryKeys {
   FightHistory = 'FightHistory',
   FightSummary = 'FightSummary',
   PreviousRecords = 'PreviousRecords',
+  AcademyEvents = 'AcademyEvents',
+  EventRsvps = 'EventRsvps',
+  EventPeople = 'EventPeople',
 }

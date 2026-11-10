@@ -401,4 +401,4 @@ Sons curtos (até 1 segundo) no registro de água, check-in confirmado e telas d
 
 ### Linha de pessoa (listas longas)
 
-Use `PersonRow` para listas de pessoas. Coloque as linhas em um único container `surface`, com divisores finos, sem card por pessoa. Cada linha tem aproximadamente 60 px de altura, padding vertical de 10 px, avatar circular de 40 px (iniciais em `surfaceRaised` quando não houver foto), nome em `bodyStrong` e informação secundária em `caption` (faixa, papel ou status). À direita, use ações circulares de ícone de 40 px ou chevron quando a linha abrir detalhes.
+Use `PersonRow` para listas de pessoas. Coloque as linhas em um único container `surface`, com divisores finos, sem card por pessoa. Cada linha tem aproximadamente 72 px de altura, padding vertical de 12 px, avatar circular de 48 px (decisão do usuário, 2026-11-10: foto maior, linha mais baixa) (iniciais em `surfaceRaised` quando não houver foto), nome em `bodyStrong` e informação secundária em `caption` (faixa, papel ou status). À direita, use ações circulares de ícone de 40 px ou chevron quando a linha abrir detalhes.

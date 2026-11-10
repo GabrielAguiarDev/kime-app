@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator } from 'react-native';
 
-import { Avatar, BeltChip, Box, Card, EmptyState, Icon, LoadError, Screen, Text } from '@components';
+import { Avatar, BeltChip, Box, Card, EmptyState, LoadError, Screen, Text } from '@components';
 import { useFightSummary } from '@domain/Competition';
 import { roleLabel } from '@domain/Membership';
 import { memberSinceLabel, useClassmates } from '@domain/Team';
@@ -14,8 +14,9 @@ const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 /**
  * A member seen by a classmate, for the modality selected in the Início
- * header only (user decision: no list of modalities): big photo, name, role,
- * the competitor seal (competes in it), "Treina aqui desde …", the graduation
+ * header only (user decision: no list of modalities): big photo, name, the
+ * cartel (competitor: always right after the name; the trophy badge on the
+ * photo marks it), role, "Treina aqui desde …", the graduation
  * (belt in it) and, for a competitor, the cartel summary of it (never the
  * fights in detail). Never health data (water, weight, reach, plans) nor
  * attendance history.
@@ -61,31 +62,25 @@ export function ColleagueScreen() {
     <Screen nativeHeader title="" largeTitle={false} onBack={back}>
       <Box gap="s24">
         <Box alignItems="center" gap="s12">
-          <Avatar name={member.fullName} path={member.avatarPath} size="large" />
-          <Box alignItems="center" gap="s4">
-            <Text variant="title" textAlign="center" accessibilityRole="header">
-              {member.userId === userId ? `${member.fullName} (você)` : member.fullName}
-            </Text>
-            <Text variant="body" color="textMuted">
-              {roleLabel[member.role]}
-            </Text>
+          <Avatar name={member.fullName} path={member.avatarPath} size="large" competitor={competes} />
+          <Text variant="title" textAlign="center" accessibilityRole="header">
+            {member.userId === userId ? `${member.fullName} (você)` : member.fullName}
+          </Text>
+        </Box>
+
+        {/* A competitor's cartel comes right after the name (user decision, 2026-11-10). */}
+        {competes ? (
+          <Box gap="s8">
+            <Text variant="captionCaps">{`Cartel · ${selected!.name}`}</Text>
+            {record.isLoading ? <ActivityIndicator accessibilityLabel="Carregando cartel" /> : null}
+            {cartel ? <FightRecordCard record={cartel} /> : null}
           </Box>
-          {competes ? (
-            <Box
-              flexDirection="row"
-              alignItems="center"
-              gap="s4"
-              paddingHorizontal="s12"
-              paddingVertical="s4"
-              borderRadius="progress"
-              backgroundColor="accentSelected"
-            >
-              <Icon name="trophy" color="accent" active />
-              <Text variant="captionCaps" color="accent">
-                Competidor
-              </Text>
-            </Box>
-          ) : null}
+        ) : null}
+
+        <Box alignItems="center" gap="s12">
+          <Text variant="body" color="textMuted">
+            {roleLabel[member.role]}
+          </Text>
           <Text variant="caption" textAlign="center">
             {`${isStaffMember ? 'Na academia' : 'Treina aqui'} desde ${memberSinceLabel(member.memberSince)}`}
           </Text>
@@ -98,13 +93,6 @@ export function ColleagueScreen() {
           </Box>
         ) : null}
 
-        {competes ? (
-          <Box gap="s8">
-            <Text variant="captionCaps">{`Cartel · ${selected!.name}`}</Text>
-            {record.isLoading ? <ActivityIndicator accessibilityLabel="Carregando cartel" /> : null}
-            {cartel ? <FightRecordCard record={cartel} /> : null}
-          </Box>
-        ) : null}
       </Box>
     </Screen>
   );
