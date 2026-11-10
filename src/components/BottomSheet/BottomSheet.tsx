@@ -20,7 +20,10 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { useAppTheme } from "@theme";
@@ -63,7 +66,6 @@ export function BottomSheet({
   children,
 }: BottomSheetProps) {
   const theme = useAppTheme();
-  const { bottom } = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const landscape = windowWidth > windowHeight;
   const reduceMotion = useReducedMotion();
@@ -173,59 +175,100 @@ export function BottomSheet({
       transparent
       animationType="none"
       statusBarTranslucent
-      supportedOrientations={allowLandscape ? ['portrait', 'landscape'] : ['portrait']}
+      supportedOrientations={
+        allowLandscape ? ["portrait", "landscape"] : ["portrait"]
+      }
       onRequestClose={onRequestClose}
     >
-      <GestureHandlerRootView style={styles.fill}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: theme.colors.scrim },
-            scrimStyle,
-          ]}
-        >
-          <Pressable
-            style={styles.fill}
-            onPress={onRequestClose}
-            accessibilityRole="button"
-            accessibilityLabel={dismissLabel}
-          />
-        </Animated.View>
-        <Box flex={1} justifyContent="flex-end" pointerEvents="box-none">
-          <GestureDetector gesture={pan}>
-            <Animated.View
-              style={[sheetStyle, landscape ? { alignSelf: 'center', width: Math.min(windowWidth, LANDSCAPE_SHEET_WIDTH) } : null]}
-              accessibilityViewIsModal
-              onLayout={(e) => {
-                if (visible) setSheetHeight(e.nativeEvent.layout.height);
-              }}
-            >
-              <Box
-                backgroundColor="surface"
-                borderTopWidth={theme.border.width}
-                borderLeftWidth={theme.border.width}
-                borderRightWidth={theme.border.width}
-                borderColor="border"
-                borderTopLeftRadius="lg"
-                borderTopRightRadius="lg"
-                paddingHorizontal="screenMargin"
-                style={{ paddingBottom: bottom + theme.spacing.s16 }}
+      {/* Measure device insets here: outside the native tab bar's safe area (as FeedbackSheet). */}
+      <SafeAreaProvider>
+        <GestureHandlerRootView style={styles.fill}>
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: theme.colors.scrim },
+              scrimStyle,
+            ]}
+          >
+            <Pressable
+              style={styles.fill}
+              onPress={onRequestClose}
+              accessibilityRole="button"
+              accessibilityLabel={dismissLabel}
+            />
+          </Animated.View>
+          <Box flex={1} justifyContent="flex-end" pointerEvents="box-none">
+            <GestureDetector gesture={pan}>
+              <Animated.View
+                style={[
+                  sheetStyle,
+                  landscape
+                    ? {
+                        alignSelf: "center",
+                        width: Math.min(windowWidth, LANDSCAPE_SHEET_WIDTH),
+                      }
+                    : null,
+                ]}
+                accessibilityViewIsModal
+                onLayout={(e) => {
+                  if (visible) setSheetHeight(e.nativeEvent.layout.height);
+                }}
               >
-                <Box alignItems="center" paddingTop="s12" paddingBottom="s16">
-                  <Box
-                    width={theme.size.sheetHandleWidth}
-                    height={theme.size.sheetHandleHeight}
-                    borderRadius="sm"
-                    backgroundColor="border"
-                  />
-                </Box>
-                {content}
-              </Box>
-            </Animated.View>
-          </GestureDetector>
-        </Box>
-      </GestureHandlerRootView>
+                <SheetSurface>
+                  <Box alignItems="center" paddingTop="s12" paddingBottom="s16">
+                    <Box
+                      width={theme.size.sheetHandleWidth}
+                      height={theme.size.sheetHandleHeight}
+                      borderRadius="sm"
+                      backgroundColor="border"
+                    />
+                  </Box>
+                  {content}
+                </SheetSurface>
+                {/* Below the sheet, same surface: dragging it up (with resistance) never shows the screen under it. */}
+                <Box
+                  position="absolute"
+                  left={0}
+                  right={0}
+                  top="100%"
+                  height={windowHeight}
+                  backgroundColor="surface"
+                  borderLeftWidth={theme.border.width}
+                  borderRightWidth={theme.border.width}
+                  borderColor="border"
+                  pointerEvents="none"
+                />
+              </Animated.View>
+            </GestureDetector>
+          </Box>
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
     </Modal>
+  );
+}
+
+/**
+ * The sheet itself. Reads the insets of the Modal's own SafeAreaProvider: the home-indicator
+ * area is the bottom margin (s16 only without one). Read from the screen, a tab screen's
+ * inset would include the tab bar, which is not under the modal.
+ */
+function SheetSurface({ children }: { children: ReactNode }) {
+  const theme = useAppTheme();
+  const { bottom } = useSafeAreaInsets();
+  return (
+    <Box
+      backgroundColor="surface"
+      borderTopWidth={theme.border.width}
+      borderLeftWidth={theme.border.width}
+      borderRightWidth={theme.border.width}
+      borderColor="border"
+      borderTopLeftRadius="lg"
+      borderTopRightRadius="lg"
+      paddingHorizontal="screenMargin"
+      style={{ paddingBottom: bottom > 0 ? bottom : theme.spacing.s16 }}
+    >
+      {children}
+    </Box>
   );
 }
 

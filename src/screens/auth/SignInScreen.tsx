@@ -23,30 +23,6 @@ export function SignInScreen() {
     // First screen when signed out (no back); pushed from the code screen, back returns to it.
     <Screen
       onBack={router.canGoBack() ? () => router.back() : undefined}
-      footer={
-        <>
-          <Button
-            title="Entrar"
-            disabled={!canSubmit}
-            loading={isPending}
-            onPress={() =>
-              mutate(
-                { email, password },
-                {
-                  onError: (e) => {
-                    // Signed up but never typed the code: finish the confirmation.
-                    if (e instanceof AppError && e.code === 'email_not_confirmed') {
-                      router.push({ pathname: '/verify-email', params: { email: normalizeEmail(email) } });
-                    }
-                  },
-                },
-              )
-            }
-          />
-          <AppleSignInButton />
-          <TextButton title="Criar conta" onPress={() => router.push('/sign-up')} />
-        </>
-      }
     >
       <Box flex={1} justifyContent="center" gap="s16">
         {academy ? (
@@ -82,6 +58,29 @@ export function SignInScreen() {
           textContentType="password"
           errorMessage={error ? errorMessage(error) : undefined}
         />
+      </Box>
+      {/* Actions inside the scroll (not a fixed footer): they move with the content. */}
+      <Box gap="s12" marginTop="s24">
+        <Button
+          title="Entrar"
+          disabled={!canSubmit}
+          loading={isPending}
+          onPress={() =>
+            mutate(
+              { email, password },
+              {
+                onError: (e) => {
+                  // Signed up but never typed the code: finish the confirmation.
+                  if (e instanceof AppError && e.code === 'email_not_confirmed') {
+                    router.push({ pathname: '/verify-email', params: { email: normalizeEmail(email) } });
+                  }
+                },
+              },
+            )
+          }
+        />
+        <AppleSignInButton />
+        <TextButton title="Criar conta" onPress={() => router.push('/sign-up')} />
       </Box>
     </Screen>
   );

@@ -3,9 +3,12 @@ import { ActivityIndicator } from 'react-native';
 
 import { Avatar, BeltChip, Box, Card, EmptyState, LoadError, Screen, Text } from '@components';
 import { useFightSummary } from '@domain/Competition';
+import { useAcademyToday } from '@domain/Classes';
 import { roleLabel } from '@domain/Membership';
+import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { memberSinceLabel, useClassmates } from '@domain/Team';
 import { FightRecordCard } from '@screens/competition/FightRecord';
+import { days, points } from '@screens/ranking/rankingFormat';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
 import { useSession } from '@services/session';
@@ -18,7 +21,8 @@ const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
  * cartel (competitor: always right after the name; the trophy badge on the
  * photo marks it), role, "Treina aqui desde …", the graduation
  * (belt in it) and, for a competitor, the cartel summary of it (never the
- * fights in detail). Never health data (water, weight, reach, plans) nor
+ * fights in detail) and the member's position in the modality ranking.
+ * Never health data (water, weight, reach, plans) nor
  * attendance history.
  */
 export function ColleagueScreen() {
@@ -32,6 +36,11 @@ export function ColleagueScreen() {
   const competes = !!member && member.role === 'student' && !!link?.isCompetitor;
   const record = useFightSummary(active?.gymId, memberId, competes);
   const cartel = record.data?.find((r) => r.modalityId === selected?.id);
+  const today = useAcademyToday(active?.gymId);
+  const period = today.data ? rankingPeriod(today.data) : undefined;
+  const isStudent = member?.role === 'student' && !!link;
+  const ranking = useRanking(active?.gymId, isStudent ? selected?.id : undefined, period);
+  const rankEntry = ranking.data?.find((e) => e.userId === memberId);
 
   if (classmates.isLoading || !active) {
     return (
@@ -93,6 +102,27 @@ export function ColleagueScreen() {
           </Box>
         ) : null}
 
+        {isStudent && rankEntry ? (
+          <Box gap="s8">
+            <Text variant="captionCaps">{`Ranking · ${selected!.name}`}</Text>
+            <Card>
+              {rankEntry.status === 'ranked' && rankEntry.position != null ? (
+                <Box
+                  flexDirection="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  accessible
+                  accessibilityLabel={`${rankEntry.position}º lugar, ${points(rankEntry.rankingScore)} pontos`}
+                >
+                  <Text variant="body">{`${rankEntry.position}º lugar`}</Text>
+                  <Text variant="counter">{`${points(rankEntry.rankingScore)} pts`}</Text>
+                </Box>
+              ) : (
+                <Text variant="body">{`Em classificação · faltam ${days(rankEntry.daysToQualify)}`}</Text>
+              )}
+            </Card>
+          </Box>
+        ) : null}
       </Box>
     </Screen>
   );

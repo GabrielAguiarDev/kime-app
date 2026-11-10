@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Keyboard, Pressable, ScrollView, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Icon, Text, type IconName } from '@components';
 import { useAppTheme } from '@theme';
@@ -58,7 +59,9 @@ export function SheetForm({
 }) {
   const { height } = useWindowDimensions();
   const { size, spacing } = useAppTheme();
-  const keyboard = useKeyboardHeight();
+  // The keyboard height includes the bottom safe area, which the sheet already keeps.
+  const { bottom } = useSafeAreaInsets();
+  const keyboard = Math.max(0, useKeyboardHeight() - bottom);
   return (
     <Box gap="s16" style={{ paddingBottom: keyboard }}>
       <Box flexDirection="row" alignItems="center" gap="s12">
