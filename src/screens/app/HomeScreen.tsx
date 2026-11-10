@@ -108,17 +108,8 @@ export function HomeScreen() {
           </HeaderButton>
         )
       }
-      // Today's water at the top right for everyone (students and staff). DEV: debug screen.
-      headerRight={
-        __DEV__ ? (
-          <Box flexDirection="row" alignItems="center" gap="s16">
-            <HeaderButton icon="bug" accessibilityLabel="Abrir tela de debug" onPress={() => router.push('/debug')} />
-            <WaterCounter inHeader />
-          </Box>
-        ) : (
-          <WaterCounter inHeader />
-        )
-      }
+      // Today's water at the top right for everyone (students and staff).
+      headerRight={<WaterCounter inHeader />}
       bottomInset={false}
       feedback={
         joinedTeam ? (

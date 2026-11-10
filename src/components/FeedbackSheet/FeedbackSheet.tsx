@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AccessibilityInfo } from 'react-native';
+import { AccessibilityInfo, Modal } from 'react-native';
 import Animated, {
   Easing,
   ReduceMotion,
@@ -7,7 +7,7 @@ import Animated, {
   type EntryAnimationsValues,
   type LayoutAnimation,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme, type ColorToken } from '@theme';
 
@@ -66,7 +66,27 @@ interface FeedbackSheetProps {
  * 16, the full-width button. Height = the sum, no minimum.
  * Pass it to `<Screen feedback={...} />`. The caller fires the haptic for the moment.
  */
-export function FeedbackSheet({ tone, title, message, actionLabel, onAction, icon, pose, animated }: FeedbackSheetProps) {
+export function FeedbackSheet(props: FeedbackSheetProps) {
+  return (
+    <Modal
+      transparent
+      animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={props.onAction}
+    >
+      {/* Measure device insets here, outside the native tab bar's safe area. */}
+      <SafeAreaProvider>
+        <Box flex={1} justifyContent="flex-end" accessibilityViewIsModal>
+          <FeedbackSheetContent {...props} />
+        </Box>
+      </SafeAreaProvider>
+    </Modal>
+  );
+}
+
+function FeedbackSheetContent({ tone, title, message, actionLabel, onAction, icon, pose, animated }: FeedbackSheetProps) {
   const { bottom } = useSafeAreaInsets();
   const theme = useAppTheme();
   const t = TONES[tone];

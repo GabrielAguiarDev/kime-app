@@ -147,8 +147,6 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="evento/index" options={header} />
             <Stack.Screen name="colega/[userId]" options={header} />
             <Stack.Screen name="agua/widget" options={header} />
-            {/* DEV ONLY: mascot poses (screens/debug). */}
-            <Stack.Screen name="debug" options={header} />
             {/* The only screen that may turn landscape (the user's choice, set by the screen). */}
             <Stack.Screen name="timer/run" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
           </Stack.Protected>
