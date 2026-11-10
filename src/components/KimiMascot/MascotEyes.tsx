@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 import { AppState } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -9,36 +9,41 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, Rect } from 'react-native-svg';
 
-import { GUARD_EYES, type GuardEye } from './guardEyesShapes';
-import { MASCOT_MOTION, type Range } from './motion';
+import { MASCOT_EYES, type EyesPose, type MascotEye } from './eyeShapes';
+import { motionFor, type MascotMotion, type Range } from './motion';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
-
-const { blink: BLINK, look: LOOK, anger: ANGER } = MASCOT_MOTION;
 
 /** At rest the eyelid sits this far above its closed position: out of the clipped eye. */
 const LID_CLEARANCE = 20;
 
 const between = ([min, max]: Range) => min + Math.random() * (max - min);
 
-export interface GuardEyesHandle {
+export interface MascotEyesHandle {
   blink: () => void;
   /** Swaps the brows for the angry ones for ~1 s. */
   angry: () => void;
 }
 
-interface GuardEyesProps {
+interface MascotEyesProps {
+  pose: EyesPose;
   /** Runs the idle loop (blinks and glances). Off: eyes open and still. */
   idle: boolean;
-  ref?: Ref<GuardEyesHandle>;
+  /**
+   * First glance this long after mounting (with a blink in the middle of it) instead of the
+   * random wait, e.g. right after a feedback sheet enters. Later ones keep the usual pace.
+   */
+  startAfterMs?: number;
+  ref?: Ref<MascotEyesHandle>;
 }
 
-function blinkTo(lid: SharedValue<number>, double: boolean) {
+function blinkTo(lid: SharedValue<number>, double: boolean, BLINK: MascotMotion['blink']) {
   const down = () => withTiming(1, { duration: BLINK.halfMs });
   const up = () => withTiming(0, { duration: BLINK.halfMs });
   lid.set(
@@ -49,21 +54,26 @@ function blinkTo(lid: SharedValue<number>, double: boolean) {
 }
 
 /**
- * Eyes of the "guard" pose (assets/mascot/guard-eyes.svg, via guardEyesShapes.ts) drawn
- * over guard-no-eyes.png, same size. Eyelids, pupils and brows move with Reanimated.
+ * Eyes of a pose (assets/mascot/{pose}-eyes.svg, via eyeShapes.ts) drawn over
+ * {pose}-no-eyes.png, same size. Eyelids, pupils and brows move with Reanimated, with the
+ * pose's motion (motion.ts).
  */
-export function GuardEyes({ idle, ref }: GuardEyesProps) {
+export function MascotEyes({ pose, idle, startAfterMs, ref }: MascotEyesProps) {
+  const shape = MASCOT_EYES[pose];
+  const { blink: BLINK, look: LOOK, anger: ANGER } = motionFor(pose);
   // 0 open → 1 closed.
   const lid = useSharedValue(0);
   // -1 left … 1 right.
   const look = useSharedValue(0);
   // 0 normal brows → 1 angry brows.
   const anger = useSharedValue(0);
+  // The quick first glance happens once per mount (not again after a pause).
+  const startedOnce = useRef(false);
 
   useImperativeHandle(
     ref,
     () => ({
-      blink: () => blinkTo(lid, false),
+      blink: () => blinkTo(lid, false, BLINK),
       angry: () => {
         anger.set(withSequence(
           withTiming(1, { duration: ANGER.fadeMs }),
@@ -71,7 +81,7 @@ export function GuardEyes({ idle, ref }: GuardEyesProps) {
         ));
       },
     }),
-    [lid, anger],
+    [lid, anger, BLINK, ANGER],
   );
 
   // Idle loop: only while visible (`idle`) and the app is in the foreground. Blinks and
@@ -86,14 +96,15 @@ export function GuardEyes({ idle, ref }: GuardEyesProps) {
       clearTimeout(blinkTimer);
       nextBlinkAt = Date.now() + delay;
       blinkTimer = setTimeout(() => {
-        blinkTo(lid, Math.random() < BLINK.doubleChance);
+        blinkTo(lid, Math.random() < BLINK.doubleChance, BLINK);
         scheduleBlink();
       }, delay);
     };
 
     /** One glance; returns how long it takes (ms). */
-    const glance = (): number => {
-      const roll = Math.random();
+    const glance = (forceMove = false): number => {
+      // A forced glance always moves (no "keeps looking ahead").
+      const roll = forceMove ? LOOK.centerChance + Math.random() * (1 - LOOK.centerChance) : Math.random();
       const move = () => between(LOOK.moveMs);
       if (roll < LOOK.centerChance) return 0; // keeps looking ahead this time
       let firstMove: number;
@@ -125,14 +136,21 @@ export function GuardEyes({ idle, ref }: GuardEyesProps) {
       return total;
     };
 
-    const scheduleLook = (delay = between(LOOK.every)) => {
+    const scheduleLook = (delay = between(LOOK.every), forceMove = false) => {
       lookTimer = setTimeout(() => {
-        const took = glance();
+        const took = glance(forceMove);
         // Next glance counted from this one's start, never before it ends.
         scheduleLook(Math.max(between(LOOK.every), took + LOOK.moveMs[1]));
       }, delay);
     };
     const start = () => {
+      if (startAfterMs != null && !startedOnce.current) {
+        startedOnce.current = true;
+        // Blink due right then: the glance's sync puts it in the middle of the move.
+        scheduleBlink(startAfterMs + 200);
+        scheduleLook(startAfterMs, true);
+        return;
+      }
       scheduleBlink();
       scheduleLook();
     };
@@ -154,41 +172,49 @@ export function GuardEyes({ idle, ref }: GuardEyesProps) {
       sub.remove();
       stop();
     };
-  }, [idle, lid, look]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- BLINK/LOOK derive from `pose`
+  }, [idle, pose, lid, look]);
 
   return (
-    <Svg width="100%" height="100%" viewBox={GUARD_EYES.viewBox} style={{ position: 'absolute' }} pointerEvents="none">
-      <G transform={GUARD_EYES.rootTransform}>
+    <Svg width="100%" height="100%" viewBox={shape.viewBox} style={{ position: 'absolute' }} pointerEvents="none">
+      <G transform={shape.rootTransform}>
         <Defs>
           <ClipPath id="kimi-clip-eye-left">
-            <Path d={GUARD_EYES.left.clip} />
+            <Path d={shape.left.clip} />
           </ClipPath>
           <ClipPath id="kimi-clip-eye-right">
-            <Path d={GUARD_EYES.right.clip} />
+            <Path d={shape.right.clip} />
           </ClipPath>
         </Defs>
-        <Eye eye={GUARD_EYES.left} clipId="kimi-clip-eye-left" lid={lid} look={look} anger={anger} />
-        <Eye eye={GUARD_EYES.right} clipId="kimi-clip-eye-right" lid={lid} look={look} anger={anger} />
+        <Eye eye={shape.left} clipId="kimi-clip-eye-left" lid={lid} look={look} anger={anger} lookOffset={LOOK.offset} />
+        <Eye eye={shape.right} clipId="kimi-clip-eye-right" lid={lid} look={look} anger={anger} lookOffset={LOOK.offset} />
       </G>
     </Svg>
   );
 }
 
 interface EyeProps {
-  eye: GuardEye;
+  eye: MascotEye;
   clipId: string;
   lid: SharedValue<number>;
   look: SharedValue<number>;
   anger: SharedValue<number>;
+  /** Pupil shift to the side, in SVG units. */
+  lookOffset: number;
 }
 
-function Eye({ eye, clipId, lid, look, anger }: EyeProps) {
+function Eye({ eye, clipId, lid, look, anger, lookOffset }: EyeProps) {
   const { eyelid, pupil, shine } = eye;
   const restOffset = eyelid.height + LID_CLEARANCE;
 
   const lidProps = useAnimatedProps(() => ({ y: eyelid.y - restOffset * (1 - lid.value) }));
-  const pupilProps = useAnimatedProps(() => ({ cx: pupil.cx + LOOK.offset * look.value }));
-  const shineProps = useAnimatedProps(() => ({ cx: shine.cx + LOOK.offset * look.value }));
+  // The ellipse is drawn in its rotated frame: a sideways shift there keeps the glance horizontal.
+  const a = (pupil.angle * Math.PI) / 180;
+  const pupilProps = useAnimatedProps(() => ({
+    cx: pupil.cx + lookOffset * look.value * Math.cos(a),
+    cy: pupil.cy - lookOffset * look.value * Math.sin(a),
+  }));
+  const shineProps = useAnimatedProps(() => ({ cx: shine.cx + lookOffset * look.value }));
   const angryProps = useAnimatedProps(() => ({ opacity: anger.value }));
   const browProps = useAnimatedProps(() => ({ opacity: 1 - anger.value }));
 
@@ -203,15 +229,19 @@ function Eye({ eye, clipId, lid, look, anger }: EyeProps) {
           strokeWidth={eye.shade.strokeWidth}
           opacity={eye.shade.opacity}
         />
-        <AnimatedCircle animatedProps={pupilProps} cy={pupil.cy} r={pupil.r} fill={pupil.fill} />
+        <G transform={pupil.angle ? `rotate(${pupil.angle} ${pupil.cx} ${pupil.cy})` : undefined}>
+          <AnimatedEllipse animatedProps={pupilProps} rx={pupil.rx} ry={pupil.ry} fill={pupil.fill} />
+        </G>
         <AnimatedCircle animatedProps={shineProps} cy={shine.cy} r={shine.r} fill={shine.fill} />
-        <AnimatedRect
-          animatedProps={lidProps}
-          x={eyelid.x}
-          width={eyelid.width}
-          height={eyelid.height}
-          fill={eyelid.fill}
-        />
+        <G transform={eyelid.transform ?? undefined}>
+          <AnimatedRect
+            animatedProps={lidProps}
+            x={eyelid.x}
+            width={eyelid.width}
+            height={eyelid.height}
+            fill={eyelid.fill}
+          />
+        </G>
       </G>
       <AnimatedG animatedProps={angryProps}>
         {eye.browAngry.map((p) => (

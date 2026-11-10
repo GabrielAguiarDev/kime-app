@@ -6,7 +6,6 @@ import {
   formatClock,
   stepConfig,
   usePersonalTimerPresetMutations,
-  useTimerPresetMutations,
   type TimerConfig,
   type TimerField,
   type TimerPreset,
@@ -14,6 +13,7 @@ import {
 import { errorMessage } from '@infra';
 import { SheetForm } from '@screens/professor/shared';
 import { useConfirm } from '@services/confirm';
+import { setTimerOrientation, useTimerOrientation, type TimerOrientation } from '@services/timer';
 import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
@@ -117,63 +117,78 @@ export function AdjustSheet({
       title="Ajustar"
       actions={onSaveAsPreset ? <Button title="Salvar como predefinição" variant="secondary" icon="plus" onPress={onSaveAsPreset} /> : undefined}
     >
-      <Box gap="s16">
-        <ConfigSteppers config={config} onChange={onChange} />
-        <Text variant="caption">Vale só para esta sessão.</Text>
+      <Box gap="s24">
+        <Box gap="s16">
+          <ConfigSteppers config={config} onChange={onChange} />
+          <Text variant="caption">Vale só para esta sessão.</Text>
+        </Box>
+        <OrientationChoice />
       </Box>
     </SheetForm>
   );
 }
 
-type Target = 'personal' | 'academy';
+/** "Tela do timer": vertical or horizontal while running (saved on this device). */
+function OrientationChoice() {
+  const orientation = useTimerOrientation();
+  return (
+    <Box gap="s8">
+      <Text variant="captionCaps">Tela do timer</Text>
+      <ChoiceRow<TimerOrientation>
+        accessibilityLabel="Orientação da tela do timer"
+        options={[
+          { value: 'portrait', label: 'Vertical' },
+          { value: 'landscape', label: 'Horizontal' },
+        ]}
+        value={orientation}
+        onChange={(value) => {
+          haptics.tap();
+          setTimerOrientation(value);
+        }}
+      />
+      <Text variant="caption">Fica salva neste aparelho.</Text>
+    </Box>
+  );
+}
 
 /**
- * Create a preset (from "+" or "Salvar como predefinição") or edit / delete
- * one (long press on its chip). Anyone saves presets of their own, with any
- * name; the owner may also save one for the whole academy.
+ * Create a preset ("Nova predefinição") or edit / delete one ("Gerenciar
+ * predefinições"). Each user's presets are their own: only they see them.
  */
 export function PresetForm({
-  academyId,
   userId,
-  canShare,
   initial,
   editing,
   onRestoreBuiltIns,
   onSaved,
   onDeleted,
 }: {
-  academyId: string | undefined;
   userId: string;
-  /** Owner: may save for the whole academy. */
-  canShare: boolean;
   initial: TimerConfig;
   /** Editing this saved preset; creating when absent. */
   editing?: TimerPreset;
   /** Creating, with ready-made presets removed: brings them all back. */
   onRestoreBuiltIns?: () => void;
-  onSaved: (name: string, config: TimerConfig, personal: boolean) => void;
+  /** Saved: the preset's id (the new one when creating). */
+  onSaved: (id: string) => void;
   onDeleted: () => void;
 }) {
-  const personalMutations = usePersonalTimerPresetMutations(userId);
-  const academyMutations = useTimerPresetMutations(academyId ?? '', userId);
+  const { create, update, remove } = usePersonalTimerPresetMutations(userId);
   const confirm = useConfirm();
   const [name, setName] = useState(editing?.name ?? '');
   const [config, setConfig] = useState(initial);
-  const [target, setTarget] = useState<Target>(editing && !editing.personal ? 'academy' : 'personal');
-  const personal = target === 'personal' || !academyId;
-  const { create, update, remove } = personal ? personalMutations : academyMutations;
   const trimmed = name.trim();
   const error = create.error ?? update.error ?? remove.error;
-  const done = () => {
+  const done = (id: string) => {
     haptics.success();
-    onSaved(trimmed, config, personal);
+    onSaved(id);
   };
 
   const del = async () => {
     if (!editing) return;
     const ok = await confirm({
       title: 'Apagar predefinição?',
-      message: personal ? `"${editing.name}" sai da sua lista.` : `"${editing.name}" sai da lista da academia.`,
+      message: `"${editing.name}" sai da sua lista.`,
       confirmLabel: 'Apagar',
       tone: 'danger',
     });
@@ -192,7 +207,7 @@ export function PresetForm({
           loading={create.isPending || update.isPending}
           onPress={() =>
             editing
-              ? update.mutate({ id: editing.id, name: trimmed, config }, { onSuccess: done })
+              ? update.mutate({ id: editing.id, name: trimmed, config }, { onSuccess: () => done(editing.id) })
               : create.mutate({ name: trimmed, config }, { onSuccess: done })
           }
         />
@@ -201,21 +216,7 @@ export function PresetForm({
       <Box gap="s24">
         <TextField label="Nome" value={name} onChangeText={setName} maxLength={40} placeholder="Ex.: Treino em casa" />
         <ConfigSteppers config={config} onChange={setConfig} />
-        {canShare && academyId && !editing ? (
-          <Box gap="s8">
-            <Text variant="captionCaps">Quem vê</Text>
-            <ChoiceRow<Target>
-              accessibilityLabel="Quem vê a predefinição"
-              options={[
-                { value: 'personal', label: 'Só eu' },
-                { value: 'academy', label: 'Toda a academia' },
-              ]}
-              value={target}
-              onChange={setTarget}
-            />
-          </Box>
-        ) : null}
-        <Text variant="caption">{personal ? 'Só você vê esta predefinição.' : 'Todos da academia veem esta predefinição.'}</Text>
+        <Text variant="caption">Só você vê esta predefinição.</Text>
         {error ? (
           <Text variant="caption" color="danger">
             {errorMessage(error)}

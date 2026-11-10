@@ -6,8 +6,10 @@ import { useReducedMotion } from 'react-native-reanimated';
 
 import { useAppTheme } from '@theme';
 
-import { GuardEyes, type GuardEyesHandle } from './GuardEyes';
-import { BUST_WINDOWS, GUARD_NO_EYES, POSE_IMAGE_SIZE, POSE_SOURCES, type KimiPose, type PoseWindow } from './poses';
+import type { EyesPose } from './eyeShapes';
+import { MascotEyes, type MascotEyesHandle } from './MascotEyes';
+import { PeekEye } from './PeekEye';
+import { BUST_WINDOWS, hasAnimatedEyes, NO_EYES_SOURCES, POSE_IMAGE_SIZE, POSE_SOURCES, type KimiPose, type PoseWindow } from './poses';
 
 export type { KimiPose } from './poses';
 
@@ -34,12 +36,17 @@ export interface KimiMascotProps {
   pose?: KimiPose;
   /** Default `full`. */
   crop?: MascotCrop;
-  /** Micro-animations (blinks, glances, angry brows on tap). Only the `guard` pose animates. */
+  /**
+   * Micro-animations: blinks, glances and angry brows on tap (guard, team, streak, thirsty);
+   * `graduation` (eyes closed) peeks with the right eye twice and stops (PeekEye).
+   */
   animated?: boolean;
   /** Plays the angry brows when it turns true (also on mount), e.g. an error. */
   angry?: boolean;
   /** Rendered outside a navigator screen (the app intro): screen focus is not tracked. */
   outsideScreen?: boolean;
+  /** Animated eyes: first glance (and blink) this long after mounting, not after the usual random wait. */
+  startAfterMs?: number;
   ref?: Ref<KimiMascotHandle>;
 }
 
@@ -55,17 +62,24 @@ export function bustWidth(pose: KimiPose, height: number): number {
 }
 
 /**
- * Kimi mascot. Static PNG of the pose; `guard` + `animated` stacks guard-no-eyes.png and the
- * vector eyes (GuardEyes). Static with "Reduce motion". The idle loop pauses while the
+ * Kimi mascot. Static PNG of the pose; `animated` (poses with eyes, poses.ts) stacks
+ * {pose}-no-eyes.png and the vector eyes (MascotEyes). Static with "Reduce motion". The idle loop pauses while the
  * screen is not focused or the app is in the background. crop="bust" draws the whole image
  * and clips it to the pose window (no distortion); base and eyes are clipped together.
  */
-export function KimiMascot({ size, pose = 'guard', crop = 'full', animated = false, angry, outsideScreen, ref }: KimiMascotProps) {
+export function KimiMascot({ size, pose = 'guard', crop = 'full', animated = false, angry, outsideScreen, startAfterMs, ref }: KimiMascotProps) {
   const reduceMotion = useReducedMotion();
   const px = useMascotPx(size);
   const window = crop === 'bust' ? BUST_WINDOWS[pose] : null;
 
-  if (!animated || pose !== 'guard' || reduceMotion) {
+  if (animated && pose === 'graduation' && !reduceMotion) {
+    return outsideScreen ? (
+      <PeekingGraduation px={px} window={window} focused />
+    ) : (
+      <FocusedPeekingGraduation px={px} window={window} />
+    );
+  }
+  if (!animated || !hasAnimatedEyes(pose) || reduceMotion) {
     return (
       <Frame px={px} window={window}>
         {(side) => <Image source={POSE_SOURCES[pose]} style={{ width: side, height: side }} contentFit="contain" accessible={false} />}
@@ -73,9 +87,9 @@ export function KimiMascot({ size, pose = 'guard', crop = 'full', animated = fal
     );
   }
   return outsideScreen ? (
-    <AnimatedGuard px={px} window={window} focused angry={angry} handleRef={ref} />
+    <AnimatedPose pose={pose} px={px} window={window} focused angry={angry} startAfterMs={startAfterMs} handleRef={ref} />
   ) : (
-    <FocusedGuard px={px} window={window} angry={angry} handleRef={ref} />
+    <FocusedPose pose={pose} px={px} window={window} angry={angry} startAfterMs={startAfterMs} handleRef={ref} />
   );
 }
 
@@ -96,7 +110,35 @@ function Frame({ px, window, children }: { px: number; window: PoseWindow | null
   );
 }
 
-interface AnimatedGuardProps {
+interface PeekingProps {
+  px: number;
+  window: PoseWindow | null;
+  focused: boolean;
+}
+
+function FocusedPeekingGraduation(props: Omit<PeekingProps, 'focused'>) {
+  return <PeekingGraduation {...props} focused={useIsFocused()} />;
+}
+
+/** graduation.png with the peeking right eye over it (decorative). */
+function PeekingGraduation({ px, window, focused }: PeekingProps) {
+  return (
+    <View accessible={false} importantForAccessibility="no-hide-descendants">
+      <Frame px={px} window={window}>
+        {(side) => (
+          <View style={{ width: side, height: side }}>
+            <Image source={POSE_SOURCES.graduation} style={{ width: side, height: side }} contentFit="contain" accessible={false} />
+            <PeekEye active={focused} />
+          </View>
+        )}
+      </Frame>
+    </View>
+  );
+}
+
+interface AnimatedPoseProps {
+  pose: EyesPose;
+  startAfterMs?: number;
   px: number;
   window: PoseWindow | null;
   focused: boolean;
@@ -104,12 +146,12 @@ interface AnimatedGuardProps {
   handleRef?: Ref<KimiMascotHandle>;
 }
 
-function FocusedGuard(props: Omit<AnimatedGuardProps, 'focused'>) {
-  return <AnimatedGuard {...props} focused={useIsFocused()} />;
+function FocusedPose(props: Omit<AnimatedPoseProps, 'focused'>) {
+  return <AnimatedPose {...props} focused={useIsFocused()} />;
 }
 
-function AnimatedGuard({ px, window, focused, angry, handleRef }: AnimatedGuardProps) {
-  const eyes = useRef<GuardEyesHandle>(null);
+function AnimatedPose({ pose, px, window, focused, angry, startAfterMs, handleRef }: AnimatedPoseProps) {
+  const eyes = useRef<MascotEyesHandle>(null);
 
   useImperativeHandle(
     handleRef,
@@ -130,8 +172,8 @@ function AnimatedGuard({ px, window, focused, angry, handleRef }: AnimatedGuardP
       <Frame px={px} window={window}>
         {(side) => (
           <View style={{ width: side, height: side }}>
-            <Image source={GUARD_NO_EYES} style={{ width: side, height: side }} contentFit="contain" accessible={false} />
-            <GuardEyes idle={focused} ref={eyes} />
+            <Image source={NO_EYES_SOURCES[pose]} style={{ width: side, height: side }} contentFit="contain" accessible={false} />
+            <MascotEyes pose={pose} idle={focused} startAfterMs={startAfterMs} ref={eyes} />
           </View>
         )}
       </Frame>

@@ -111,7 +111,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   return (
     <>
       {ready ? (
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false, orientation: 'portrait' }}>
           <Stack.Screen name="index" />
           <Stack.Protected guard={access.auth} redirectTo={redirectTo}>
             <Stack.Screen name="(auth)" />
@@ -144,6 +144,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="agua/widget" options={header} />
             {/* DEV ONLY: mascot poses (screens/debug). */}
             <Stack.Screen name="debug" options={header} />
+            {/* The only screen that may turn landscape (the user's choice, set by the screen). */}
             <Stack.Screen name="timer/run" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
           </Stack.Protected>
           <Stack.Protected guard={access.staff} redirectTo={redirectTo}>

@@ -6,6 +6,9 @@ import {
   eventsBetween,
   formatClock,
   nativePlan,
+  orderPresets,
+  presetForModality,
+  presetSummary,
   isValidConfig,
   parseDuration,
   pause,
@@ -134,6 +137,34 @@ describe('built-in presets per modality', () => {
     expect(builtInFor('No-Gi')?.id).toBe('builtin:rola');
     expect(builtInFor('MUAY THAI')?.id).toBe('builtin:muay-thai');
     expect(builtInFor('Judô')).toBeUndefined();
+  });
+});
+
+describe('user preset list', () => {
+  const own = { id: 'u1', name: 'Muay thai', rounds: 4, roundSeconds: 120, restSeconds: 60, warningSeconds: 10, builtIn: false, personal: true };
+  const list = [own, ...BUILT_IN_PRESETS];
+
+  it('puts ordered ids first, the rest after in their place', () => {
+    expect(orderPresets(list, ['builtin:mma', 'gone', 'u1']).map((p) => p.id)).toEqual([
+      'builtin:mma',
+      'u1',
+      'builtin:boxe',
+      'builtin:muay-thai',
+      'builtin:rola',
+    ]);
+    expect(orderPresets(list, []).map((p) => p.id)).toEqual(list.map((p) => p.id));
+  });
+
+  it('finds the preset of a modality: made for it, else same name', () => {
+    expect(presetForModality(list, 'Muay Thai')?.id).toBe('builtin:muay-thai');
+    expect(presetForModality([own], 'Muay Thai')?.id).toBe('u1');
+    expect(presetForModality(list, 'BJJ')?.id).toBe('builtin:rola');
+    expect(presetForModality(list, 'Judô')).toBeUndefined();
+  });
+
+  it('summarizes a preset for the menu', () => {
+    expect(presetSummary(BUILT_IN_PRESETS[1]!)).toBe('5 × 3:00 · descanso 2:00');
+    expect(presetSummary({ rounds: 1, roundSeconds: 300, restSeconds: 0, warningSeconds: 0 })).toBe('1 × 5:00 · sem descanso');
   });
 });
 

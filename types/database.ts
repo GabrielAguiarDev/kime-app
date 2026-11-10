@@ -1003,6 +1003,7 @@ export type Database = {
           reach_cm: number | null
           sex: string | null
           show_in_ranking: boolean
+          timer_preset_order: string[]
           timezone: string
           updated_at: string
           weight_kg: number | null
@@ -1020,6 +1021,7 @@ export type Database = {
           reach_cm?: number | null
           sex?: string | null
           show_in_ranking?: boolean
+          timer_preset_order?: string[]
           timezone?: string
           updated_at?: string
           weight_kg?: number | null
@@ -1037,6 +1039,7 @@ export type Database = {
           reach_cm?: number | null
           sex?: string | null
           show_in_ranking?: boolean
+          timer_preset_order?: string[]
           timezone?: string
           updated_at?: string
           weight_kg?: number | null

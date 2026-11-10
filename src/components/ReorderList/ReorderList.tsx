@@ -17,6 +17,13 @@ interface ReorderListProps<T> {
   renderItem: (item: T) => ReactNode;
   /** New order after a move. */
   onChange: (items: T[]) => void;
+  /** Screen readers: actions of the row's own buttons (the row is one element for them). */
+  actionsOf?: (item: T) => RowAction[];
+}
+
+export interface RowAction {
+  label: string;
+  onPress: () => void;
 }
 
 const LONG_PRESS_MS = 250;
@@ -35,7 +42,7 @@ function moveItem<T>(items: T[], from: number, to: number): T[] {
  * (`size.reorderRow`). Screen readers get "Mover para cima / para baixo"
  * actions instead of the drag.
  */
-export function ReorderList<T>({ items, keyOf, labelOf, renderItem, onChange }: ReorderListProps<T>) {
+export function ReorderList<T>({ items, keyOf, labelOf, renderItem, onChange, actionsOf }: ReorderListProps<T>) {
   const { size, spacing } = useAppTheme();
   const step = size.reorderRow + spacing.s8;
 
@@ -56,6 +63,7 @@ export function ReorderList<T>({ items, keyOf, labelOf, renderItem, onChange }: 
             count={items.length}
             step={step}
             label={labelOf(item)}
+            actions={actionsOf?.(item)}
             onMove={(to) => move(key, to)}
           >
             {renderItem(item)}
@@ -71,6 +79,7 @@ function DraggableRow({
   count,
   step,
   label,
+  actions = [],
   onMove,
   children,
 }: {
@@ -78,6 +87,7 @@ function DraggableRow({
   count: number;
   step: number;
   label: string;
+  actions?: RowAction[];
   onMove: (to: number) => void;
   children: ReactNode;
 }) {
@@ -137,8 +147,11 @@ function DraggableRow({
         accessibilityActions={[
           { name: 'moveUp', label: 'Mover para cima' },
           { name: 'moveDown', label: 'Mover para baixo' },
+          ...actions.map((a, i) => ({ name: `action${i}`, label: a.label })),
         ]}
         onAccessibilityAction={(e) => {
+          const extra = /^action(\d+)$/.exec(e.nativeEvent.actionName);
+          if (extra) actions[Number(extra[1])]?.onPress();
           if (e.nativeEvent.actionName === 'moveUp' && index > 0) onMove(index - 1);
           if (e.nativeEvent.actionName === 'moveDown' && index < count - 1) onMove(index + 1);
         }}

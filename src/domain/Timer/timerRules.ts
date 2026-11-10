@@ -304,6 +304,36 @@ export function summaryLine(c: TimerConfig): string {
   return `${rounds} · ${rest}`;
 }
 
+/** Menu subtitle: "5 × 3:00 · descanso 2:00"; "1 × 5:00 · sem descanso". */
+export function presetSummary(c: TimerConfig): string {
+  const rest = c.restSeconds > 0 ? `descanso ${formatClock(c.restSeconds * 1000)}` : 'sem descanso';
+  return `${c.rounds} × ${formatClock(c.roundSeconds * 1000)} · ${rest}`;
+}
+
+/**
+ * The user's list in their order: ids in `order` first (in that order), then
+ * the rest as they came (own presets by name, then the ready-made ones).
+ */
+export function orderPresets(presets: TimerPreset[], order: string[]): TimerPreset[] {
+  const rank = new Map(order.map((id, i) => [id, i]));
+  return presets
+    .map((p, i) => ({ p, key: rank.get(p.id) ?? order.length + i }))
+    .sort((a, b) => a.key - b.key)
+    .map(({ p }) => p);
+}
+
+/**
+ * The preset of a modality in the user's list: a ready-made one made for it
+ * (Jiu-Jitsu → rola), else one named like it ("Muay Thai").
+ */
+export function presetForModality(presets: TimerPreset[], modalityName: string): TimerPreset | undefined {
+  const target = normalizeName(modalityName);
+  return (
+    presets.find((p) => p.forModalities?.some((m) => normalizeName(m) === target)) ??
+    presets.find((p) => normalizeName(p.name) === target)
+  );
+}
+
 /** Rounds already finished (the segmented progress of the running timer). */
 export function roundsDone(state: TimerState): number {
   if (state.phase === 'done') return state.rounds;

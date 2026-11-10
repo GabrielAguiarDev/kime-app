@@ -33,6 +33,8 @@ const CLOSE_MS = 200;
 /** Drag past this share of the sheet height, or fling down, to dismiss. */
 const DISMISS_RATIO = 0.25;
 const DISMISS_VELOCITY = 900;
+/** Landscape: the sheet is centered at this width, clear of the notch side. */
+const LANDSCAPE_SHEET_WIDTH = 480;
 
 interface BottomSheetProps {
   visible: boolean;
@@ -42,6 +44,8 @@ interface BottomSheetProps {
   onClosed?: () => void;
   /** Accessibility label of the dimmed area that closes the sheet. */
   dismissLabel?: string;
+  /** iOS: also present in landscape (default portrait only, like the app). The running timer may be landscape. */
+  allowLandscape?: boolean;
   children: ReactNode;
 }
 
@@ -55,11 +59,13 @@ export function BottomSheet({
   onRequestClose,
   onClosed,
   dismissLabel = "Fechar",
+  allowLandscape = false,
   children,
 }: BottomSheetProps) {
   const theme = useAppTheme();
   const { bottom } = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const landscape = windowWidth > windowHeight;
   const reduceMotion = useReducedMotion();
 
   const [mounted, setMounted] = useState(visible);
@@ -167,6 +173,7 @@ export function BottomSheet({
       transparent
       animationType="none"
       statusBarTranslucent
+      supportedOrientations={allowLandscape ? ['portrait', 'landscape'] : ['portrait']}
       onRequestClose={onRequestClose}
     >
       <GestureHandlerRootView style={styles.fill}>
@@ -187,7 +194,7 @@ export function BottomSheet({
         <Box flex={1} justifyContent="flex-end" pointerEvents="box-none">
           <GestureDetector gesture={pan}>
             <Animated.View
-              style={sheetStyle}
+              style={[sheetStyle, landscape ? { alignSelf: 'center', width: Math.min(windowWidth, LANDSCAPE_SHEET_WIDTH) } : null]}
               accessibilityViewIsModal
               onLayout={(e) => {
                 if (visible) setSheetHeight(e.nativeEvent.layout.height);

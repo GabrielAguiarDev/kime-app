@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
+import Animated, {
+  Easing,
+  ReduceMotion,
+  withTiming,
+  type EntryAnimationsValues,
+  type LayoutAnimation,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme, type ColorToken } from '@theme';
@@ -11,6 +18,20 @@ import { KimiMascot, useMascotPx, type KimiPose } from '../KimiMascot/KimiMascot
 import { BUST_PROFILE_BANDS, BUST_RIGHT_PROFILE } from '../KimiMascot/bustProfile';
 import { BUST_WINDOWS } from '../KimiMascot/poses';
 import { Text } from '../Text/Text';
+
+// Motion: quick rise from below the screen edge, so it doesn't drag on repeated feedback.
+const ENTER_MS = 240;
+/** Extra travel so the mascot (which rises past the top border) also starts out of view. */
+const ENTER_OVERSHOOT = 140;
+
+function enterFromBottom(values: EntryAnimationsValues): LayoutAnimation {
+  'worklet';
+  const config = { duration: ENTER_MS, easing: Easing.out(Easing.cubic), reduceMotion: ReduceMotion.System };
+  return {
+    initialValues: { transform: [{ translateY: values.targetHeight + ENTER_OVERSHOOT }] },
+    animations: { transform: [{ translateY: withTiming(0, config) }] },
+  };
+}
 
 export type FeedbackTone = 'success' | 'accent' | 'water' | 'warning' | 'danger';
 
@@ -32,7 +53,7 @@ interface FeedbackSheetProps {
   icon?: IconName;
   /** Pose of the bust mascot (default `guard`). Ignored with `icon`. */
   pose?: KimiPose;
-  /** Mascot micro-animations (only the `guard` pose animates). */
+  /** Mascot micro-animations (every pose with eyes: guard, team, streak, thirsty). */
   animated?: boolean;
 }
 
@@ -62,47 +83,55 @@ export function FeedbackSheet({ tone, title, message, actionLabel, onAction, ico
   }, [title, message]);
 
   return (
-    // TODO(motion): feedback sheet entering from the bottom and leaving.
-    // The tint is translucent: `bg` under it.
-    <Box backgroundColor="bg">
-      <Box
-        backgroundColor={t.tint}
-        borderTopWidth={theme.border.width}
-        borderColor={t.line}
-        paddingHorizontal="s20"
-        paddingTop="s20"
-        gap="s16"
-        style={{ paddingBottom }}
-        accessibilityLiveRegion="polite"
-      >
-        <Box flexDirection="row" alignItems={icon ? 'center' : 'flex-end'}>
-          {icon ? (
-            <Box marginRight="s12">
-              <Icon name={icon} color={t.line} active />
+    // Enters rising from the bottom edge. The tint is translucent: `bg` under it.
+    <Animated.View entering={enterFromBottom}>
+      <Box backgroundColor="bg">
+        <Box
+          backgroundColor={t.tint}
+          borderTopWidth={theme.border.width}
+          borderColor={t.line}
+          paddingHorizontal="s20"
+          paddingTop="s20"
+          gap="s16"
+          style={{ paddingBottom }}
+          accessibilityLiveRegion="polite"
+        >
+          <Box flexDirection="row" alignItems={icon ? 'center' : 'flex-end'}>
+            {icon ? (
+              <Box marginRight="s12">
+                <Icon name={icon} color={t.line} active />
+              </Box>
+            ) : (
+              // Bust (size `sheet`, crop `bust`), base on the base of the row (16 above the
+              // button, like the text); absolute, so it does not change the height and its top may
+              // rise past the sheet's top border (nothing clips it).
+              <Box position="absolute" left={0} bottom={0} pointerEvents="box-none">
+                <KimiMascot
+                  size="sheet"
+                  crop="bust"
+                  pose={mascotPose}
+                  animated={!!animated}
+                  // Comes alive as soon as the sheet has risen.
+                  startAfterMs={ENTER_MS + 60}
+                />
+              </Box>
+            )}
+            <Box
+              flex={1}
+              gap="s4"
+              style={{ marginLeft: textLeft }}
+              onLayout={(e) => setTextHeight(Math.round(e.nativeEvent.layout.height))}
+            >
+              <Text variant="heading" accessibilityRole="header">
+                {title}
+              </Text>
+              {message ? <Text variant="body">{message}</Text> : null}
             </Box>
-          ) : (
-            // Bust (size `sheet`, crop `bust`), base on the base of the row (16 above the
-            // button, like the text); absolute, so it does not change the height and its top may
-            // rise past the sheet's top border (nothing clips it).
-            <Box position="absolute" left={0} bottom={0} pointerEvents="box-none">
-              <KimiMascot size="sheet" crop="bust" pose={mascotPose} animated={!!animated} />
-            </Box>
-          )}
-          <Box
-            flex={1}
-            gap="s4"
-            style={{ marginLeft: textLeft }}
-            onLayout={(e) => setTextHeight(Math.round(e.nativeEvent.layout.height))}
-          >
-            <Text variant="heading" accessibilityRole="header">
-              {title}
-            </Text>
-            {message ? <Text variant="body">{message}</Text> : null}
           </Box>
+          <Button title={actionLabel} variant={t.button} onPress={onAction} />
         </Box>
-        <Button title={actionLabel} variant={t.button} onPress={onAction} />
       </Box>
-    </Box>
+    </Animated.View>
   );
 }
 
