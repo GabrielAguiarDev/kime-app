@@ -10,6 +10,7 @@ import {
 import { upcomingChampionships, useChampionships } from '@domain/Competition';
 import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { useDiscipline } from '@domain/Streaks';
+import { waterDayState } from '@domain/Water';
 import { CompetitorInviteCard } from '@screens/competition/CompetitorInviteCard';
 import { StudentEventsSection } from '@screens/events/HomeEventsSection';
 import { BlockedNotice, FinanceNotice, useMyFinance } from '@screens/finance/StudentFinance';
@@ -114,6 +115,7 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
         trainedDays={trainedDays}
         classDays={new Set(modalitySchedules.map((s) => s.weekday)).size}
         discipline={discipline.data ?? null}
+        todayWaterDone={water.date === today.data && waterDayState(water.totalMl, water.goalMl, water.isLimit) === 'done'}
         timeZone={water.timeZone}
       />
 

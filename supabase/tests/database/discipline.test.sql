@@ -154,7 +154,7 @@ set local role anon;
 select throws_ok($$select public.my_discipline()$$, '42501', null, 'anon cannot read a streak');
 set local role postgres;
 
-select ok(exists(select 1 from cron.job where jobname = 'kimi-daily-discipline'), 'daily job scheduled');
+select ok(exists(select 1 from cron.job where jobname = 'kimi-daily-discipline' and command = 'call private.refresh_all_discipline()'), 'daily job scheduled (one transaction per user)');
 
 -- ------------------------------------- ranking: a frozen week leaves the count ---
 -- Real calendar: 4 done weeks, then last week missed (water every day, no
@@ -174,8 +174,9 @@ select id, now()-interval '70 days' from public.student_modality_enrollments whe
 update public.class_schedules set created_at = now()-interval '80 days' where id = pg_temp.id('schedule');
 select pg_temp.week(pg_temp.id('ranked'), (select week from cal) - w, 5) from unnest(array[35, 28, 21, 14]) w;
 select pg_temp.week(pg_temp.id('ranked'), (select week from cal) - 7, 7, null);
+select private.refresh_discipline(pg_temp.id('ranked'));
+select is((select state from public.discipline_weeks where user_id = pg_temp.id('ranked') and week_start = (select week from cal) - 7), 'frozen', 'last week frozen');
 select private.rebuild_rankings(pg_temp.id('academy'));
-select is((select state from public.discipline_weeks where user_id = pg_temp.id('ranked') and week_start = (select week from cal) - 7), 'frozen', 'the ranking job refreshes the Disciplina first: last week frozen');
 select is((select protected_days from public.ranking_details where user_id = pg_temp.id('ranked')), 7, 'the 7 days of the frozen week are protected');
 select is((select eligible_days from public.ranking_details where user_id = pg_temp.id('ranked')), 28, 'qualification still counts every eligible day');
 select is((select eligible_hydration_days from public.ranking_details where user_id = pg_temp.id('ranked')), 21, 'water: the frozen week leaves the denominator');

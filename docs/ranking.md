@@ -34,7 +34,7 @@ O app já possuía `water_goal_days`, mas permitia escrita/alteração pelo clie
 
 O plano mais recente por semana/última edição substitui a meta automática, seguindo a regra existente, inclusive entre academias. Versões de plano com metas nulas significam retorno ao automático. A fórmula automática existente continua sendo 35 ml/kg. Metas válidas ficam entre 1 e 20.000 ml. O histórico existente anterior à migração só conta nas datas com observação exata; dados desconhecidos são excluídos da hidratação. `my_water_days` passou a utilizar o mesmo histórico protegido; não preenche mais o passado com valores inventados.
 
-O congelamento é o da **Disciplina** (ofensiva semanal única, `supabase/migrations/20261110050000_discipline_weekly.sql`): um a cada 4 semanas cumpridas seguidas, no máximo 2, gasto sozinho na semana perdida. O banco guarda as semanas (`discipline_weeks`: cumprida / congelada / perdida); o `rebuild_rankings` recalcula a Disciplina dos alunos antes de pontuar e tira da conta os 7 dias de cada semana congelada. Não existe mais congelamento de água por dia, e os fatos de água do ranking cobrem só a janela.
+O congelamento é o da **Disciplina** (ofensiva semanal única, `supabase/migrations/20261110050000_discipline_weekly.sql`): um a cada 4 semanas cumpridas seguidas, no máximo 2, gasto sozinho na semana perdida. O banco guarda as semanas (`discipline_weeks`: cumprida / congelada / perdida); o `rebuild_rankings` lê as semanas guardadas (o job `kimi-daily-discipline` as recalcula às 03:05 UTC, antes do ranking) e tira da conta os 7 dias de cada semana congelada. Não existe mais congelamento de água por dia, e os fatos de água do ranking cobrem só a janela.
 
 ## Banco e limitações
 
