@@ -37,6 +37,7 @@ import { useAppTheme, type ColorToken } from '@theme';
 
 import { RankingHeader } from './RankingHeader';
 import { days, percent, points } from './rankingFormat';
+import { useOpenPerson } from '@screens/team/useOpenPerson';
 
 export function RankingScreen() {
   const { active } = useActiveGym();
@@ -67,6 +68,8 @@ export function RankingView({
   ownRowRef?: Ref<ComponentRef<typeof View>>;
   onOwnRowLayout?: (e: LayoutChangeEvent) => void;
 }) {
+  const openPerson = useOpenPerson();
+  const openMember = onOpenMember ?? ((id: string) => openPerson(id)?.());
   const { userId } = useSession();
   const profile = useMyProfile(userId);
   const { isStaff } = useActiveGym();
@@ -110,7 +113,7 @@ export function RankingView({
 
   const row = (e: RankingEntry, last: boolean) => {
     const isSelf = e.userId === viewerId;
-    const r = <RankingRow key={`${e.modalityId}:${e.userId}`} entry={e} isSelf={isSelf} last={last} onOpen={onOpenMember} />;
+    const r = <RankingRow key={`${e.modalityId}:${e.userId}`} entry={e} isSelf={isSelf} last={last} onOpen={openMember} />;
     return isSelf && e.status === 'ranked' && ownRowRef ? (
       <View key={`${e.modalityId}:${e.userId}`} ref={ownRowRef} onLayout={onOwnRowLayout} collapsable={false}>
         {r}

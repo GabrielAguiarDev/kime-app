@@ -168,6 +168,12 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="academy/modalities" options={header} />
             <Stack.Screen name="academy/belts" options={header} />
             <Stack.Screen name="academy/belts-order" options={header} />
+            {/* Academy finance (owner only; the app never processes payments). */}
+            <Stack.Screen name="financeiro/index" options={header} />
+            <Stack.Screen name="financeiro/cobrancas" options={header} />
+            <Stack.Screen name="financeiro/despesas" options={header} />
+            <Stack.Screen name="financeiro/despesa" options={header} />
+            <Stack.Screen name="financeiro/relatorios" options={header} />
           </Stack.Protected>
           <Stack.Screen name="entrar" />
         </Stack>

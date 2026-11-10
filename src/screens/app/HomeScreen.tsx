@@ -4,6 +4,7 @@ import { useWindowDimensions } from 'react-native';
 
 import { AcademyLogo, Box, FeedbackSheet, HeaderButton, HeaderMenu, Icon, Screen, Text } from '@components';
 import { useModalityStats } from '@domain/Classes';
+import { activeMemberships } from '@domain/Membership';
 import { useWaterDay } from '@domain/Water';
 import { StaffHome } from '@screens/staff/StaffHome';
 import { CheckinConfirmedSheet } from '@screens/student/CheckinConfirmedSheet';
@@ -50,7 +51,8 @@ function HeaderTitle({
 export function HomeScreen() {
   const { width } = useWindowDimensions();
   const { userId } = useSession();
-  const { active, isStaff, memberships } = useActiveGym();
+  const { active, isStaff, memberships, selectGym } = useActiveGym();
+  const activeGyms = activeMemberships(memberships);
   const { modalities, selected, select } = useActiveModality();
   const rejection = useJoinRequestNotices(userId, memberships);
 
@@ -72,11 +74,30 @@ export function HomeScreen() {
   return (
     <Screen
       nativeHeader
-      // No title: logo + name on the left (staff: the academy; student: the selected
-      // modality, with a native menu to switch when there is more than one), water on the right.
+      // No title: logo + name on the left (staff: the academy, with a native menu to switch
+      // academies when in more than one; student: the selected modality, with a menu to switch
+      // when there is more than one), water on the right.
       largeTitle={false}
       headerLeft={
-        !active ? undefined : isStaff || !selected ? (
+        !active ? undefined : isStaff && activeGyms.length > 1 ? (
+          // Staff in more than one academy: the same native menu, listing the academies.
+          <HeaderMenu
+            accessibilityLabel={`${active.gymName}. Trocar academia`}
+            label={
+              <HeaderTitle
+                logoName={active.gymName}
+                logoUrl={active.gymLogoUrl}
+                title={active.gymName}
+                maxWidth={width * 0.6}
+                caret
+              />
+            }
+            options={activeGyms.map((m) => ({ id: m.gymId, title: m.gymName }))}
+            selectedId={active.gymId}
+            onSelect={selectGym}
+            onFallbackPress={openProfile}
+          />
+        ) : isStaff || !selected ? (
           <HeaderButton accessibilityLabel={`${active.gymName}. Abrir perfil e academias`} onPress={openProfile}>
             <HeaderTitle logoName={active.gymName} logoUrl={active.gymLogoUrl} title={active.gymName} maxWidth={width * 0.6} />
           </HeaderButton>

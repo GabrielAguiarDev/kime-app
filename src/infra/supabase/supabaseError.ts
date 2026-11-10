@@ -39,6 +39,9 @@ export type AppErrorCode =
   | 'event_full'
   | 'event_rsvp_closed'
   | 'event_cancelled'
+  | 'finance_blocked'
+  | 'payment_in_future'
+  | 'not_a_student'
   | 'invalid_modality'
   | 'not_found'
   | 'already_present'
@@ -94,6 +97,9 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'event_full',
   'event_rsvp_closed',
   'event_cancelled',
+  'finance_blocked',
+  'payment_in_future',
+  'not_a_student',
   'invalid_modality',
   'not_found',
   'rate_limited',
@@ -209,6 +215,9 @@ const MESSAGES: Record<AppErrorCode, string> = {
   event_full: 'As vagas deste evento esgotaram.',
   event_rsvp_closed: 'O prazo para confirmar presença neste evento terminou.',
   event_cancelled: 'Este evento foi cancelado.',
+  finance_blocked: 'Acesso pausado: há uma mensalidade em aberto. Fale com a academia.',
+  payment_in_future: 'A data do pagamento não pode ser no futuro.',
+  not_a_student: 'Só alunos têm mensalidade.',
   invalid_modality: 'Escolha modalidades desta academia.',
   not_found: 'Não encontrado. Ele pode ter sido removido.',
   weight_day_taken: 'Já existe um peso registrado neste dia.',

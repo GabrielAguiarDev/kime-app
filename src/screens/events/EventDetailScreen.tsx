@@ -51,6 +51,7 @@ import { haptics } from '@utils/haptics';
 
 import { CancelledBadge, EventCover, editEvent } from './parts';
 import { useRsvp } from './useRsvp';
+import { useOpenPerson } from '@screens/team/useOpenPerson';
 
 const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -305,6 +306,7 @@ function personSecondary(p: EventPerson) {
 
 /** Members: "Quem vai" with photo, name and belt (the check-in preference does not apply: social event). */
 function GoingList({ people, userId }: { people: EventPerson[]; userId: string | undefined }) {
+  const openPerson = useOpenPerson();
   return (
     <Section title={`Quem vai (${people.length})`}>
       {people.length === 0 ? (
@@ -320,6 +322,7 @@ function GoingList({ people, userId }: { people: EventPerson[]; userId: string |
               avatarPath={p.avatarPath}
               secondary={personSecondary(p)}
               last={index === people.length - 1}
+              onPress={openPerson(p.userId)}
             />
           ))}
         </Card>
@@ -340,6 +343,7 @@ function StaffLists({
   today: LocalDate;
   people: EventPerson[];
 }) {
+  const openPerson = useOpenPerson();
   const mutations = useEventMutations(academyId);
   const { going, notGoing, noAnswer } = groupPeople(people);
   const marking = canMarkAttendance(event, today);
@@ -407,6 +411,7 @@ function StaffLists({
               }
               actions={actionsFor(p)}
               last={index === list.length - 1}
+              onPress={openPerson(p.userId)}
             />
           ))}
         </Card>

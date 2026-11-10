@@ -95,6 +95,7 @@ export function ProfileScreen() {
             <ManageCard title="Horários" icon="calendar" onPress={() => router.push('/academy/schedules')} />
             <ManageCard title="Convites" icon="share" onPress={() => router.push('/convites')} />
             <ManageCard title="Campeonatos" icon="trophy" onPress={() => router.push('/academy/championships')} />
+            <ManageCard title="Financeiro" icon="money" onPress={() => router.push('/financeiro')} />
           </Section>
         ) : null}
 
@@ -278,7 +279,7 @@ function ManageCard({
   onPress,
 }: {
   title: string;
-  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'drop' | 'share' | 'chart' | 'home';
+  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'drop' | 'share' | 'chart' | 'home' | 'money';
   onPress: () => void;
 }) {
   return (

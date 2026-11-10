@@ -1,1 +1,4 @@
-export { RankingScreen as default } from '@screens/ranking/RankingScreen';
+import { withFinanceGate } from '@screens/finance/StudentFinance';
+import { RankingScreen } from '@screens/ranking/RankingScreen';
+
+export default withFinanceGate(RankingScreen, 'Ranking');

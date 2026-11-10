@@ -9,12 +9,14 @@ import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 import { useAppTheme } from '@theme';
 import { useConfirm } from '@services/confirm';
+import { useOpenPerson } from '@screens/team/useOpenPerson';
 
 const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 export function ClassDetailsScreen() {
   const { scheduleId = '', date = '' } = useLocalSearchParams<{ scheduleId: string; date: string }>();
   const { userId } = useSession();
+  const openPerson = useOpenPerson();
   const theme = useAppTheme();
   const { active } = useActiveGym();
   const today = useAcademyToday(active?.gymId);
@@ -75,7 +77,7 @@ export function ClassDetailsScreen() {
                 borderBottomRightRadius={last ? 'lg' : undefined}
                 paddingHorizontal="s16"
               >
-                <PersonRow name={item.user_id === userId ? `${item.full_name} (você)` : item.full_name} avatarPath={item.avatar_path} last={last} secondary={
+                <PersonRow name={item.user_id === userId ? `${item.full_name} (você)` : item.full_name} avatarPath={item.avatar_path} last={last} onPress={openPerson(item.user_id)} secondary={
                   <Box flexDirection="row" alignItems="center" gap="s8">
                     {item.belt_primary ? <BeltChip belt={{ primary: item.belt_primary as BeltColorKey, tip: item.belt_tip as BeltColorKey | null }} /> : null}
                     {item.status === 'pending' ? <StatusBadge status="pending" /> : null}

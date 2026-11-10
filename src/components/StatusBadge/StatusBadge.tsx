@@ -16,10 +16,12 @@ interface StatusBadgeProps {
   status: Status;
   /** Overrides the default label ("Pendente", "Confirmado", "Recusado"). */
   label?: string;
+  /** Overrides the default icon. */
+  icon?: IconName;
 }
 
 /** Status badge (DESIGN-SYSTEM.md, 3.6): radius-sm, caption, 14 icon on the left. Never color alone. */
-export function StatusBadge({ status, label }: StatusBadgeProps) {
+export function StatusBadge({ status, label, icon }: StatusBadgeProps) {
   const { size } = useAppTheme();
   const s = STATUS[status];
   return (
@@ -34,7 +36,7 @@ export function StatusBadge({ status, label }: StatusBadgeProps) {
       borderRadius="sm"
       backgroundColor={s.bg}
     >
-      <Icon name={s.icon} size={size.badgeIcon} color={s.fg} />
+      <Icon name={icon ?? s.icon} size={size.badgeIcon} color={s.fg} />
       <Text variant="caption" color={s.fg}>
         {label ?? s.label}
       </Text>

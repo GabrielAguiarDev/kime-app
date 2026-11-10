@@ -40,6 +40,7 @@ import { errorMessage } from '@infra';
 import { CompetitorSection } from '@screens/competition/CompetitorSection';
 import { FightRecordSection } from '@screens/competition/FightRecord';
 import { PreviousHistorySection } from '@screens/competition/PreviousHistorySection';
+import { StudentBillingSection } from '@screens/finance/StudentBillingSection';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
@@ -139,6 +140,7 @@ function StaffMemberDetail({ academyId, member }: { academyId: string; member: G
 }
 
 function StudentDetail({ academyId, member }: { academyId: string; member: GymMember }) {
+  const { isOwner } = useActiveGym();
   const stats = useMemberStats(academyId);
   const modalityStats = useModalityStats(academyId);
   const modalities = useModalities(academyId);
@@ -234,6 +236,9 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
             </Card>
           ))}
         </Box>
+
+        {/* Owner only (finance on): monthly fee and charge history. */}
+        {isOwner ? <StudentBillingSection academyId={academyId} member={member} /> : null}
 
         <RemoveMemberSection member={member} />
       </Box>

@@ -30,6 +30,7 @@ import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
 import { useSession } from '@services/session';
 import { useAppTheme } from '@theme';
+import { useMyFinance } from '@screens/finance/StudentFinance';
 
 /**
  * Medal colors come from the belt palette (no medal tokens in the design
@@ -328,7 +329,9 @@ export function MyFightRecordCard() {
   const { userId } = useSession();
   const { active, isStaff } = useActiveGym();
   const { selected, competesInSelected } = useActiveModality();
-  const show = !!active && !isStaff && !!userId && !!selected && competesInSelected;
+  // Championships are paused while the fee is overdue with the block on.
+  const { blocked } = useMyFinance();
+  const show = !!active && !isStaff && !!userId && !!selected && competesInSelected && !blocked;
   const cartel = useCartel(active?.gymId, userId ?? undefined, show);
   if (!show || !selected) return null;
   const record = cartel.ready

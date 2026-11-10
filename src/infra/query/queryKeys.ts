@@ -40,4 +40,12 @@ export enum QueryKeys {
   AcademyEvents = 'AcademyEvents',
   EventRsvps = 'EventRsvps',
   EventPeople = 'EventPeople',
+  FinanceSettings = 'FinanceSettings',
+  FinancePlans = 'FinancePlans',
+  FinanceBilling = 'FinanceBilling',
+  FinanceCharges = 'FinanceCharges',
+  FinanceOpenCharges = 'FinanceOpenCharges',
+  FinanceExpenses = 'FinanceExpenses',
+  FinanceReport = 'FinanceReport',
+  MyFinanceStatus = 'MyFinanceStatus',
 }

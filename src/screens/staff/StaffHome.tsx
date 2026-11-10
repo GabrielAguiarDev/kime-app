@@ -22,6 +22,7 @@ import { countdownLabel, daysBetween, formatLocalDate, upcomingChampionships, us
 import { usePendingRequests } from '@domain/Membership';
 import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { StaffEventsSection } from '@screens/events/HomeEventsSection';
+import { OwnerFinanceCard } from '@screens/finance/OwnerFinanceCard';
 import { useActiveGym } from '@services/activeGym';
 
 /** Academy calendar (fixed time zone, see academies.timezone). */
@@ -31,7 +32,7 @@ const CHAMPIONSHIP_NOTICE_DAYS = 30;
 
 /**
  * Início (owner / instructor): only the next class (attendance and timer),
- * notices (join requests, a championship in the
+ * the owner's "Mensalidades" card (unpaid charges, finance on), notices (join requests, a championship in the
  * next 30 days) only when there are any, the next events ("Novo evento") and the week summary.
  */
 export function StaffHome() {
@@ -69,6 +70,7 @@ export function StaffHome() {
         <NextClassCard next={next} counts={attendanceCounts(checkins.data ?? [], next.schedule.id)} />
       ) : null}
 
+      {isOwner ? <OwnerFinanceCard academyId={academyId} /> : null}
       <Notices academyId={academyId} today={today.data} />
       <StaffEventsSection academyId={academyId} today={today.data} />
       <WeekSummary academyId={academyId} today={today.data} />

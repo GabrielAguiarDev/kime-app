@@ -30,6 +30,7 @@ jest.mock('@components', () =>
   ),
 );
 jest.mock('@screens/professor/shared', () => ({ SheetForm: 'SheetForm' }));
+jest.mock('@screens/team/useOpenPerson', () => ({ useOpenPerson: () => () => undefined }));
 jest.mock('@domain/Classes', () => ({ useAcademyToday: () => ({ data: '2026-11-29', isLoading: false, isError: false }) }));
 jest.mock('@domain/Profile', () => ({ useMyProfile: () => ({ data: { showInRanking: true } }) }));
 jest.mock('@services/activeGym', () => ({ useActiveGym: () => ({ isStaff: mockStaff }) }));

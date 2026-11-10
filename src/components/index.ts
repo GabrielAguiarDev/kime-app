@@ -50,3 +50,5 @@ export { FilterChips, type FilterChip } from './FilterChips/FilterChips';
 export { Toast, TOAST_MS, useToast } from './Toast/Toast';
 
 export { PersonList, PersonRow, type PersonAction } from './PersonRow/PersonRow';
+export { WheelPicker } from './WheelPicker/WheelPicker';
+export type { WheelOption } from './WheelPicker/types';
