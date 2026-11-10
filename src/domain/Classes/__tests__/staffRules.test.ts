@@ -9,6 +9,7 @@ const s = (id: string, weekday: ClassSchedule['weekday'], startTime: string): Cl
   modalityId: 'm',
   modality: 'Jiu-Jitsu',
   active: true,
+  instructorId: null,
 });
 
 // 2026-11-10 is a Tuesday.

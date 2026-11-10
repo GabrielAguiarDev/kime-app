@@ -30,6 +30,7 @@ import {
   type ScheduleGroup,
   type Weekday,
 } from '@domain/Classes';
+import { roleLabel, useGymMembers } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
@@ -229,6 +230,11 @@ function GroupForm({
   const group = editing.mode === 'edit' ? editing.group : null;
   const { saveGroup } = useScheduleMutations(academyId);
   const { isOwner } = useActiveGym();
+  const members = useGymMembers(academyId);
+  // Who can give the class: active owner/instructors of the academy.
+  const staff = (members.data ?? []).filter((m) => m.status === 'active' && m.role !== 'student');
+  const savedInstructor = group?.schedules.find((s) => s.active)?.instructorId ?? group?.schedules[0]?.instructorId ?? null;
+  const [instructorId, setInstructorId] = useState<string | null>(savedInstructor);
   const [days, setDays] = useState<Weekday[]>(group ? groupDisplayDays(group) : []);
   const [time, setTime] = useState(group?.startTime ?? '');
   const [modalityId, setModalityId] = useState<string | null>(
@@ -251,7 +257,8 @@ function GroupForm({
     if (!valid || !modalityId) return;
     const plan = planScheduleGroup(all, group?.schedules ?? [], time, modalityId, days);
     saveGroup.mutate(
-      { plan, startTime: time, modalityId },
+      // An instructor who left the academy is not offered: saving clears them.
+      { plan, startTime: time, modalityId, instructorId: staff.some((m) => m.userId === instructorId) ? instructorId : null },
       {
         onSuccess: () => {
           haptics.success();
@@ -335,6 +342,20 @@ function GroupForm({
             description={m.usesBelts ? 'Com faixas' : 'Sem faixas'}
             selected={modalityId === m.id}
             onPress={() => setModalityId(m.id)}
+          />
+        ))}
+      </Box>
+
+      <Box gap="s8">
+        <Text variant="caption">Professor</Text>
+        <SelectionCard label="Sem professor" selected={instructorId === null} onPress={() => setInstructorId(null)} />
+        {staff.map((m) => (
+          <SelectionCard
+            key={m.userId}
+            label={m.fullName}
+            description={roleLabel[m.role]}
+            selected={instructorId === m.userId}
+            onPress={() => setInstructorId(m.userId)}
           />
         ))}
       </Box>

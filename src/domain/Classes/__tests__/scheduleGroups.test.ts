@@ -4,7 +4,7 @@ import type { ClassSchedule, Weekday } from '../classesTypes';
 const MODALITY_IDS: Record<string, string> = { 'Muay Thai': 'mt', 'Jiu-Jitsu': 'bjj', 'No-Gi': 'nogi' };
 
 const row = (id: string, weekday: Weekday, startTime = '19:00', modality = 'Muay Thai', active = true): ClassSchedule => ({
-  id, academyId: 'a', weekday, startTime, modalityId: MODALITY_IDS[modality] ?? modality, modality, active,
+  id, academyId: 'a', weekday, startTime, modalityId: MODALITY_IDS[modality] ?? modality, modality, active, instructorId: null,
 });
 
 describe('groupSchedules', () => {

@@ -62,8 +62,17 @@ export const classesService = {
   createSchedule: (academyId: string, input: ScheduleInput) => call(() => api.createSchedule(academyId, input)),
   updateSchedule: (id: string, input: ScheduleInput) => call(() => api.updateSchedule(id, input)),
   setScheduleActive: (id: string, active: boolean) => call(() => api.setScheduleActive(id, active)),
-  /** Applies a planScheduleGroup() result. Off first, so a day never has two active rows. */
-  saveScheduleGroup: (academyId: string, plan: ScheduleGroupPlan, startTime: string, modalityId: string) =>
+  /**
+   * Applies a planScheduleGroup() result. Off first, so a day never has two
+   * active rows. Then the instructor goes on every active row of the group.
+   */
+  saveScheduleGroup: (
+    academyId: string,
+    plan: ScheduleGroupPlan,
+    startTime: string,
+    modalityId: string,
+    instructorId: string | null,
+  ) =>
     call(async () => {
       await api.updateSchedules(plan.deactivate, { active: false });
       await api.updateSchedules(plan.retime, { start_time: startTime, modality_id: modalityId, active: true });
@@ -72,6 +81,7 @@ export const classesService = {
         academyId,
         plan.create.map((weekday) => ({ weekday, startTime, modalityId })),
       );
+      await api.setGroupInstructor(academyId, startTime, modalityId, instructorId);
     }),
   setSchedulesActive: (ids: string[], active: boolean) => call(() => api.updateSchedules(ids, { active })),
   deleteSchedules: (ids: string[]) => call(() => api.deleteSchedules(ids)),

@@ -92,7 +92,12 @@ export function teachingGroups(schedules: InstructorSchedule[], modalities: Moda
 }
 
 /** The person's schedules in the shape nextClass() takes. */
-export function asClassSchedules(academyId: string, schedules: InstructorSchedule[], modalities: Modality[]): ClassSchedule[] {
+export function asClassSchedules(
+  academyId: string,
+  instructorId: string,
+  schedules: InstructorSchedule[],
+  modalities: Modality[],
+): ClassSchedule[] {
   return schedules.map((s) => ({
     id: s.id,
     academyId,
@@ -101,5 +106,6 @@ export function asClassSchedules(academyId: string, schedules: InstructorSchedul
     modalityId: s.modalityId,
     modality: modalities.find((m) => m.id === s.modalityId)?.name ?? '',
     active: true,
+    instructorId,
   }));
 }
