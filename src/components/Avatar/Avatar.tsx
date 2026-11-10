@@ -1,10 +1,12 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { Pressable, View } from 'react-native';
 
 import { useAvatarUrl } from '@domain/Profile';
 import { useAppTheme } from '@theme';
 
 import { Box } from '../Box/Box';
+import { PhotoViewer, type PhotoOrigin } from '../PhotoViewer/PhotoViewer';
 import { Icon } from '../Icon/Icon';
 import { Text } from '../Text/Text';
 
@@ -15,6 +17,8 @@ interface AvatarProps {
   size?: 'large' | 'small' | number;
   /** Small trophy badge on the bottom-right corner: competes (in the modality shown). */
   competitor?: boolean;
+  /** With a photo: a tap opens it full screen, growing from the avatar (PhotoViewer). */
+  expandable?: boolean;
 }
 
 export function nameInitials(name: string): string {
@@ -30,7 +34,7 @@ export function nameInitials(name: string): string {
  * Profile photo in a circle (signed URL from the private bucket). Without a
  * photo, or while it loads: the name's initials in accent on surface-raised.
  */
-export function Avatar({ name, path, size = 'small', competitor = false }: AvatarProps) {
+export function Avatar({ name, path, size = 'small', competitor = false, expandable = false }: AvatarProps) {
   const theme = useAppTheme();
   const [failedThumbnailPath, setFailedThumbnailPath] = useState<string | null>(null);
   const thumbnailPath = path?.replace('/avatar-', '/thumb-');
@@ -63,10 +67,11 @@ export function Avatar({ name, path, size = 'small', competitor = false }: Avata
       )}
     </Box>
   );
-  if (!competitor) return photo;
   // Competitor seal: just the trophy, in a small accent circle cut out of the photo's corner.
   const badge = Math.round(px * 0.36);
-  return (
+  const content = !competitor ? (
+    photo
+  ) : (
     <Box width={px} height={px} accessible accessibilityLabel={`${path ? `Foto de ${name}` : `Iniciais de ${name}`}, competidor`}>
       {photo}
       <Box
@@ -85,5 +90,43 @@ export function Avatar({ name, path, size = 'small', competitor = false }: Avata
         <Icon name="trophy" size={Math.round(badge * 0.58)} color="onAccent" active />
       </Box>
     </Box>
+  );
+  if (!expandable || !path) return content;
+  return (
+    <ExpandablePhoto name={name} path={path} px={px}>
+      {content}
+    </ExpandablePhoto>
+  );
+}
+
+/** Wraps the avatar: a tap measures it and opens the full-size photo from there. */
+function ExpandablePhoto({ name, path, px, children }: { name: string; path: string; px: number; children: ReactNode }) {
+  const ref = useRef<ComponentRef<typeof View>>(null);
+  const [origin, setOrigin] = useState<PhotoOrigin | null>(null);
+  const full = useAvatarUrl(path, true);
+  const open = () =>
+    ref.current?.measureInWindow((x, y) => setOrigin({ x, y, width: px, height: px }));
+  return (
+    <>
+      <Pressable
+        onPress={full.data ? open : undefined}
+        disabled={!full.data}
+        accessibilityRole="imagebutton"
+        accessibilityLabel={`Foto de ${name}. Ampliar`}
+      >
+        <View ref={ref} collapsable={false}>
+          {children}
+        </View>
+      </Pressable>
+      {full.data ? (
+        <PhotoViewer
+          uri={full.data}
+          cacheKey={path}
+          origin={origin}
+          accessibilityLabel={`Foto de ${name}`}
+          onClose={() => setOrigin(null)}
+        />
+      ) : null}
+    </>
   );
 }
