@@ -156,5 +156,39 @@ set local role postgres;
 
 select ok(exists(select 1 from cron.job where jobname = 'kimi-daily-discipline'), 'daily job scheduled');
 
+-- ------------------------------------- ranking: a frozen week leaves the count ---
+-- Real calendar: 4 done weeks, then last week missed (water every day, no
+-- class) → frozen. Its 7 days leave presence and water.
+insert into auth.users(id,email,raw_user_meta_data) values
+ ('a1000000-0000-0000-0000-000000000008','ranked@discipline.test','{"full_name":"Ranked"}');
+insert into ids values ('ranked','a1000000-0000-0000-0000-000000000008'), ('membership', 'a1000000-0000-0000-0000-0000000000e1');
+create temp table cal as select date_trunc('week', private.academy_local_date(pg_temp.id('academy')))::date as week,
+  private.academy_local_date(pg_temp.id('academy')) as today;
+insert into private.water_auto_goal_history(user_id, effective_on, goal_ml) values (pg_temp.id('ranked'), '2024-01-01', 2000);
+insert into public.memberships(id,user_id,academy_id,role,status,created_at,decided_at)
+values (pg_temp.id('membership'), pg_temp.id('ranked'), pg_temp.id('academy'), 'student', 'active', now()-interval '80 days', now()-interval '70 days');
+update private.membership_active_periods set starts_at = now()-interval '70 days' where membership_id = pg_temp.id('membership');
+insert into public.student_modality_enrollments(membership_id,modality_id,status) values (pg_temp.id('membership'), pg_temp.id('modality'), 'active');
+insert into private.modality_active_periods(enrollment_id,starts_at)
+select id, now()-interval '70 days' from public.student_modality_enrollments where membership_id = pg_temp.id('membership');
+update public.class_schedules set created_at = now()-interval '80 days' where id = pg_temp.id('schedule');
+select pg_temp.week(pg_temp.id('ranked'), (select week from cal) - w, 5) from unnest(array[35, 28, 21, 14]) w;
+select pg_temp.week(pg_temp.id('ranked'), (select week from cal) - 7, 7, null);
+select private.rebuild_rankings(pg_temp.id('academy'));
+select is((select state from public.discipline_weeks where user_id = pg_temp.id('ranked') and week_start = (select week from cal) - 7), 'frozen', 'the ranking job refreshes the Disciplina first: last week frozen');
+select is((select protected_days from public.ranking_details where user_id = pg_temp.id('ranked')), 7, 'the 7 days of the frozen week are protected');
+select is((select eligible_days from public.ranking_details where user_id = pg_temp.id('ranked')), 28, 'qualification still counts every eligible day');
+select is((select eligible_hydration_days from public.ranking_details where user_id = pg_temp.id('ranked')), 21, 'water: the frozen week leaves the denominator');
+select is((select hydration_goals_achieved from public.ranking_details where user_id = pg_temp.id('ranked')),
+  (select count(distinct (l.logged_at at time zone 'America/Sao_Paulo')::date)::int from public.water_logs l, cal
+   where l.user_id = pg_temp.id('ranked')
+     and (l.logged_at at time zone 'America/Sao_Paulo')::date between cal.today - 28 and cal.today - 1
+     and (l.logged_at at time zone 'America/Sao_Paulo')::date not between cal.week - 7 and cal.week - 1),
+  'water: the 7 days met in the frozen week do not count either');
+select is((select scheduled_classes from public.ranking_details where user_id = pg_temp.id('ranked')),
+  (select count(*)::int from cal, generate_series(cal.today - 28, cal.today - 1, interval '1 day') d
+   where extract(isodow from d) = 1 and d::date <> cal.week - 7),
+  'presence: the Monday class of the frozen week leaves the grid');
+
 select * from finish();
 rollback;
