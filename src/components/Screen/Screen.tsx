@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
-import { useState, type ReactNode } from "react";
-import { Platform, Pressable, ScrollView, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { HeaderHeightContext } from "expo-router/react-navigation";
+import { useContext, useState, type ReactNode } from "react";
+import { Platform, Pressable, ScrollView, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAppTheme } from "@theme";
@@ -17,6 +18,12 @@ interface ScreenProps {
   scrollable?: boolean;
   /** Fixed content under the scroll area (e.g. primary action). */
   footer?: ReactNode;
+  /**
+   * nativeHeader + scrollable: content at the END of the scroll (never fixed):
+   * after the last item when the content scrolls, at the bottom of the screen
+   * when it is short. E.g. "Na academia desde …".
+   */
+  endFooter?: ReactNode;
   /** Full-width feedback sheet at the bottom (3.10). Replaces `footer` and handles the bottom inset. */
   feedback?: ReactNode;
   /** Set false when the screen sits above the tab bar (bottom inset handled by tabs). */
@@ -52,6 +59,7 @@ export function Screen({
   title,
   scrollable = true,
   footer,
+  endFooter,
   feedback,
   bottomInset = true,
   onBack,
@@ -81,6 +89,7 @@ export function Screen({
         largeTitle={largeTitle}
         subtitle={subtitle}
         footer={footer}
+        endFooter={endFooter}
         feedback={feedback}
         bottomInset={bottomInset}
         onScroll={onScroll}
@@ -237,11 +246,15 @@ function NativeHeaderScreen({
   subtitle,
   scrollable = true,
   footer,
+  endFooter,
   feedback,
   bottomInset = true,
   onScroll,
 }: Omit<ScreenProps, "nativeHeader">) {
   const { bottom } = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  // Context, not useHeaderHeight(): that one throws outside a navigator with a header.
+  const headerHeight = useContext(HeaderHeightContext) ?? 0;
   const { spacing, colors } = useAppTheme();
   const [bottomHeight, setBottomHeight] = useState(0);
   const safeBottom = (bottomInset ? bottom : 0) + spacing.s16;
@@ -296,7 +309,28 @@ function NativeHeaderScreen({
           paddingBottom: bottomContent ? bottomHeight + spacing.s16 : safeBottom,
         }}
       >
-        {children}
+        {endFooter ? (
+          // Visible height of the scroll (screen minus the header and the bottom
+          // safe area the automatic insets add) minus its own bottom padding: a
+          // short content still puts the end footer at the bottom, without
+          // making the screen scroll.
+          <Box
+            style={{
+              minHeight: Math.max(
+                0,
+                windowHeight - headerHeight - (bottomInset ? bottom : 0) -
+                  (bottomContent ? bottomHeight + spacing.s16 : safeBottom),
+              ),
+            }}
+          >
+            {children}
+            <Box style={{ marginTop: "auto" }} paddingTop="s32">
+              {endFooter}
+            </Box>
+          </Box>
+        ) : (
+          children
+        )}
       </ScrollView> : children}
       {feedback}
       {bottomContent ? (
