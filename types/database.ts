@@ -911,6 +911,7 @@ export type Database = {
           active: boolean
           created_at: string
           id: string
+          instructor_id: string | null
           modality_id: string
           start_time: string
           updated_at: string
@@ -921,6 +922,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          instructor_id?: string | null
           modality_id: string
           start_time: string
           updated_at?: string
@@ -931,6 +933,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          instructor_id?: string | null
           modality_id?: string
           start_time?: string
           updated_at?: string
@@ -1345,6 +1348,84 @@ export type Database = {
             referencedColumns: ["id", "academy_id"]
           },
         ]
+      }
+      instructor_belts: {
+        Row: {
+          academy_id: string
+          belt_id: string
+          created_at: string
+          membership_id: string
+          modality_id: string
+          updated_at: string
+        }
+        Insert: {
+          academy_id: string
+          belt_id: string
+          created_at?: string
+          membership_id: string
+          modality_id: string
+          updated_at?: string
+        }
+        Update: {
+          academy_id?: string
+          belt_id?: string
+          created_at?: string
+          membership_id?: string
+          modality_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      instructor_modalities: {
+        Row: {
+          academy_id: string
+          created_at: string
+          membership_id: string
+          modality_id: string
+        }
+        Insert: {
+          academy_id: string
+          created_at?: string
+          membership_id: string
+          modality_id: string
+        }
+        Update: {
+          academy_id?: string
+          created_at?: string
+          membership_id?: string
+          modality_id?: string
+        }
+        Relationships: []
+      }
+      instructor_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          instagram: string | null
+          show_contacts_to_students: boolean
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          instagram?: string | null
+          show_contacts_to_students?: boolean
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          instagram?: string | null
+          show_contacts_to_students?: boolean
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
       }
       memberships: {
         Row: {
@@ -2406,6 +2487,26 @@ export type Database = {
         Args: { p_academy_id: string; p_month: string }
         Returns: Json
       }
+      get_instructor_profile: {
+        Args: { p_academy_id: string; p_user_id: string }
+        Returns: {
+          avatar_path: string | null
+          belts: Json
+          bio: string | null
+          competitors_count: number
+          full_name: string
+          graduations_count: number
+          instagram: string | null
+          member_since: string
+          membership_id: string
+          modality_ids: string[]
+          role: Database["public"]["Enums"]["membership_role"]
+          schedules: Json
+          show_contacts_to_students: boolean
+          user_id: string
+          whatsapp: string | null
+        }[]
+      }
       get_profile_details: {
         Args: { p_user_id: string }
         Returns: {
@@ -2555,6 +2656,10 @@ export type Database = {
           p_membership_id: string
           p_schedule_id: string
         }
+        Returns: undefined
+      }
+      set_instructor_modalities: {
+        Args: { p_membership_id: string; p_modality_ids: string[] }
         Returns: undefined
       }
       set_student_modalities: {
