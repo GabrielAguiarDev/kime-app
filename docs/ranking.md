@@ -18,7 +18,7 @@ Parâmetros centralizados em `src/domain/Ranking/rankingConfig.ts`. Sempre UMA m
 
 - **Presença (70%)**: a janela de 28 dias completos é dividida em 4 semanas de 7 dias, contadas para trás a partir de ontem. Em cada semana, presença = aulas confirmadas na modalidade ÷ aulas da grade da modalidade nos dias elegíveis da semana, limitada a 100% (decisão do usuário, 2026-11-10: não existe mais meta semanal). A grade de um dia = horários ativos da modalidade naquele dia da semana, criados até aquele dia. Numa semana com só parte dos dias elegíveis (vínculo novo), contam só as aulas desses dias. Semana sem aula na grade fica fora da média. Presença final = média das semanas que contam. Ver `supabase/migrations/20261110020000_attendance_by_schedule.sql`.
 - **Água (30%)**: dias em que o aluno cumpriu a PRÓPRIA meta ÷ dias com meta conhecida e elegíveis. Nunca o volume. A meta do dia é a do plano do professor (competidores) ou a automática. Dia de **meta**: cumprido com total ≥ valor. Dia de **limite** (plano): cumprido com total entre 90% e 100% do valor; passar do limite = não cumprido. A água é pessoal: o mesmo histórico vale em todas as modalidades do aluno.
-- **Sem penalidades.** Congelamentos de água continuam (1 a cada 7 dias seguidos, até 2): o dia coberto sai do denominador, sem somar nem tirar ponto.
+- **Sem penalidades.** Semana congelada da Disciplina (ofensiva semanal única, 2026-11-10): os 7 dias dela saem da conta de presença (aulas confirmadas e da grade) e de água, sem somar nem tirar ponto; continuam contando para a classificação (dias elegíveis). `protected_days` = dias elegíveis da janela dentro de semanas congeladas. Ver `supabase/migrations/20261110050100_ranking_discipline_freezes.sql`.
 - **Pontuação** = (0,7 × presença + 0,3 × água) × 100.
 - **Classificação**: mínimo de 7 dias elegíveis (vínculo ativo na academia e na modalidade). Antes disso, "Em classificação", sem posição.
 - **Desempate**: pontuação, total de aulas confirmadas no período, taxa de água, UUID estável.
@@ -34,12 +34,7 @@ O app já possuía `water_goal_days`, mas permitia escrita/alteração pelo clie
 
 O plano mais recente por semana/última edição substitui a meta automática, seguindo a regra existente, inclusive entre academias. Versões de plano com metas nulas significam retorno ao automático. A fórmula automática existente continua sendo 35 ml/kg. Metas válidas ficam entre 1 e 20.000 ml. O histórico existente anterior à migração só conta nas datas com observação exata; dados desconhecidos são excluídos da hidratação. `my_water_days` passou a utilizar o mesmo histórico protegido; não preenche mais o passado com valores inventados.
 
-O congelamento existente é **automático e derivado**, sem estoque gravado:
-
-- Água: um congelamento a cada sete dias concluídos na sequência, máximo de dois; protege um dia de hidratação.
-- Treino: um congelamento a cada quatro semanas concluídas, máximo de dois; protege a disciplina semanal (uma aula confirmada na semana).
-
-O ranking chama o mesmo `computeStreak` e `WATER_STREAK_RULE` existentes, com histórico anterior à janela, e consulta os períodos `frozen`. Não reinicia o estoque na virada da janela, não cria uma segunda regra de consumo e não estende o congelamento de água/semana a faltas individuais. Um dia congelado não gera pontos positivos. Datas sem meta não geram penalidades de ranking; os períodos da disciplina continuam seguindo o comportamento já existente.
+O congelamento é o da **Disciplina** (ofensiva semanal única, `supabase/migrations/20261110050000_discipline_weekly.sql`): um a cada 4 semanas cumpridas seguidas, no máximo 2, gasto sozinho na semana perdida. O banco guarda as semanas (`discipline_weeks`: cumprida / congelada / perdida); o `rebuild_rankings` recalcula a Disciplina dos alunos antes de pontuar e tira da conta os 7 dias de cada semana congelada. Não existe mais congelamento de água por dia, e os fatos de água do ranking cobrem só a janela.
 
 ## Banco e limitações
 

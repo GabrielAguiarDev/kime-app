@@ -1,5 +1,4 @@
-import { addDays } from '@domain/Classes/classesRules';
-import { computeStreak, WATER_STREAK_RULE } from '@domain/Streaks/streakRules';
+import { addDays, weekStart } from '@domain/Classes/classesRules';
 
 import { RANKING_CONFIG, type RankingConfig } from './rankingConfig';
 
@@ -19,8 +18,10 @@ export interface RankingFacts {
   periodTo: string;
   /** Eligible days of the period with the confirmed classes of the modality that day. */
   attendance: AttendanceFact[];
-  /** Entire known history, including before periodFrom, for the water freezes. */
+  /** Water days of the period. */
   hydration: HydrationFact[];
+  /** Mondays of the student's frozen Disciplina weeks: their 7 days leave presence and water. */
+  frozenWeeks?: string[];
 }
 export interface RankingEntry {
   modalityId: string;
@@ -38,9 +39,9 @@ export interface RankingEntry {
   /** Weeks of the window with at least one eligible day. */
   weeks: number;
   hydrationGoalsAchieved: number;
-  /** Water days in the denominator (known goal, eligible, not covered by a freeze). */
+  /** Water days in the denominator (known goal, eligible, outside frozen weeks). */
   eligibleHydrationDays: number;
-  /** Missed water days covered by a freeze: out of the denominator. */
+  /** Eligible days inside frozen Disciplina weeks: out of presence and water. */
   protectedDays: number;
   eligibleDays: number;
   daysToQualify: number;
@@ -90,25 +91,22 @@ export function calculateRanking(facts: RankingFacts[], modalityId: string, conf
   }
   const entries = facts.map((f): RankingEntry => {
     const inPeriod = (day: string) => day >= f.periodFrom && day <= f.periodTo && day < f.today;
+    // A frozen Disciplina week leaves the count: no points added nor taken.
+    const frozenWeeks = new Set(f.frozenWeeks ?? []);
+    const counted = (day: string) => !frozenWeeks.has(weekStart(day));
     // Defensive deduplication in addition to the database query.
-    const attendance = [...new Map(f.attendance.filter((a) => inPeriod(a.day)).map((a) => [a.day, a])).values()];
-    const history = [...new Map(f.hydration.filter((d) => d.day < f.today).map((d) => [d.day, d])).values()]
-      .sort((a, b) => a.day.localeCompare(b.day));
-    // Reuse the existing automatic daily water freeze rule. The final key is
-    // open, so every historical failure is evaluated as a closed period.
-    const done = new Set(history.filter((d) => d.known && d.done).map((d) => d.day));
-    const streak = computeStreak([...history.map((d) => d.day), f.today], done, WATER_STREAK_RULE);
-    const frozen = new Set(streak.periods.filter((p) => p.state === 'frozen').map((p) => p.key));
-    const waterDays = history.filter((d) => inPeriod(d.day) && d.known && d.eligible);
-    // A day covered by a freeze leaves the denominator: no points added nor taken.
-    const water = waterDays.filter((d) => d.done || !frozen.has(d.day));
-    const protectedDays = waterDays.length - water.length;
+    const eligible = [...new Map(f.attendance.filter((a) => inPeriod(a.day)).map((a) => [a.day, a])).values()];
+    const attendance = eligible.filter((a) => counted(a.day));
+    const protectedDays = eligible.length - attendance.length;
+    const water = [...new Map(f.hydration.map((d) => [d.day, d])).values()]
+      .filter((d) => inPeriod(d.day) && d.known && d.eligible && counted(d.day));
     const hydrationGoalsAchieved = water.filter((d) => d.done).length;
     const hydrationRate = water.length ? hydrationGoalsAchieved / water.length : 0;
     const presence = weeklyPresence(attendance, f.periodTo);
     const confirmedClasses = attendance.reduce((n, a) => n + a.classes, 0);
     const scheduledClasses = attendance.reduce((n, a) => n + a.scheduled, 0);
-    const eligibleDays = attendance.length;
+    // Qualification counts every eligible day, frozen or not.
+    const eligibleDays = eligible.length;
     const score = (presence.rate * config.attendanceWeight + hydrationRate * config.hydrationWeight) * config.score.max;
     const daysToQualify = Math.max(0, config.eligibility.minEligibleDays - eligibleDays);
     return {

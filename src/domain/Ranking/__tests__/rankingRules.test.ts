@@ -91,7 +91,6 @@ describe('ranking formula', () => {
   });
 
   it('water = days the student met their own goal, never the volume', () => {
-    // Alternate days: never 7 in a row, so no freeze.
     const r = result({ hydration: water(28).map((d, i) => ({ ...d, done: i % 2 === 0 })) });
     expect(r.hydrationRate).toBe(0.5);
     expect(r.rankingScore).toBe(85);
@@ -102,18 +101,26 @@ describe('ranking formula', () => {
     expect(r.eligibleHydrationDays).toBe(0);
   });
 
-  it('a frozen water day leaves the denominator: no points added nor taken', () => {
-    // 7 days met → one freeze → day 8 missed is covered.
-    const r = result({ hydration: [...water(7), ...water(1, false, 8), ...water(2, true, 9)] });
-    expect(r.protectedDays).toBe(1);
-    expect(r.eligibleHydrationDays).toBe(9);
-    expect(r.hydrationRate).toBe(1);
+  it('a missed water day counts as not met (no daily freeze)', () => {
+    const r = result({ hydration: [...water(7), ...water(1, false, 8)] });
+    expect(r.protectedDays).toBe(0);
+    expect(r.hydrationRate).toBe(7 / 8);
   });
 
-  it('a missed day with the freezes used up counts as not met', () => {
-    const r = result({ hydration: water(3, false) });
-    expect(r.protectedDays).toBe(0);
-    expect(r.hydrationRate).toBe(0);
+  it('a frozen Disciplina week takes its 7 days out of presence and water', () => {
+    // Days 9–15 = Monday 2026-11-09 to Sunday 11-15: no class, no water, frozen.
+    const frozen = (n: number) => n >= 9 && n <= 15;
+    const attendance = days(FULL.filter((n) => !frozen(n)));
+    const hydration = water(28).map((d, i) => ({ ...d, done: !frozen(i + 1) }));
+    const r = result({ attendance, hydration, frozenWeeks: ['2026-11-09'] });
+    expect(r.protectedDays).toBe(7);
+    expect(r.eligibleHydrationDays).toBe(21);
+    expect(r.hydrationRate).toBe(1);
+    expect(r.scheduledClasses).toBe(6);
+    expect(r.attendanceRate).toBe(1);
+    expect(r.eligibleDays).toBe(28);
+    // Without the freeze the same week costs points.
+    expect(result({ attendance, hydration }).rankingScore).toBeLessThan(100);
   });
 
   it('the same water history gives the same water rate in every modality', () => {
