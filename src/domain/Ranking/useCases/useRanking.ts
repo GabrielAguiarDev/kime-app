@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { addDays } from '@domain/Classes/classesRules';
 import { QueryKeys } from '@infra/query';
 import { supabase, toAppError } from '@infra/supabase';
 
@@ -21,6 +22,14 @@ export async function fetchRanking({ academyId, modalityId }: RankingRequest): P
     ]);
     if (ranking.error) throw ranking.error;
     if (details.error) throw details.error;
+    // Trend: positions of the previous day's calculation (the snapshot keeps only the latest).
+    const periodTo = ranking.data[0]?.period_to;
+    const previous = periodTo
+      ? await supabase.from('ranking_position_history').select('user_id, position')
+        .eq('academy_id', academyId).eq('modality_id', modalityId).eq('period_to', addDays(periodTo, -1))
+      : null;
+    if (previous?.error) throw previous.error;
+    const previousPositions = new Map((previous?.data ?? []).map((p) => [p.user_id, p.position]));
     const ownDetails = new Map(details.data.map((d) => [d.user_id, d]));
     return ranking.data.map((r): RankingEntry => {
       const d = ownDetails.get(r.user_id);
@@ -31,7 +40,8 @@ export async function fetchRanking({ academyId, modalityId }: RankingRequest): P
         confirmedClasses: d?.confirmed_classes ?? 0, weeklyGoal: d?.weekly_goal ?? 0,
         weeks: d?.weeks ?? 0, hydrationGoalsAchieved: d?.hydration_goals_achieved ?? 0,
         eligibleHydrationDays: d?.eligible_hydration_days ?? 0, protectedDays: d?.protected_days ?? 0,
-        eligibleDays: d?.eligible_days ?? 0, daysToQualify: d?.days_to_qualify ?? 0,
+        eligibleDays: d?.eligible_days ?? 0, daysToQualify: d?.days_to_qualify ?? r.days_to_qualify,
+        previousPosition: previousPositions.get(r.user_id) ?? null,
       };
     });
   } catch (e) { throw toAppError(e); }

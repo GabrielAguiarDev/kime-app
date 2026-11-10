@@ -49,4 +49,4 @@ export { LoadError } from './LoadError/LoadError';
 export { FilterChips, type FilterChip } from './FilterChips/FilterChips';
 export { Toast, TOAST_MS, useToast } from './Toast/Toast';
 
-export { PersonRow, type PersonAction } from './PersonRow/PersonRow';
+export { PersonList, PersonRow, type PersonAction } from './PersonRow/PersonRow';

@@ -19,6 +19,19 @@ public class KimiWidgetModule: Module {
   public func definition() -> ModuleDefinition {
     Name("KimiWidget")
 
+    /// Round timer buttons of the Live Activity (pause / resume / skip), see RoundTimerCommands.
+    Events("onRoundTimerCommand")
+
+    OnCreate {
+      RoundTimerCommands.observe { [weak self] action in
+        self?.sendEvent("onRoundTimerCommand", ["action": action])
+      }
+    }
+
+    OnDestroy {
+      RoundTimerCommands.stopObserving()
+    }
+
     Function("getItem") { (key: String) -> String? in
       self.store.string(forKey: key)
     }
@@ -54,5 +67,37 @@ public class KimiWidgetModule: Module {
     AsyncFunction("roundTimerStop") {
       RoundTimerEngine.shared.stop()
     }.runOnQueue(.main)
+  }
+}
+
+/// Commands from the Live Activity buttons. They run in the widget extension
+/// (targets/widgets/RoundTimerActivity.swift, RoundTimerCommandIntent), which posts a Darwin
+/// notification `br.com.kimi.app.roundTimer.<action>`; the app — kept alive in the background by
+/// the timer's audio session — hands it to JavaScript, which owns the session and re-syncs the plan.
+enum RoundTimerCommands {
+  static let actions = ["pause", "resume", "skip"]
+  private static let prefix = "br.com.kimi.app.roundTimer."
+  private static var handler: ((String) -> Void)?
+  /// Identifies our observer in the Darwin center (never dereferenced).
+  private final class Token {}
+  private static let token = Token()
+  private static var observer: UnsafeRawPointer { UnsafeRawPointer(Unmanaged.passUnretained(token).toOpaque()) }
+
+  static func observe(_ handler: @escaping (String) -> Void) {
+    stopObserving()
+    self.handler = handler
+    let center = CFNotificationCenterGetDarwinNotifyCenter()
+    for action in actions {
+      CFNotificationCenterAddObserver(center, observer, { _, _, name, _, _ in
+        guard let raw = name?.rawValue as String?, raw.hasPrefix(RoundTimerCommands.prefix) else { return }
+        let action = String(raw.dropFirst(RoundTimerCommands.prefix.count))
+        DispatchQueue.main.async { RoundTimerCommands.handler?(action) }
+      }, (prefix + action) as CFString, nil, .deliverImmediately)
+    }
+  }
+
+  static func stopObserving() {
+    CFNotificationCenterRemoveEveryObserver(CFNotificationCenterGetDarwinNotifyCenter(), observer)
+    handler = nil
   }
 }

@@ -243,6 +243,7 @@ function MemberRow({ member, ctx, modalityId, last }: { member: GymMember; ctx: 
     <PersonRow
       name={`${member.fullName}${member.userId === userId ? ' (você)' : ''}`}
       avatarPath={member.avatarPath}
+      competitor={modalityId ? member.modalities.some((l) => l.modalityId === modalityId && l.isCompetitor) : member.isCompetitor}
       last={last}
       secondary={<Box flexDirection="row" alignItems="center" gap="s8">{belt ? <BeltChip belt={belt} /> : null}<Text variant="caption">{role}</Text></Box>}
       onPress={() => router.push({ pathname: '/member/[membershipId]', params: { membershipId: member.id } })}

@@ -8,6 +8,7 @@ struct RoundTimerAttributes: ActivityAttributes {
     var phase: String
     var round: Int
     var rounds: Int
+    var startsAt: Date
     var endsAt: Date
     var paused: Bool
     var remainingSeconds: Int
@@ -17,52 +18,34 @@ struct RoundTimerAttributes: ActivityAttributes {
   var title: String
 }
 
-/// JSON sent by the app (dates as epoch milliseconds).
-struct RoundTimerPayload: Decodable {
-  let title: String
-  let phase: String
-  let round: Int
-  let rounds: Int
-  let endsAtMs: Double
-  let paused: Bool
-  let remainingSeconds: Int
-  let warning: Bool
-
-  var state: RoundTimerAttributes.ContentState {
-    RoundTimerAttributes.ContentState(
-      phase: phase,
-      round: round,
-      rounds: rounds,
-      endsAt: Date(timeIntervalSince1970: endsAtMs / 1000),
-      paused: paused,
-      remainingSeconds: remainingSeconds,
-      warning: warning
-    )
-  }
-}
-
 enum RoundTimerActivityController {
   private static var current: Activity<RoundTimerAttributes>? {
     Activity<RoundTimerAttributes>.activities.first
   }
 
-  private static func decode(_ json: String) -> RoundTimerPayload? {
-    try? JSONDecoder().decode(RoundTimerPayload.self, from: Data(json.utf8))
-  }
-
-  /// Starts (or updates, when one is running) the activity. False when Live Activities are off.
-  static func startOrUpdate(_ json: String) -> Bool {
-    guard ActivityAuthorizationInfo().areActivitiesEnabled, let payload = decode(json) else { return false }
-    let content = ActivityContent(state: payload.state, staleDate: nil)
+  /// Starts (or updates, when one is running) the activity. `staleDate`: the planned end of the
+  /// session, so an activity left behind by a killed app shows as finished.
+  @discardableResult
+  static func startOrUpdate(title: String, state: RoundTimerAttributes.ContentState, staleDate: Date?) -> Bool {
+    guard ActivityAuthorizationInfo().areActivitiesEnabled else { return false }
+    let content = ActivityContent(state: state, staleDate: staleDate)
     if let activity = current {
       Task { await activity.update(content) }
       return true
     }
     do {
-      _ = try Activity.request(attributes: RoundTimerAttributes(title: payload.title), content: content, pushType: nil)
+      _ = try Activity.request(attributes: RoundTimerAttributes(title: title), content: content, pushType: nil)
       return true
     } catch {
       return false
+    }
+  }
+
+  /// Ends with a final state that stays on the lock screen for `seconds`, then goes away.
+  static func finish(_ state: RoundTimerAttributes.ContentState, after seconds: TimeInterval) {
+    let content = ActivityContent(state: state, staleDate: nil)
+    for activity in Activity<RoundTimerAttributes>.activities {
+      Task { await activity.end(content, dismissalPolicy: .after(Date().addingTimeInterval(seconds))) }
     }
   }
 

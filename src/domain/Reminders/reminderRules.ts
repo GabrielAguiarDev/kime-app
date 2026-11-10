@@ -9,8 +9,8 @@ export const REMINDER_LEAD_MS = 60 * 60 * 1000;
  * the app for a month stops getting reminders.
  */
 export const REMINDER_DAYS = 30;
-/** iOS keeps at most 64 pending local notifications: stay below (a busy schedule covers fewer days). */
-export const MAX_REMINDERS_IOS = 60;
+/** iOS keeps at most 64 pending local notifications: stay below, leaving room for the event reminders (MAX_EVENT_REMINDERS). */
+export const MAX_REMINDERS_IOS = 56;
 /** Android has no such small cap; still bounded. */
 export const MAX_REMINDERS_ANDROID = 300;
 

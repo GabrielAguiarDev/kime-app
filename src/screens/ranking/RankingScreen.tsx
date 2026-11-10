@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable } from 'react-native';
+import { useState, type ComponentRef, type Ref } from 'react';
+import { ActivityIndicator, Alert, Pressable, View, type LayoutChangeEvent } from 'react-native';
 
 import {
   BottomSheet,
@@ -9,6 +9,7 @@ import {
   Card,
   EmptyState,
   FilterChips,
+  Icon,
   LoadError,
   PersonRow,
   Screen,
@@ -19,18 +20,23 @@ import { useAcademyToday } from '@domain/Classes';
 import { errorMessage } from '@infra';
 import { useMyProfile } from '@domain/Profile';
 import {
-  RANKING_CONFIG,
+  MEDAL_PLACES,
   rankingPeriod,
+  rankingSections,
+  rankingTrend,
   recalculateRanking,
   useRanking,
   useRankingModalities,
-  visibleRanking,
   type RankingEntry,
 } from '@domain/Ranking';
 import { SheetForm } from '@screens/professor/shared';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
 import { useSession } from '@services/session';
+import { useAppTheme, type ColorToken } from '@theme';
+
+import { RankingHeader } from './RankingHeader';
+import { days, percent, points } from './rankingFormat';
 
 export function RankingScreen() {
   const { active } = useActiveGym();
@@ -43,18 +49,23 @@ export function RankingScreen() {
 
 /**
  * Always one modality. Students follow the modality selected in the Início
- * header; owner and professor pick one (default: the first).
+ * header; owner and professor pick one (default: the first). Layout: header
+ * (modality · window, "i" explains the score), one compact list (medals for
+ * the top 3), then "Em classificação" (students still short of the minimum days).
+ * Staff see the same screen without a highlighted "você" row.
  */
 export function RankingView({
   academyId,
   onOpenMember,
-  hideOwnBelow = false,
+  ownRowRef,
+  onOwnRowLayout,
 }: {
   academyId: string;
   /** Student: a classmate's row opens their profile (the own row keeps its numbers). */
   onOpenMember?: (userId: string) => void;
-  /** The own row is pinned by the parent: not repeated below the list. */
-  hideOwnBelow?: boolean;
+  /** The student's own ranked row, so the parent can pin it when it is off screen. */
+  ownRowRef?: Ref<ComponentRef<typeof View>>;
+  onOwnRowLayout?: (e: LayoutChangeEvent) => void;
 }) {
   const { userId } = useSession();
   const profile = useMyProfile(userId);
@@ -71,7 +82,8 @@ export function RankingView({
     ? (options.find((m) => m.id === picked) ?? options[0])
     : options.find((m) => m.id === studentModality?.id);
   const ranking = useRanking(academyId, selected?.id, period);
-  const { rows, own } = visibleRanking(ranking.data ?? [], userId);
+  const viewerId = isStaff ? undefined : userId;
+  const { list, ownBelow, qualifying, own } = rankingSections(ranking.data ?? [], viewerId);
 
   if (today.isError || modalities.isError) {
     return (
@@ -95,6 +107,16 @@ export function RankingView({
       />
     );
   }
+
+  const row = (e: RankingEntry, last: boolean) => {
+    const isSelf = e.userId === viewerId;
+    const r = <RankingRow key={`${e.modalityId}:${e.userId}`} entry={e} isSelf={isSelf} last={last} onOpen={onOpenMember} />;
+    return isSelf && e.status === 'ranked' && ownRowRef ? (
+      <View key={`${e.modalityId}:${e.userId}`} ref={ownRowRef} onLayout={onOwnRowLayout} collapsable={false}>
+        {r}
+      </View>
+    ) : r;
+  };
 
   return (
     <Box gap="s24">
@@ -131,20 +153,7 @@ export function RankingView({
         </>
       ) : null}
 
-      {isStaff ? <Button title="Recalcular ranking" variant="secondary" loading={recalculating} onPress={async () => {
-        setRecalculating(true);
-        try { await recalculateRanking(academyId); await ranking.refetch(); }
-        catch (error) { Alert.alert('Ranking', errorMessage(error)); }
-        finally { setRecalculating(false); }
-      }} /> : null}
-
-      <Box gap="s8">
-        <Text variant="captionCaps">Ranking · {selected.name}</Text>
-        <Text variant="caption">
-          Últimos {RANKING_CONFIG.rollingDays} dias completos. Presença {RANKING_CONFIG.attendanceWeight * 100}% · constância
-          de água {RANKING_CONFIG.hydrationWeight * 100}%.
-        </Text>
-      </Box>
+      <RankingHeader modalityName={selected.name} />
 
       {!isStaff && profile.data && !profile.data.showInRanking ? (
         <Card gap="s4">
@@ -153,85 +162,221 @@ export function RankingView({
         </Card>
       ) : null}
 
-      <Box gap="s12">
-        {ranking.isLoading ? <ActivityIndicator accessibilityLabel="Carregando ranking" /> : null}
-        {ranking.isError ? <LoadError title="Não foi possível carregar o ranking" onRetry={() => void ranking.refetch()} /> : null}
-        {ranking.data?.length === 0 ? <EmptyState visual="icon" icon="trophy" title="Nenhum aluno no ranking." /> : null}
-        {rows.length ? <Card>{rows.map((e, index) => <RankingRow last={index === rows.length - 1} key={`${e.modalityId}:${e.userId}`} entry={e} isSelf={e.userId === userId} onOpen={onOpenMember} />)}</Card> : null}
-        {own && !hideOwnBelow ? (
-          <>
-            <Text variant="caption" textAlign="center">
-              …
-            </Text>
-            <RankingRow key={`${own.modalityId}:${own.userId}`} entry={own} isSelf />
-          </>
-        ) : null}
-      </Box>
+      {own && own.status === 'qualifying' ? (
+        <Card selected flexDirection="row" alignItems="center" gap="s12">
+          <Icon name="clock" color="accent" />
+          <Text variant="body" flex={1}>
+            Você entra no ranking em {days(own.daysToQualify)}. Continue treinando e batendo sua meta de água.
+          </Text>
+        </Card>
+      ) : null}
+
+      {ranking.isLoading ? <ActivityIndicator accessibilityLabel="Carregando ranking" /> : null}
+      {ranking.isError ? <LoadError title="Não foi possível carregar o ranking" onRetry={() => void ranking.refetch()} /> : null}
+      {ranking.data?.length === 0 ? <EmptyState visual="icon" icon="trophy" title="Nenhum aluno no ranking." /> : null}
+
+      {ranking.data?.length ? (
+        <>
+          {/* The medal places always show; empty ones as "Vaga aberta". */}
+          <Card paddingVertical="s4">
+            {list.map((e, i) => row(e, i === list.length - 1 && list.length >= MEDAL_PLACES))}
+            {Array.from({ length: Math.max(0, MEDAL_PLACES - list.length) }, (_, i) => list.length + i + 1).map((place) => (
+              <OpenPlaceRow key={`open-${place}`} place={place} last={place === MEDAL_PLACES} />
+            ))}
+          </Card>
+          {ownBelow ? (
+            <Box gap="s8">
+              <Text variant="caption" textAlign="center">…</Text>
+              <Card paddingVertical="s4">{row(ownBelow, true)}</Card>
+            </Box>
+          ) : null}
+
+          {qualifying.length ? (
+            <Box gap="s8">
+              <Text variant="captionCaps">Em classificação ({qualifying.length})</Text>
+              <Card paddingVertical="s4">{qualifying.map((e, i) => row(e, i === qualifying.length - 1))}</Card>
+            </Box>
+          ) : null}
+        </>
+      ) : null}
+
+      {isStaff ? <Button title="Recalcular ranking" variant="secondary" loading={recalculating} onPress={async () => {
+        setRecalculating(true);
+        try { await recalculateRanking(academyId); await ranking.refetch(); }
+        catch (error) { Alert.alert('Ranking', errorMessage(error)); }
+        finally { setRecalculating(false); }
+      }} /> : null}
     </Box>
   );
 }
 
-const points = (value: number) => value.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
-const percent = (rate: number) => `${Math.round(rate * 100)}%`;
-
 /**
- * Colleagues: position, photo, name and score only (`onOpen`: tap opens their
- * profile). The student's own row opens their numbers.
+ * Colleagues: position (with the trend vs the previous day), photo, name and
+ * score; qualifying students show the days left instead. `onOpen`: tap opens
+ * their profile. The student's own row is highlighted (accent) and opens
+ * their numbers. `pinned`: the copy fixed at the bottom of the screen.
  */
 export function RankingRow({
   entry: e,
   isSelf,
   last,
   onOpen,
+  pinned = false,
 }: {
   entry: RankingEntry;
   isSelf: boolean;
   last?: boolean;
   onOpen?: (userId: string) => void;
+  pinned?: boolean;
 }) {
+  const theme = useAppTheme();
   const [expanded, setExpanded] = useState(false);
-  const head = <PersonRow last={last} name={`${e.fullName}${isSelf ? ' (você)' : ''}`} avatarPath={e.avatarPath}
-    leading={<Text variant="counter" color="textMuted">{e.position ?? '–'}</Text>}
-    trailing={<Text variant="counter">{points(e.rankingScore)}</Text>}
-    onPress={!isSelf && onOpen ? () => onOpen(e.userId) : undefined} />;
+  const qualifying = e.status !== 'ranked' || e.position == null;
+  const head = (
+    <PersonRow
+      last={last || isSelf}
+      dense
+      name={`${e.fullName}${isSelf ? ' (você)' : ''}`}
+      avatarPath={e.avatarPath}
+      trailing={
+        qualifying
+          ? <Text variant="caption">faltam {days(e.daysToQualify)}</Text>
+          : (
+            <Box flexDirection="row" alignItems="center" gap="s8">
+              <Text variant="counter">{points(e.rankingScore)}</Text>
+              <PositionTrend entry={e} />
+            </Box>
+          )
+      }
+      chevron={false}
+      onPress={!isSelf && onOpen ? () => onOpen(e.userId) : undefined}
+    />
+  );
   if (!isSelf) return head;
   return (
-    <Pressable
-      onPress={() => setExpanded(!expanded)}
-      accessibilityRole="button"
-      accessibilityState={{ expanded }}
-      accessibilityLabel={`Sua posição: ${e.position ?? 'em classificação'}, ${points(e.rankingScore)} pontos. ${expanded ? 'Ocultar' : 'Ver'} seus números`}
+    <Box
+      backgroundColor="accentSelected"
+      borderColor="accent"
+      borderWidth={theme.border.width}
+      borderRadius="md"
+      paddingHorizontal="s8"
+      style={pinned ? undefined : { marginHorizontal: -theme.spacing.s8 }}
     >
-      <Box gap="s12">
-        {head}
-        {e.status === 'qualifying' ? (
-          <Text variant="caption" color="accent">
-            Em classificação · faltam {e.daysToQualify} {e.daysToQualify === 1 ? 'dia' : 'dias'}
-          </Text>
-        ) : null}
-        {expanded ? (
-          <Box gap="s8">
-            <Text variant="caption">
-              Presença: {percent(e.attendanceRate)} · {e.confirmedClasses}{' '}
-              {e.confirmedClasses === 1 ? 'aula confirmada' : 'aulas confirmadas'} · meta de {e.weeklyGoal}{' '}
-              {e.weeklyGoal === 1 ? 'aula' : 'aulas'} por semana
-            </Text>
-            <Text variant="caption">
-              Água: {e.eligibleHydrationDays ? percent(e.hydrationRate) : 'sem meta registrada'} ·{' '}
-              {e.hydrationGoalsAchieved} de {e.eligibleHydrationDays} {e.eligibleHydrationDays === 1 ? 'dia' : 'dias'} com a
-              meta cumprida
-            </Text>
-            {e.protectedDays ? (
-              <Text variant="caption">
-                {e.protectedDays} {e.protectedDays === 1 ? 'dia protegido' : 'dias protegidos'} pelo congelamento (fora da conta)
-              </Text>
-            ) : null}
-            <Text variant="caption">
-              Cada semana conta até 100% da meta de aulas. A água conta os dias em que você cumpriu a sua meta, nunca o volume.
-            </Text>
-          </Box>
-        ) : null}
+      <Pressable
+        onPress={() => setExpanded(!expanded)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        accessibilityLabel={`${qualifying ? `Em classificação, faltam ${days(e.daysToQualify)}` : `Sua posição: ${e.position}, ${points(e.rankingScore)} pontos`}. ${expanded ? 'Ocultar' : 'Ver'} seus números`}
+      >
+        <Box gap="s12" paddingBottom={expanded ? 's12' : 'none'}>
+          {head}
+          {expanded ? <OwnNumbers entry={e} /> : null}
+        </Box>
+      </Pressable>
+    </Box>
+  );
+}
+
+const MEDALS: Record<number, { face: ColorToken; edge: ColorToken; label: string }> = {
+  1: { face: 'medalGold', edge: 'medalGoldEdge', label: 'ouro' },
+  2: { face: 'medalSilver', edge: 'medalSilverEdge', label: 'prata' },
+  3: { face: 'medalBronze', edge: 'medalBronzeEdge', label: 'bronze' },
+};
+const MEDAL = 24;
+const MEDAL_EDGE = 3;
+
+function Medal({ place }: { place: number }) {
+  const medal = MEDALS[place]!;
+  return (
+    <Box>
+      <Box
+        backgroundColor={medal.edge}
+        style={{ borderRadius: MEDAL / 2, paddingBottom: MEDAL_EDGE }}
+        accessible
+        accessibilityLabel={`${place}º lugar, medalha de ${medal.label}`}
+      >
+        <Box width={MEDAL} height={MEDAL} backgroundColor={medal.face} alignItems="center" justifyContent="center" style={{ borderRadius: MEDAL / 2 }}>
+          <Text variant="bodyStrong" color="onWarning" style={{ fontSize: 13, lineHeight: 16 }}>{place}</Text>
+        </Box>
       </Box>
-    </Pressable>
+    </Box>
+  );
+}
+
+/** Empty medal place: dashed photo with "?", "Vaga aberta" and the medal on the right. */
+function OpenPlaceRow({ place, last }: { place: number; last: boolean }) {
+  const theme = useAppTheme();
+  return (
+    <Box
+      minHeight={48}
+      style={{ paddingVertical: 6 }}
+      flexDirection="row"
+      alignItems="center"
+      gap="s12"
+      borderBottomWidth={last ? 0 : theme.border.width}
+      borderColor="border"
+    >
+      <Box
+        width={32}
+        height={32}
+        alignItems="center"
+        justifyContent="center"
+        borderWidth={theme.border.width}
+        borderColor="textMuted"
+        style={{ borderRadius: 16, borderStyle: 'dashed' }}
+      >
+        <Text variant="bodyStrong" color="textMuted">?</Text>
+      </Box>
+      <Text variant="body" color="textMuted" flex={1}>Vaga aberta</Text>
+      <Medal place={place} />
+    </Box>
+  );
+}
+
+/**
+ * Right corner: the arrow vs the previous day's calculation (nothing when
+ * unchanged), then the position: a medal for the top 3, a small number after.
+ */
+function PositionTrend({ entry }: { entry: RankingEntry }) {
+  const trend = rankingTrend(entry);
+  return (
+    <Box flexDirection="row" alignItems="center" gap="s4">
+      {trend ? (
+        <Box accessible accessibilityLabel={trend === 'up' ? 'Subiu desde ontem' : 'Caiu desde ontem'}>
+          <Icon name={trend === 'up' ? 'arrowUp' : 'arrowDown'} size={14} color={trend === 'up' ? 'success' : 'danger'} />
+        </Box>
+      ) : null}
+      {entry.position != null && entry.position <= MEDAL_PLACES ? (
+        <Medal place={entry.position} />
+      ) : (
+        <Box style={{ minWidth: MEDAL }} alignItems="center" accessible accessibilityLabel={`${entry.position}º lugar`}>
+          <Text variant="caption" color="textMuted">{entry.position}º</Text>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+function OwnNumbers({ entry: e }: { entry: RankingEntry }) {
+  return (
+    <Box gap="s8">
+      <Text variant="caption">
+        Presença: {percent(e.attendanceRate)} · {e.confirmedClasses}{' '}
+        {e.confirmedClasses === 1 ? 'aula confirmada' : 'aulas confirmadas'} · meta de {e.weeklyGoal}{' '}
+        {e.weeklyGoal === 1 ? 'aula' : 'aulas'} por semana
+      </Text>
+      <Text variant="caption">
+        Água: {e.eligibleHydrationDays ? percent(e.hydrationRate) : 'sem meta registrada'} ·{' '}
+        {e.hydrationGoalsAchieved} de {days(e.eligibleHydrationDays)} com a meta cumprida
+      </Text>
+      {e.protectedDays ? (
+        <Text variant="caption">
+          {e.protectedDays} {e.protectedDays === 1 ? 'dia protegido' : 'dias protegidos'} pelo congelamento (fora da conta)
+        </Text>
+      ) : null}
+      <Text variant="caption">
+        Cada semana conta até 100% da meta de aulas. A água conta os dias em que você cumpriu a sua meta, nunca o volume.
+      </Text>
+    </Box>
   );
 }

@@ -55,6 +55,255 @@ export type Database = {
           },
         ]
       }
+      academy_event_attendance: {
+        Row: {
+          academy_id: string
+          event_id: string
+          marked_at: string
+          marked_by: string | null
+          user_id: string
+        }
+        Insert: {
+          academy_id: string
+          event_id: string
+          marked_at?: string
+          marked_by?: string | null
+          user_id: string
+        }
+        Update: {
+          academy_id?: string
+          event_id?: string
+          marked_at?: string
+          marked_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_event_attendance_event_id_academy_id_fkey"
+            columns: ["event_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "academy_events"
+            referencedColumns: ["id", "academy_id"]
+          },
+          {
+            foreignKeyName: "academy_event_attendance_marked_by_fkey"
+            columns: ["marked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_event_attendance_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_event_modalities: {
+        Row: {
+          academy_id: string
+          event_id: string
+          modality_id: string
+        }
+        Insert: {
+          academy_id: string
+          event_id: string
+          modality_id: string
+        }
+        Update: {
+          academy_id?: string
+          event_id?: string
+          modality_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_event_modalities_event_id_academy_id_fkey"
+            columns: ["event_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "academy_events"
+            referencedColumns: ["id", "academy_id"]
+          },
+          {
+            foreignKeyName: "academy_event_modalities_modality_id_academy_id_fkey"
+            columns: ["modality_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "academy_modalities"
+            referencedColumns: ["id", "academy_id"]
+          },
+        ]
+      }
+      academy_event_payments: {
+        Row: {
+          academy_id: string
+          event_id: string
+          marked_at: string
+          marked_by: string | null
+          user_id: string
+        }
+        Insert: {
+          academy_id: string
+          event_id: string
+          marked_at?: string
+          marked_by?: string | null
+          user_id: string
+        }
+        Update: {
+          academy_id?: string
+          event_id?: string
+          marked_at?: string
+          marked_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_event_payments_event_id_academy_id_fkey"
+            columns: ["event_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "academy_events"
+            referencedColumns: ["id", "academy_id"]
+          },
+          {
+            foreignKeyName: "academy_event_payments_marked_by_fkey"
+            columns: ["marked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_event_payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_event_rsvps: {
+        Row: {
+          academy_id: string
+          event_id: string
+          responded_at: string
+          status: Database["public"]["Enums"]["academy_event_rsvp_status"]
+          user_id: string
+        }
+        Insert: {
+          academy_id: string
+          event_id: string
+          responded_at?: string
+          status: Database["public"]["Enums"]["academy_event_rsvp_status"]
+          user_id: string
+        }
+        Update: {
+          academy_id?: string
+          event_id?: string
+          responded_at?: string
+          status?: Database["public"]["Enums"]["academy_event_rsvp_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_event_rsvps_event_id_academy_id_fkey"
+            columns: ["event_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "academy_events"
+            referencedColumns: ["id", "academy_id"]
+          },
+          {
+            foreignKeyName: "academy_event_rsvps_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_events: {
+        Row: {
+          academy_id: string
+          all_modalities: boolean
+          cancelled_at: string | null
+          cancelled_by: string | null
+          capacity: number | null
+          cover_path: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_time: string | null
+          event_date: string
+          id: string
+          location: string | null
+          price_cents: number | null
+          rsvp_deadline: string | null
+          start_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          academy_id: string
+          all_modalities?: boolean
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          capacity?: number | null
+          cover_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_date: string
+          id?: string
+          location?: string | null
+          price_cents?: number | null
+          rsvp_deadline?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          academy_id?: string
+          all_modalities?: boolean
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          capacity?: number | null
+          cover_path?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_date?: string
+          id?: string
+          location?: string | null
+          price_cents?: number | null
+          rsvp_deadline?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_events_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_events_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academy_invite_codes: {
         Row: {
           academy_id: string
@@ -1102,10 +1351,64 @@ export type Database = {
           },
         ]
       }
+      ranking_position_history: {
+        Row: {
+          academy_id: string
+          modality_id: string
+          period_to: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          academy_id: string
+          modality_id: string
+          period_to: string
+          position: number
+          user_id: string
+        }
+        Update: {
+          academy_id?: string
+          modality_id?: string
+          period_to?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ranking_position_history_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ranking_position_history_modality_id_fkey"
+            columns: ["modality_id"]
+            isOneToOne: false
+            referencedRelation: "academy_modalities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ranking_position_history_modality_id_fkey"
+            columns: ["modality_id"]
+            isOneToOne: false
+            referencedRelation: "modality_class_stats"
+            referencedColumns: ["modality_id"]
+          },
+          {
+            foreignKeyName: "ranking_position_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ranking_snapshots: {
         Row: {
           academy_id: string
           avatar_path: string | null
+          days_to_qualify: number
           full_name: string
           modality_id: string
           period_from: string
@@ -1119,6 +1422,7 @@ export type Database = {
         Insert: {
           academy_id: string
           avatar_path?: string | null
+          days_to_qualify?: number
           full_name: string
           modality_id: string
           period_from: string
@@ -1132,6 +1436,7 @@ export type Database = {
         Update: {
           academy_id?: string
           avatar_path?: string | null
+          days_to_qualify?: number
           full_name?: string
           modality_id?: string
           period_from?: string
@@ -1690,6 +1995,21 @@ export type Database = {
       }
     }
     Functions: {
+      academy_event_people: {
+        Args: { p_event_id: string }
+        Returns: {
+          attended: boolean
+          avatar_path: string
+          belt_primary: string
+          belt_tip: string
+          full_name: string
+          paid: boolean
+          responded_at: string
+          role: Database["public"]["Enums"]["membership_role"]
+          status: Database["public"]["Enums"]["academy_event_rsvp_status"]
+          user_id: string
+        }[]
+      }
       academy_today: { Args: { p_academy_id: string }; Returns: string }
       account_deletion_academies: {
         Args: never
@@ -1885,6 +2205,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      save_academy_event: {
+        Args: {
+          p_academy_id: string
+          p_capacity: number
+          p_cover_path: string
+          p_description: string
+          p_end_time: string
+          p_event_date: string
+          p_event_id: string
+          p_location: string
+          p_modality_ids: string[]
+          p_price_cents: number
+          p_rsvp_deadline: string
+          p_start_time: string
+          p_title: string
+        }
+        Returns: string
+      }
       save_diet_meal: {
         Args: {
           p_academy_id: string
@@ -1946,6 +2284,7 @@ export type Database = {
       }
     }
     Enums: {
+      academy_event_rsvp_status: "going" | "not_going"
       checkin_status: "pending" | "confirmed" | "rejected"
       membership_role: "owner" | "instructor" | "student"
       membership_status: "pending" | "active" | "rejected"
@@ -2076,6 +2415,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      academy_event_rsvp_status: ["going", "not_going"],
       checkin_status: ["pending", "confirmed", "rejected"],
       membership_role: ["owner", "instructor", "student"],
       membership_status: ["pending", "active", "rejected"],

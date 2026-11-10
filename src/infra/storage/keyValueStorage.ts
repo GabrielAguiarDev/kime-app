@@ -40,6 +40,10 @@ const ScopedKeys = {
   widgetHint: 'kimi.widgetHint.v1',
   /** Modality the student picked in the Início header, per user + academy. */
   selectedModality: 'kimi.selectedModality.v1',
+  /** Academy events already known (JSON {seen: ids, cancelled: ids}), per user + academy: local "new / cancelled" notices. */
+  eventNotices: 'kimi.eventNotices.v1',
+  /** Signature of the event reminders last scheduled, per user. */
+  eventRemindersPlan: 'kimi.eventRemindersPlan.v1',
 } as const;
 
 type ScopedKey = keyof typeof ScopedKeys;

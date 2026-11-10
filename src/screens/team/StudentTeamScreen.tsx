@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { useCallback, useRef, useState, type ComponentRef } from 'react';
+import { ActivityIndicator, Platform, useWindowDimensions, type View as RNView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BeltChip, Box, Card, EmptyState, FilterChips, LoadError, PersonRow, Screen, Text, TextField } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import { roleLabel, splitMembers } from '@domain/Membership';
-import { rankingPeriod, useRanking, visibleRanking } from '@domain/Ranking';
+import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { useClassmates, type Classmate } from '@domain/Team';
 import { RankingRow, RankingView } from '@screens/ranking/RankingScreen';
 import { useActiveGym } from '@services/activeGym';
@@ -14,8 +15,9 @@ import { useSession } from '@services/session';
 
 type View = 'members' | 'ranking';
 
-/** From this position on, the student's own row is pinned at the bottom (it would be off screen). */
-const PIN_OWN_FROM = 8;
+/** Bars drawn over the scroll content (native header on top, tab bar below), for the "own row off screen" check. */
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 44 : 64;
+const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 49 : 80;
 
 export const openColleague = (userId: string) => router.push({ pathname: '/colega/[userId]', params: { userId } });
 
@@ -23,8 +25,8 @@ export const openColleague = (userId: string) => router.push({ pathname: '/coleg
  * Equipe of a student: Membros | Ranking, always of the modality selected in
  * the Início header. Members: search and person rows (photo, name, belt),
  * Professores and Alunos; a tap opens the member's profile (colleague view).
- * Ranking: the modality ranking; the student's own row is pinned at the
- * bottom when it sits far down the list.
+ * Ranking: the modality ranking; while the student's own row is off screen,
+ * a copy is pinned at the bottom, above the tab bar.
  */
 export function StudentTeamScreen() {
   const params = useLocalSearchParams<{ view?: string }>();
@@ -43,22 +45,33 @@ export function StudentTeamScreen() {
   const { selected } = useActiveModality();
   const period = today.data ? rankingPeriod(today.data) : undefined;
   const ranking = useRanking(academyId, view === 'ranking' ? selected?.id : undefined, period);
-  const { own } = visibleRanking(ranking.data ?? [], userId);
   const ownEntry = (ranking.data ?? []).find((e) => e.userId === userId);
-  const pinned = view === 'ranking' && ownEntry && (own || (ownEntry.position ?? 0) >= PIN_OWN_FROM) ? ownEntry : null;
+
+  const ownRowRef = useRef<ComponentRef<typeof RNView>>(null);
+  const [ownOffscreen, setOwnOffscreen] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const checkOwnRow = useCallback(() => {
+    const node = ownRowRef.current;
+    if (!node) return setOwnOffscreen(false);
+    node.measureInWindow((_x, y, _width, height) => {
+      if (!height) return;
+      const top = insets.top + HEADER_HEIGHT;
+      const bottom = windowHeight - insets.bottom - TAB_BAR_HEIGHT;
+      setOwnOffscreen(y < top || y + height > bottom);
+    });
+  }, [insets.top, insets.bottom, windowHeight]);
+
+  const pinned =
+    view === 'ranking' && ownOffscreen && ownEntry?.status === 'ranked' && ownEntry.position != null ? ownEntry : null;
 
   return (
     <Screen
       nativeHeader
       title="Equipe"
       bottomInset={false}
-      footer={
-        pinned ? (
-          <Card>
-            <RankingRow entry={pinned} isSelf last />
-          </Card>
-        ) : undefined
-      }
+      onScroll={view === 'ranking' ? checkOwnRow : undefined}
+      footer={pinned ? <RankingRow entry={pinned} isSelf pinned /> : undefined}
     >
       <Box gap="s24">
         <FilterChips
@@ -73,7 +86,12 @@ export function StudentTeamScreen() {
         ) : view === 'members' ? (
           <Members academyId={academyId} />
         ) : (
-          <RankingView academyId={academyId} onOpenMember={openColleague} hideOwnBelow={!!pinned} />
+          <RankingView
+            academyId={academyId}
+            onOpenMember={openColleague}
+            ownRowRef={ownRowRef}
+            onOwnRowLayout={() => requestAnimationFrame(checkOwnRow)}
+          />
         )}
       </Box>
     </Screen>
@@ -149,6 +167,7 @@ function ColleagueRow({ member, modalityId, self, last }: { member: Classmate; m
     <PersonRow
       name={`${member.fullName}${self ? ' (você)' : ''}`}
       avatarPath={member.avatarPath}
+      competitor={!!shared?.isCompetitor}
       last={last}
       secondary={
         <Box flexDirection="row" alignItems="center" gap="s8">

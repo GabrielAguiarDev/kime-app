@@ -110,7 +110,7 @@ export function useClassReminders() {
     const scope = userId ?? 'signed-out';
     if (!wanted) {
       if (userId === undefined || keyValueStorage.getScoped('classRemindersPlan', scope) !== null) {
-        void cancelScheduledNotifications().catch(() => undefined);
+        void cancelScheduledNotifications('class-reminder').catch(() => undefined);
         if (userId) keyValueStorage.removeScoped('classRemindersPlan', scope);
       }
       return;
@@ -121,7 +121,8 @@ export function useClassReminders() {
       // Permission revoked in the system settings: nothing to schedule.
       if (!(await hasNotificationPermission())) return;
       await replaceScheduledNotifications(
-        plan.map((r) => ({ at: r.at, title: r.title, body: r.body, data: { kind: 'class-reminder', key: r.key } })),
+        plan.map((r) => ({ at: r.at, title: r.title, body: r.body, data: { key: r.key } })),
+        'class-reminder',
       );
       keyValueStorage.setScoped('classRemindersPlan', scope, signature);
     })().catch(() => undefined);

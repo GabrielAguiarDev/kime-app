@@ -8,10 +8,10 @@ import {
   BottomSheet,
   Box,
   Button,
-  Card,
   EmptyState,
   HeaderButton,
   LoadError,
+  PersonList,
   PersonRow,
   Screen,
   SelectionCard,
@@ -183,7 +183,7 @@ function AttendanceList({
                 }
               />
             ) : null}
-            <Card>{pending.map((c, index) => <PendingRow key={c.id} checkin={c} academyId={academyId} last={index === pending.length - 1} />)}</Card>
+            <PersonList>{pending.map((c, index) => <PendingRow key={c.id} checkin={c} academyId={academyId} last={index === pending.length - 1} />)}</PersonList>
           </Box>
         ) : null}
 
@@ -195,25 +195,28 @@ function AttendanceList({
                 Ninguém confirmado ainda.
               </Text>
             ) : null}
-            {confirmed.length ? <Card>{confirmed.map((c, index) => {
+            {confirmed.length ? <PersonList>{confirmed.map((c, index) => {
               const belt = beltFor(c.userId);
               return <PersonRow key={c.id} name={c.fullName} avatarPath={c.avatarPath} last={index === confirmed.length - 1}
                 secondary={belt ? <BeltChip belt={belt} /> : 'Confirmado'} />;
-            })}</Card> : null}
+            })}</PersonList> : null}
           </Box>
         ) : null}
 
         {rejected.length > 0 ? (
-          <Box gap="s8">
+          <Box gap="s12">
             <Text variant="captionCaps">Recusados ({rejected.length})</Text>
-            {rejected.map((c) => (
-              <Box key={c.id} flexDirection="row" alignItems="center" gap="s12">
-                <Text variant="body" flex={1}>
-                  {c.fullName}
-                </Text>
-                <StatusBadge status="rejected" />
-              </Box>
-            ))}
+            <PersonList>
+              {rejected.map((c, index) => (
+                <PersonRow
+                  key={c.id}
+                  name={c.fullName}
+                  avatarPath={c.avatarPath}
+                  secondary={<StatusBadge status="rejected" />}
+                  last={index === rejected.length - 1}
+                />
+              ))}
+            </PersonList>
           </Box>
         ) : null}
 

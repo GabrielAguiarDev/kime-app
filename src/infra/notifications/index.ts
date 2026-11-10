@@ -3,7 +3,10 @@ export {
   configureNotifications,
   hasNotificationPermission,
   notificationsAvailable,
+  onNotificationOpened,
+  presentNotification,
   replaceScheduledNotifications,
   requestNotificationPermission,
   type LocalNotification,
+  type NotificationKind,
 } from './localNotifications';

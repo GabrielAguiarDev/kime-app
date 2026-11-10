@@ -1,4 +1,4 @@
-import { AppState, Platform } from 'react-native';
+import { AppState } from 'react-native';
 
 import {
   elapsed,
@@ -28,6 +28,9 @@ import { roundTimerNative } from '@infra/widget';
  * skip sends it the plan of what is ahead, and it plays the bells on time with
  * the app in the background or the screen locked. JavaScript only draws the
  * screen (a 200 ms tick while it is open).
+ *
+ * The Live Activity (iOS) and notification (Android) buttons come back here as
+ * commands: this session stays the single owner of the clock and re-syncs.
  */
 
 const TICK_MS = 200;
@@ -44,6 +47,7 @@ export interface TimerSession {
 let session: TimerSession | null = null;
 let ticker: ReturnType<typeof setInterval> | null = null;
 let appStateSub: { remove: () => void } | null = null;
+let commandSub: { remove: () => void } | null = null;
 const listeners = new Set<() => void>();
 
 /** Sounds and background need the native engine (a new build). */
@@ -100,8 +104,9 @@ function stopTicker() {
 
 export async function startTimer(title: string, config: TimerConfig): Promise<void> {
   await stopTimer();
-  // Android 13+: the fixed notification needs the permission (the bells play without it).
-  if (Platform.OS === 'android') await requestNotificationPermission().catch(() => false);
+  // Android 13+: the fixed notification needs it. iOS: the bell notifications that go off if the
+  // system closes the app mid-session. The bells play in the app without it.
+  await requestNotificationPermission().catch(() => false);
   const segments = timeline(config);
   session = {
     title,
@@ -114,6 +119,11 @@ export async function startTimer(title: string, config: TimerConfig): Promise<vo
   // Back from the background: redraw at once (JS timers may have been paused).
   appStateSub = AppState.addEventListener('change', (next) => {
     if (next === 'active') tick();
+  });
+  commandSub = roundTimerNative.onCommand((command) => {
+    if (command === 'pause') pauseTimer();
+    else if (command === 'resume') resumeTimer();
+    else skipTimer(1);
   });
   syncNative();
   tick();
@@ -159,6 +169,8 @@ export async function stopTimer(): Promise<void> {
   stopTicker();
   appStateSub?.remove();
   appStateSub = null;
+  commandSub?.remove();
+  commandSub = null;
   const hadSession = !!session;
   session = null;
   emit();

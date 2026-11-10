@@ -5,6 +5,7 @@ import { useAvatarUrl } from '@domain/Profile';
 import { useAppTheme } from '@theme';
 
 import { Box } from '../Box/Box';
+import { Icon } from '../Icon/Icon';
 import { Text } from '../Text/Text';
 
 interface AvatarProps {
@@ -12,6 +13,8 @@ interface AvatarProps {
   /** Path in the private `avatars` bucket; null shows the initials. */
   path: string | null | undefined;
   size?: 'large' | 'small' | number;
+  /** Small trophy badge on the bottom-right corner: competes (in the modality shown). */
+  competitor?: boolean;
 }
 
 export function nameInitials(name: string): string {
@@ -27,7 +30,7 @@ export function nameInitials(name: string): string {
  * Profile photo in a circle (signed URL from the private bucket). Without a
  * photo, or while it loads: the name's initials in accent on surface-raised.
  */
-export function Avatar({ name, path, size = 'small' }: AvatarProps) {
+export function Avatar({ name, path, size = 'small', competitor = false }: AvatarProps) {
   const theme = useAppTheme();
   const [failedThumbnailPath, setFailedThumbnailPath] = useState<string | null>(null);
   const thumbnailPath = path?.replace('/avatar-', '/thumb-');
@@ -37,7 +40,7 @@ export function Avatar({ name, path, size = 'small' }: AvatarProps) {
   const fullUrl = useAvatarUrl(path, !useThumbnail);
   const url = useThumbnail ? thumbUrl : fullUrl;
   const px = typeof size === 'number' ? size : size === 'large' ? theme.size.avatar : theme.size.avatarSmall;
-  return (
+  const photo = (
     <Box
       width={px}
       height={px}
@@ -58,6 +61,29 @@ export function Avatar({ name, path, size = 'small' }: AvatarProps) {
           {nameInitials(name)}
         </Text>
       )}
+    </Box>
+  );
+  if (!competitor) return photo;
+  // Competitor seal: just the trophy, in a small accent circle cut out of the photo's corner.
+  const badge = Math.round(px * 0.36);
+  return (
+    <Box width={px} height={px} accessible accessibilityLabel={`${path ? `Foto de ${name}` : `Iniciais de ${name}`}, competidor`}>
+      {photo}
+      <Box
+        position="absolute"
+        right={-badge / 8}
+        bottom={-badge / 8}
+        width={badge}
+        height={badge}
+        backgroundColor="accent"
+        borderWidth={theme.border.width}
+        borderColor="bg"
+        alignItems="center"
+        justifyContent="center"
+        style={{ borderRadius: badge / 2 }}
+      >
+        <Icon name="trophy" size={Math.round(badge * 0.58)} color="onAccent" active />
+      </Box>
     </Box>
   );
 }

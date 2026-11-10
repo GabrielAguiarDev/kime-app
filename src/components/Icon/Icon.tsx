@@ -30,6 +30,12 @@ import { GearSix } from 'phosphor-react-native/src/icons/GearSix';
 import { GraduationCap } from 'phosphor-react-native/src/icons/GraduationCap';
 import { House } from 'phosphor-react-native/src/icons/House';
 import { Image } from 'phosphor-react-native/src/icons/Image';
+import { Confetti } from 'phosphor-react-native/src/icons/Confetti';
+import { CurrencyCircleDollar } from 'phosphor-react-native/src/icons/CurrencyCircleDollar';
+import { MapPin } from 'phosphor-react-native/src/icons/MapPin';
+import { UserCheck } from 'phosphor-react-native/src/icons/UserCheck';
+import { CalendarPlus } from 'phosphor-react-native/src/icons/CalendarPlus';
+import { Info } from 'phosphor-react-native/src/icons/Info';
 import { LinkBreak } from 'phosphor-react-native/src/icons/LinkBreak';
 import { ListChecks } from 'phosphor-react-native/src/icons/ListChecks';
 import { EnvelopeSimple } from 'phosphor-react-native/src/icons/EnvelopeSimple';
@@ -96,6 +102,8 @@ const ICONS = {
   belt: GraduationCap,
   camera: Camera,
   image: Image,
+  info: Info,
+  crown: Crown,
   calendar: CalendarBlank,
   check: CheckCircle,
   checks: Checks,
@@ -121,6 +129,12 @@ const ICONS = {
   user: User,
   users: Users,
   warning: Warning,
+  // Academy events.
+  party: Confetti,
+  location: MapPin,
+  money: CurrencyCircleDollar,
+  attended: UserCheck,
+  newEvent: CalendarPlus,
 } as const;
 
 export type IconName = keyof typeof ICONS;

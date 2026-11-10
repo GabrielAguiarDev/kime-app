@@ -17,6 +17,7 @@ import { useNativeHeaderOptions } from "@components";
 import { useRouteAccess } from "@services/access";
 import { useCountdownWidget } from "@services/competition";
 import { useClassReminders } from "@services/reminders";
+import { useEventNotifications } from "@services/events";
 import { ActiveGymProvider, useActiveGym } from "@services/activeGym";
 import { ActiveModalityProvider } from "@services/activeModality";
 import { ConfirmProvider } from "@services/confirm";
@@ -99,6 +100,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   const [booted, setBooted] = useState(false);
   if (bootDone && !booted) setBooted(true);
   const ready = booted || bootDone;
+  useEventNotifications(ready);
 
   // App intro over the app while it loads, once per cold start (screens/intro/AppIntro).
   // It hides the native splash (background color only) once it is laid out; it needs the
@@ -140,6 +142,9 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="competition" options={header} />
             <Stack.Screen name="campeonato" options={header} />
             <Stack.Screen name="campeonatos" options={header} />
+            {/* Academy events: list and detail (members and staff). */}
+            <Stack.Screen name="eventos" options={header} />
+            <Stack.Screen name="evento/index" options={header} />
             <Stack.Screen name="colega/[userId]" options={header} />
             <Stack.Screen name="agua/widget" options={header} />
             {/* DEV ONLY: mascot poses (screens/debug). */}
@@ -153,6 +158,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="member/[membershipId]" options={header} />
             <Stack.Screen name="academy/championships" options={header} />
             <Stack.Screen name="academy/championship" options={header} />
+            <Stack.Screen name="evento/editar" options={header} />
             <Stack.Screen name="athlete/water-plan" options={header} />
             <Stack.Screen name="athlete/progress" options={header} />
             <Stack.Screen name="athlete/diet" options={header} />

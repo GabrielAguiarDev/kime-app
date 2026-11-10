@@ -18,6 +18,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import org.json.JSONObject
 
@@ -31,6 +32,10 @@ import org.json.JSONObject
  * - Sounds on the media stream (not muted by the ringer's silent mode); other apps' music is
  *   ducked (AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK) only while a bell plays.
  *
+ * - Pause / resume and skip actions on the notification: forwarded to JavaScript (commandListener),
+ *   which owns the session and sends the new plan back.
+ * - At the end: "Treino concluído · N rounds" for a few seconds, then the service stops.
+ *
  * Plan: same JSON as iOS (see RoundTimerEngine.swift): {title, rounds, paused, current, phases, sounds},
  * epoch milliseconds.
  */
@@ -40,6 +45,13 @@ class RoundTimerService : Service() {
     private const val NOTIFICATION_ID = 7301
     private const val EXTRA_PLAN = "plan"
     private const val MAX_WAKE_MS = 4L * 60 * 60 * 1000
+    private const val DONE_VISIBLE_MS = 8000L
+    private const val ACTION_PREFIX = "br.com.kimi.widget.ROUND_TIMER_"
+    private val COMMANDS = listOf("pause", "resume", "skip")
+
+    /** Set by KimiWidgetModule: hands the notification buttons to JavaScript. */
+    @Volatile
+    var commandListener: ((String) -> Unit)? = null
 
     @Volatile
     private var instance: RoundTimerService? = null
@@ -69,6 +81,7 @@ class RoundTimerService : Service() {
   private var duckUntil = 0L
   private var title = ""
   private var rounds = 0
+  private var foreground = false
 
   override fun onBind(intent: Intent?): IBinder? = null
 
@@ -88,12 +101,21 @@ class RoundTimerService : Service() {
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    val command = intent?.action?.takeIf { it.startsWith(ACTION_PREFIX) }?.removePrefix(ACTION_PREFIX)?.lowercase()
+    if (command != null) {
+      // A notification button (plain startService, never the foreground start).
+      if (!foreground) stopSelf() else if (command in COMMANDS) commandListener?.invoke(command)
+      return START_NOT_STICKY
+    }
     // startForeground first: Android requires it within seconds of startForegroundService.
-    val placeholder = buildNotification("Timer de rounds", "", null, false)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-      startForeground(NOTIFICATION_ID, placeholder, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-    } else {
-      startForeground(NOTIFICATION_ID, placeholder)
+    if (!foreground) {
+      val placeholder = buildNotification("Timer de rounds", "", null, NotificationLook.NEUTRAL, emptyList())
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        startForeground(NOTIFICATION_ID, placeholder, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+      } else {
+        startForeground(NOTIFICATION_ID, placeholder)
+      }
+      foreground = true
     }
     intent?.getStringExtra(EXTRA_PLAN)?.let { apply(it) }
     return START_NOT_STICKY
@@ -122,6 +144,12 @@ class RoundTimerService : Service() {
     rounds = plan.optInt("rounds", 0)
     val now = System.currentTimeMillis()
 
+    if (!plan.optBoolean("paused") && plan.getJSONArray("phases").length() == 0) {
+      // Nothing ahead (skipped past the last phase): the session is over.
+      finish()
+      return
+    }
+
     if (plan.optBoolean("paused")) {
       releaseWakeLock()
       val current = plan.getJSONObject("current")
@@ -145,12 +173,7 @@ class RoundTimerService : Service() {
         at(startAt) { show(phase, round, endAt, paused = false, remainingSeconds = 0, warning = false) }
       }
       if (warningAt != null && warningAt > now) at(warningAt) { show(phase, round, endAt, false, 0, true) }
-      if (i == phases.length() - 1) {
-        at(endAt) {
-          show("done", rounds, null, paused = false, remainingSeconds = 0, warning = false)
-          releaseWakeLock()
-        }
-      }
+      if (i == phases.length() - 1) at(endAt) { finish() }
     }
     val sounds = plan.getJSONArray("sounds")
     for (i in 0 until sounds.length()) {
@@ -164,7 +187,16 @@ class RoundTimerService : Service() {
     handler.postDelayed(block, (epochMs - System.currentTimeMillis()).coerceAtLeast(0))
   }
 
+  /** "Treino concluído · N rounds" for a few seconds, then the notification goes away. */
+  private fun finish() {
+    show("done", rounds, null, paused = false, remainingSeconds = 0, warning = false)
+    releaseWakeLock()
+    // After the last triple bell: the duck release callback is posted before this one.
+    handler.postDelayed({ shutdown() }, DONE_VISIBLE_MS)
+  }
+
   private fun shutdown() {
+    foreground = false
     handler.removeCallbacksAndMessages(null)
     releaseWakeLock()
     abandonFocus()
@@ -239,41 +271,85 @@ class RoundTimerService : Service() {
     (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
   }
 
+  private enum class NotificationLook { NEUTRAL, ROUND, REST, WARNING }
+
+  private fun roundsText(n: Int) = "$n ${if (n == 1) "round" else "rounds"}"
+
+  /** Title: phase and round ("Round 2 de 5", "Descanso · próximo: round 3 de 5"). */
   private fun label(phase: String, round: Int): String = when (phase) {
-    "prep" -> "Prepare-se"
-    "rest" -> "Descanso"
-    "done" -> "Fim do treino"
+    "prep" -> "Prepare-se · round 1 de $rounds"
+    "rest" -> "Descanso · próximo: round ${minOf(round + 1, rounds)} de $rounds"
+    "done" -> "Treino concluído · ${roundsText(rounds)}"
     else -> "Round $round de $rounds"
   }
 
   private fun show(phase: String, round: Int, endsAt: Long?, paused: Boolean, remainingSeconds: Int, warning: Boolean) {
+    val done = phase == "done"
     val text = when {
-      paused -> "$title · pausado · ${remainingSeconds / 60}:${(remainingSeconds % 60).toString().padStart(2, '0')}"
-      warning -> "$title · últimos segundos"
+      done -> title
+      paused -> "Pausado · ${remainingSeconds / 60}:${(remainingSeconds % 60).toString().padStart(2, '0')} · $title"
+      warning -> "Últimos segundos · $title"
       else -> title
     }
-    val notification = buildNotification(label(phase, round), text, if (paused || phase == "done") null else endsAt, warning)
+    val look = when {
+      done || paused || phase == "prep" -> NotificationLook.NEUTRAL
+      warning -> NotificationLook.WARNING
+      phase == "rest" -> NotificationLook.REST
+      else -> NotificationLook.ROUND
+    }
+    val actions = if (done) emptyList() else listOf(
+      if (paused) action("resume", "Retomar") else action("pause", "Pausar"),
+      action("skip", "Pular fase"),
+    )
+    val notification = buildNotification(label(phase, round), text, if (paused || done) null else endsAt, look, actions)
     (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(NOTIFICATION_ID, notification)
   }
 
-  private fun buildNotification(title: String, text: String, endsAt: Long?, warning: Boolean): Notification {
+  /** A button that comes back to this service (onStartCommand), then to JavaScript. */
+  private fun action(command: String, title: String): NotificationCompat.Action {
+    val intent = Intent(this, RoundTimerService::class.java).setAction(ACTION_PREFIX + command.uppercase())
+    val pending = PendingIntent.getService(
+      this,
+      COMMANDS.indexOf(command) + 1,
+      intent,
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+    return NotificationCompat.Action.Builder(R.drawable.kimi_ic_timer, title, pending).build()
+  }
+
+  private fun buildNotification(
+    title: String,
+    text: String,
+    endsAt: Long?,
+    look: NotificationLook,
+    actions: List<NotificationCompat.Action>,
+  ): Notification {
     val open = PendingIntent.getActivity(
       this,
       0,
       Intent(Intent.ACTION_VIEW, Uri.parse("kimi://timer")).setPackage(packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
+    // Phase color (tokens), like the app's timer screen: round accent, rest water, final warning.
+    val color = when (look) {
+      NotificationLook.ROUND -> KimiTokens.Colors.accent
+      NotificationLook.REST -> KimiTokens.Colors.water
+      NotificationLook.WARNING -> KimiTokens.Colors.warning
+      NotificationLook.NEUTRAL -> KimiTokens.Colors.textMuted
+    }.getColor(this).toArgb()
     val builder = NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(R.drawable.kimi_ic_timer)
       .setContentTitle(title)
       .setContentText(text)
       .setContentIntent(open)
+      .setColor(color)
       .setOngoing(true)
       .setOnlyAlertOnce(true)
       .setSilent(true)
       .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
       .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+    actions.forEach { builder.addAction(it) }
     if (endsAt != null) {
       // Live countdown drawn by the system (API 24+), no updates every second.
       builder.setWhen(endsAt).setShowWhen(true).setUsesChronometer(true)

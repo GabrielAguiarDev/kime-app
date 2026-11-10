@@ -3,7 +3,8 @@ import type * as NotificationsModule from 'expo-notifications';
 import { Platform } from 'react-native';
 
 /**
- * Local notifications (scheduled on the device, no server): class reminders.
+ * Local notifications (scheduled on the device, no server): class reminders,
+ * event reminders and the "new / cancelled event" notices.
  * expo-notifications, SDK 58 (DATE trigger, NotificationBehavior with
  * shouldShowBanner/shouldShowList). The plugin is set with
  * enableRemoteNotifications: false — no push entitlement needed.
@@ -12,6 +13,10 @@ import { Platform } from 'react-native';
  * added, Jest) do not load the library at all: reminders are just unavailable.
  */
 const CHANNEL_ID = 'class-reminders';
+const EVENTS_CHANNEL_ID = 'academy-events';
+
+/** Each group replaces only its own scheduled notifications (`data.kind`). */
+export type NotificationKind = 'class-reminder' | 'event-reminder';
 
 const available = !!requireOptionalNativeModule('ExpoNotificationScheduler');
 
@@ -43,6 +48,11 @@ export async function configureNotifications(): Promise<void> {
     await N.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'Lembretes de aula',
       description: 'Aviso 1 hora antes das aulas.',
+      importance: N.AndroidImportance.DEFAULT,
+    });
+    await N.setNotificationChannelAsync(EVENTS_CHANNEL_ID, {
+      name: 'Eventos da academia',
+      description: 'Novos eventos, cancelamentos e lembrete na véspera.',
       importance: N.AndroidImportance.DEFAULT,
     });
   }
@@ -83,20 +93,62 @@ export interface LocalNotification {
   data?: Record<string, string>;
 }
 
-/** Replaces every scheduled notification of the app with `items`. */
-export async function replaceScheduledNotifications(items: LocalNotification[]): Promise<void> {
+/** Replaces the scheduled notifications of one kind with `items` (the other kinds stay). */
+export async function replaceScheduledNotifications(items: LocalNotification[], kind: NotificationKind): Promise<void> {
   const N = lib();
   if (!N) return;
   await configureNotifications();
-  await N.cancelAllScheduledNotificationsAsync();
+  await cancelScheduledNotifications(kind);
+  const channelId = kind === 'class-reminder' ? CHANNEL_ID : EVENTS_CHANNEL_ID;
   for (const item of items) {
     await N.scheduleNotificationAsync({
-      content: { title: item.title, body: item.body, data: item.data ?? {} },
-      trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: item.at, channelId: CHANNEL_ID },
+      content: { title: item.title, body: item.body, data: { ...item.data, kind } },
+      trigger: { type: N.SchedulableTriggerInputTypes.DATE, date: item.at, channelId },
     });
   }
 }
 
-export async function cancelScheduledNotifications(): Promise<void> {
-  await lib()?.cancelAllScheduledNotificationsAsync();
+/** Cancels the scheduled notifications of one kind, or all of them. */
+export async function cancelScheduledNotifications(kind?: NotificationKind): Promise<void> {
+  const N = lib();
+  if (!N) return;
+  if (!kind) {
+    await N.cancelAllScheduledNotificationsAsync();
+    return;
+  }
+  const scheduled = await N.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    scheduled
+      .filter((request) => request.content.data?.kind === kind)
+      .map((request) => N.cancelScheduledNotificationAsync(request.identifier)),
+  );
+}
+
+/** Shows a notification right away (event notices). */
+export async function presentNotification(item: Omit<LocalNotification, 'at'>): Promise<void> {
+  const N = lib();
+  if (!N) return;
+  await configureNotifications();
+  await N.scheduleNotificationAsync({
+    content: { title: item.title, body: item.body, data: { ...item.data, kind: 'event-notice' } },
+    trigger: Platform.OS === 'android' ? { channelId: EVENTS_CHANNEL_ID } : null,
+  });
+}
+
+/**
+ * Calls `onOpen` with the data of a notification the person tapped: the one
+ * that opened the app (once) and any tapped while it runs. Returns the unsubscribe.
+ */
+export function onNotificationOpened(onOpen: (data: Record<string, unknown>) => void): () => void {
+  const N = lib();
+  if (!N) return () => undefined;
+  const last = N.getLastNotificationResponse();
+  if (last) {
+    N.clearLastNotificationResponse();
+    onOpen((last.notification.request.content.data ?? {}) as Record<string, unknown>);
+  }
+  const subscription = N.addNotificationResponseReceivedListener((response) => {
+    onOpen((response.notification.request.content.data ?? {}) as Record<string, unknown>);
+  });
+  return () => subscription.remove();
 }
