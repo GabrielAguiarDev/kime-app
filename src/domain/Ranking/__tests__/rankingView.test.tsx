@@ -12,7 +12,7 @@ jest.mock('react', () => {
   let calls = 0;
   return {
     ...actual,
-    // useState order in RankingView: picked, picking; RankingRow: expanded.
+    // useState order in RankingView: picked, picking.
     useState: (initial: unknown) => {
       calls += 1;
       if (calls % 2 === 1 && initial === null) return [mockPicked, (v: string) => { mockPicked = v; }];

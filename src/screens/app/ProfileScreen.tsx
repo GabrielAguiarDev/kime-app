@@ -206,17 +206,30 @@ function ProfileHeader({
 
   return (
     <Box alignItems="center" gap="s12">
-      <Pressable
-        onPress={() => setSheetOpen(true)}
-        disabled={busy}
-        accessibilityRole="button"
-        accessibilityLabel={avatarPath ? 'Trocar ou remover foto' : 'Adicionar foto'}
-        hitSlop={spacing.s8}
-      >
-        <Avatar name={fullName} path={avatarPath} size="large" />
-        {/* The photo is what this tap edits. */}
-        <EditBadge />
-      </Pressable>
+      {/* The photo opens full screen; only the pencil edits it (without a photo, the circle adds one too).
+          The padding / negative margin keep the layout and give the pencil's larger touch area room
+          inside its parent (Android drops touches outside the parent's bounds). */}
+      <Box style={{ padding: spacing.s16, margin: -spacing.s16 }}>
+        {avatarPath ? (
+          <Avatar name={fullName} path={avatarPath} size="large" expandable />
+        ) : (
+          <Pressable
+            onPress={() => setSheetOpen(true)}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Adicionar foto"
+            hitSlop={spacing.s8}
+          >
+            <Avatar name={fullName} path={avatarPath} size="large" />
+          </Pressable>
+        )}
+        <EditBadge
+          onPress={() => setSheetOpen(true)}
+          disabled={busy}
+          accessibilityLabel={avatarPath ? 'Trocar ou remover foto' : 'Adicionar foto'}
+          inset={spacing.s16}
+        />
+      </Box>
       {busy ? <ActivityIndicator accessibilityLabel="Salvando foto" /> : null}
       <Text variant="title" textAlign="center" accessibilityRole="header">
         {fullName}

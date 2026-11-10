@@ -71,7 +71,7 @@ export function StudentTeamScreen() {
       title="Equipe"
       bottomInset={false}
       onScroll={view === 'ranking' ? checkOwnRow : undefined}
-      footer={pinned ? <RankingRow entry={pinned} isSelf pinned /> : undefined}
+      footer={pinned ? <RankingRow entry={pinned} isSelf pinned onOpen={openColleague} /> : undefined}
     >
       <Box gap="s24">
         <FilterChips

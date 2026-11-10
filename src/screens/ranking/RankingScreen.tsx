@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState, type ComponentRef, type Ref } from 'react';
-import { ActivityIndicator, Alert, Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { ActivityIndicator, Alert, View, type LayoutChangeEvent } from 'react-native';
 
 import {
   BottomSheet,
@@ -36,7 +36,7 @@ import { useSession } from '@services/session';
 import { useAppTheme, type ColorToken } from '@theme';
 
 import { RankingHeader } from './RankingHeader';
-import { days, percent, points } from './rankingFormat';
+import { days, points } from './rankingFormat';
 import { useOpenPerson } from '@screens/team/useOpenPerson';
 
 export function RankingScreen() {
@@ -62,7 +62,7 @@ export function RankingView({
   onOwnRowLayout,
 }: {
   academyId: string;
-  /** Student: a classmate's row opens their profile (the own row keeps its numbers). */
+  /** Student: a row (own included) opens that member's profile. */
   onOpenMember?: (userId: string) => void;
   /** The student's own ranked row, so the parent can pin it when it is off screen. */
   ownRowRef?: Ref<ComponentRef<typeof View>>;
@@ -216,8 +216,7 @@ export function RankingView({
 /**
  * Colleagues: position (with the trend vs the previous day), photo, name and
  * score; qualifying students show the days left instead. `onOpen`: tap opens
- * their profile. The student's own row is highlighted (accent) and opens
- * their numbers. `pinned`: the copy fixed at the bottom of the screen.
+ * their profile (the student's own row too, highlighted in accent). `pinned`: the copy fixed at the bottom of the screen.
  */
 export function RankingRow({
   entry: e,
@@ -233,7 +232,6 @@ export function RankingRow({
   pinned?: boolean;
 }) {
   const theme = useAppTheme();
-  const [expanded, setExpanded] = useState(false);
   const qualifying = e.status !== 'ranked' || e.position == null;
   const head = (
     <PersonRow
@@ -252,7 +250,7 @@ export function RankingRow({
           )
       }
       chevron={false}
-      onPress={!isSelf && onOpen ? () => onOpen(e.userId) : undefined}
+      onPress={onOpen ? () => onOpen(e.userId) : undefined}
     />
   );
   if (!isSelf) return head;
@@ -265,17 +263,7 @@ export function RankingRow({
       paddingHorizontal="s8"
       style={pinned ? undefined : { marginHorizontal: -theme.spacing.s8 }}
     >
-      <Pressable
-        onPress={() => setExpanded(!expanded)}
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        accessibilityLabel={`${qualifying ? `Em classificação, faltam ${days(e.daysToQualify)}` : `Sua posição: ${e.position}, ${points(e.rankingScore)} pontos`}. ${expanded ? 'Ocultar' : 'Ver'} seus números`}
-      >
-        <Box gap="s12" paddingBottom={expanded ? 's12' : 'none'}>
-          {head}
-          {expanded ? <OwnNumbers entry={e} /> : null}
-        </Box>
-      </Pressable>
+      {head}
     </Box>
   );
 }
@@ -356,29 +344,6 @@ function PositionTrend({ entry }: { entry: RankingEntry }) {
           <Text variant="caption" color="textMuted">{entry.position}º</Text>
         </Box>
       )}
-    </Box>
-  );
-}
-
-function OwnNumbers({ entry: e }: { entry: RankingEntry }) {
-  return (
-    <Box gap="s8">
-      <Text variant="caption">
-        Presença: {percent(e.attendanceRate)} · {e.confirmedClasses} de {e.scheduledClasses}{' '}
-        {e.scheduledClasses === 1 ? 'aula' : 'aulas'} da grade
-      </Text>
-      <Text variant="caption">
-        Água: {e.eligibleHydrationDays ? percent(e.hydrationRate) : 'sem meta registrada'} ·{' '}
-        {e.hydrationGoalsAchieved} de {days(e.eligibleHydrationDays)} com a meta cumprida
-      </Text>
-      {e.protectedDays ? (
-        <Text variant="caption">
-          {e.protectedDays} {e.protectedDays === 1 ? 'dia protegido' : 'dias protegidos'} pelo congelamento (fora da conta)
-        </Text>
-      ) : null}
-      <Text variant="caption">
-        Cada semana conta até 100% da meta de aulas. A água conta os dias em que você cumpriu a sua meta, nunca o volume.
-      </Text>
     </Box>
   );
 }
