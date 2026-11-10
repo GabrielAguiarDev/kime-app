@@ -67,7 +67,7 @@ export function Screen({
   const { bottom } = useSafeAreaInsets();
   const { spacing, size, colors } = useAppTheme();
   const paddingBottom = (bottomInset ? bottom : 0) + spacing.s16;
-  const hasBottom = !!footer || !!feedback;
+  const hasBottom = !!footer && !feedback;
 
   if (nativeHeader) {
     return (
@@ -245,11 +245,11 @@ function NativeHeaderScreen({
   const { spacing, colors } = useAppTheme();
   const [bottomHeight, setBottomHeight] = useState(0);
   const safeBottom = (bottomInset ? bottom : 0) + spacing.s16;
-  const bottomContent = feedback ?? (footer ? (
+  const bottomContent = !feedback && footer ? (
     <Box paddingHorizontal="screenMargin" paddingTop="s12" style={{ paddingBottom: safeBottom }} gap="s12">
       {footer}
     </Box>
-  ) : null);
+  ) : null;
 
   const left = headerLeft ?? (onBack ? <HeaderButton icon="back" accessibilityLabel="Voltar" onPress={onBack} /> : null);
   const right =
@@ -298,6 +298,7 @@ function NativeHeaderScreen({
       >
         {children}
       </ScrollView> : children}
+      {feedback}
       {bottomContent ? (
         <Box
           position="absolute"
