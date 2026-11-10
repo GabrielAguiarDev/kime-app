@@ -155,6 +155,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="presenca" options={header} />
             <Stack.Screen name="pedidos" options={header} />
             <Stack.Screen name="member/[membershipId]" options={header} />
+            <Stack.Screen name="editar-perfil" options={header} />
             <Stack.Screen name="academy/championships" options={header} />
             <Stack.Screen name="academy/championship" options={header} />
             <Stack.Screen name="evento/editar" options={header} />
