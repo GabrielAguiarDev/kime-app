@@ -6,8 +6,8 @@ import type { ProfileView } from './profileView';
 
 /**
  * DEV ONLY (__DEV__): a full instructor profile to check the layout — two
- * belts, bio, numbers, classes in two modalities (the Monday 19:00 one as the
- * next class) and both contacts. Photo, name and role stay the real ones.
+ * belts, bio, classes in two modalities (the Monday 19:00 one as the
+ * next class). Photo, name and role stay the real ones.
  * Never saved anywhere.
  */
 const jj: Modality = { id: 'demo-jj', name: 'Jiu-Jitsu', position: 0, usesBelts: true };
@@ -22,8 +22,6 @@ export function demoView(data: InstructorProfile): ProfileView {
       { modality: jj, belt: { primary: 'black', tip: 'red' } },
       { modality: mt, belt: { primary: 'blue', tip: null } },
     ],
-    graduationsCount: 42,
-    competitorsCount: 9,
     memberSince: since.toISOString(),
     groups: teachingGroups(
       [
@@ -37,7 +35,5 @@ export function demoView(data: InstructorProfile): ProfileView {
       [jj, mt],
     ),
     next: { scheduleId: 'demo-1', label: 'Próxima · amanhã' },
-    instagram: data.instagram ?? 'kimi.app',
-    whatsapp: data.whatsapp ?? '5511999990000',
   };
 }

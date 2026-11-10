@@ -30,11 +30,6 @@ async function getProfile(academyId: string, userId: string): Promise<Instructor
     role: r.role,
     memberSince: r.member_since,
     bio: r.bio,
-    instagram: r.instagram,
-    whatsapp: r.whatsapp,
-    showContactsToStudents: r.show_contacts_to_students,
-    graduationsCount: r.graduations_count,
-    competitorsCount: r.competitors_count,
     modalityIds: r.modality_ids ?? [],
     belts: ((r.belts ?? []) as unknown as BeltRow[]).map((b): InstructorBelt => ({ modalityId: b.modality_id, beltId: b.belt_id })),
     schedules: ((r.schedules ?? []) as unknown as ScheduleRow[]).map(
@@ -55,7 +50,7 @@ export function useInstructorProfile(academyId: string | undefined, userId: stri
   });
 }
 
-/** The person's bio, contacts and "show to students" (the same in every academy). */
+/** The person's bio (the same in every academy). */
 export function useUpdateInstructorProfile(userId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -64,9 +59,6 @@ export function useUpdateInstructorProfile(userId: string | undefined) {
         {
           user_id: userId!,
           bio: input.bio,
-          instagram: input.instagram,
-          whatsapp: input.whatsapp,
-          show_contacts_to_students: input.showContactsToStudents,
         },
         { onConflict: 'user_id' },
       );

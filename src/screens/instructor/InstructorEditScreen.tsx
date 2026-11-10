@@ -1,16 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Switch } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 
 import { BeltChip, Box, Button, Card, Icon, LoadError, Screen, Text, TextField } from '@components';
 import { beltsOf, useBelts, useModalities } from '@domain/Classes';
 import {
   BIO_MAX,
-  formatWhatsapp,
-  isValidInstagram,
-  isValidWhatsapp,
-  normalizeInstagram,
-  normalizeWhatsapp,
   useInstructorProfile,
   useUpdateInstructorProfile,
   type InstructorProfile,
@@ -55,28 +50,16 @@ export function InstructorEditScreen() {
 
 function EditForm({ academyId, profile }: { academyId: string; profile: InstructorProfile }) {
   const { userId } = useSession();
-  const { colors, size, spacing } = useAppTheme();
+  const { size, spacing } = useAppTheme();
   const save = useUpdateInstructorProfile(userId);
   const [bio, setBio] = useState(profile.bio ?? '');
-  const [instagram, setInstagram] = useState(profile.instagram ? `@${profile.instagram}` : '');
-  const [whatsapp, setWhatsapp] = useState(profile.whatsapp ? formatWhatsapp(profile.whatsapp) : '');
-  const [showContacts, setShowContacts] = useState(profile.showContactsToStudents);
 
   const bioValue = bio.trim() || null;
-  const handle = normalizeInstagram(instagram) || null;
-  const phone = normalizeWhatsapp(whatsapp) || null;
-  const instagramError = handle && !isValidInstagram(handle) ? 'Use só letras, números, ponto e _ (até 30).' : undefined;
-  const whatsappError = phone && !isValidWhatsapp(phone) ? 'Informe o número com DDD, ex. (11) 99999-0000.' : undefined;
-  const dirty =
-    bioValue !== profile.bio ||
-    handle !== profile.instagram ||
-    phone !== profile.whatsapp ||
-    showContacts !== profile.showContactsToStudents;
-  const valid = !instagramError && !whatsappError;
+  const dirty = bioValue !== profile.bio;
 
   const submit = () =>
     save.mutate(
-      { bio: bioValue, instagram: handle, whatsapp: phone, showContactsToStudents: showContacts },
+      { bio: bioValue },
       {
         onSuccess: () => {
           haptics.success();
@@ -90,7 +73,7 @@ function EditForm({ academyId, profile }: { academyId: string; profile: Instruct
       nativeHeader
       title="Editar perfil"
       onBack={back}
-      footer={<Button title="Salvar" disabled={!dirty || !valid} loading={save.isPending} onPress={submit} />}
+      footer={<Button title="Salvar" disabled={!dirty} loading={save.isPending} onPress={submit} />}
     >
       <Box gap="s40">
         <Box gap="s8">
@@ -105,44 +88,6 @@ function EditForm({ academyId, profile }: { academyId: string; profile: Instruct
             style={{ minHeight: size.input * 2, textAlignVertical: 'top', paddingTop: spacing.s12, paddingBottom: spacing.s12 }}
           />
           <Text variant="caption" textAlign="right">{`${bio.length}/${BIO_MAX}`}</Text>
-        </Box>
-
-        <Box gap="s16">
-          <Text variant="captionCaps">Contato</Text>
-          <TextField
-            label="Instagram"
-            value={instagram}
-            onChangeText={setInstagram}
-            placeholder="@seuperfil"
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={60}
-            errorMessage={instagramError}
-          />
-          <TextField
-            label="WhatsApp"
-            value={whatsapp}
-            onChangeText={setWhatsapp}
-            placeholder="(11) 99999-0000"
-            keyboardType="phone-pad"
-            textContentType="telephoneNumber"
-            maxLength={20}
-            errorMessage={whatsappError}
-          />
-          <Card flexDirection="row" alignItems="center" gap="s12">
-            <Box flex={1} gap="s4">
-              <Text variant="bodyStrong">Mostrar para alunos</Text>
-              <Text variant="caption">Os professores da academia sempre veem seus contatos.</Text>
-            </Box>
-            <Switch
-              value={showContacts}
-              onValueChange={setShowContacts}
-              trackColor={{ true: colors.accent, false: colors.border }}
-              thumbColor={colors.text}
-              ios_backgroundColor={colors.border}
-              accessibilityLabel="Mostrar contatos para alunos"
-            />
-          </Card>
         </Box>
 
         <BeltsSection academyId={academyId} profile={profile} />

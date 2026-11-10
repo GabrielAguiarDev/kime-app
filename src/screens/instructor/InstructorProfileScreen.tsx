@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Linking } from 'react-native';
+import { ActivityIndicator, Alert } from 'react-native';
 
 import {
   Avatar,
@@ -29,13 +29,9 @@ import {
 } from '@domain/Classes';
 import {
   asClassSchedules,
-  formatWhatsapp,
-  instagramUrl,
   teachingGroups,
-  tenure,
   useInstructorProfile,
   useSetInstructorModalities,
-  whatsappUrl,
   type InstructorProfile,
   type TeachingGroup,
 } from '@domain/Instructor';
@@ -58,9 +54,9 @@ import { InstructorBeltSheet } from './InstructorBeltSheet';
 /**
  * Owner / instructor profile, the same screen for everyone in the academy
  * (staff from Equipe, students from their Equipe, the person on their own
- * card): photo, role, since when, belts per modality, bio, numbers, the
- * classes they give (next one in accent), contacts (when visible to the
- * viewer) and, for the owner looking at an instructor, the management actions.
+ * card): photo, role, bio, belts per modality, the classes they give (next
+ * one in accent), since when and, for the owner looking at an instructor,
+ * the management actions.
  */
 export function InstructorProfileScreen({ academyId, userId, onBack }: { academyId: string; userId: string; onBack: () => void }) {
   const profile = useInstructorProfile(academyId, userId);
@@ -73,21 +69,21 @@ export function InstructorProfileScreen({ academyId, userId, onBack }: { academy
 
   if (profile.isLoading) {
     return (
-      <Screen nativeHeader title=" " onBack={onBack}>
+      <Screen nativeHeader title="" largeTitle={false} onBack={onBack}>
         <ActivityIndicator accessibilityLabel="Carregando" />
       </Screen>
     );
   }
   if (profile.isError) {
     return (
-      <Screen nativeHeader title="Professor" onBack={onBack}>
+      <Screen nativeHeader title="" largeTitle={false} onBack={onBack}>
         <LoadError title="Não foi possível carregar o perfil" onRetry={() => void profile.refetch()} />
       </Screen>
     );
   }
   if (!profile.data) {
     return (
-      <Screen nativeHeader title="Professor" onBack={onBack}>
+      <Screen nativeHeader title="" largeTitle={false} onBack={onBack}>
         <EmptyState title="Professor não encontrado." description="Ele pode ter saído da academia." />
       </Screen>
     );
@@ -96,16 +92,22 @@ export function InstructorProfileScreen({ academyId, userId, onBack }: { academy
   const data = profile.data;
   const allModalities = modalities.data ?? [];
   const real = buildView(academyId, data, allModalities, belts.data ?? [], today.data);
-  // DEV ONLY: sample bio, belts, numbers and classes (instructorDemo). Never in production builds.
+  // DEV ONLY: sample bio, belts and classes (instructorDemo). Never in production builds.
   const showDemo = __DEV__ && demo;
   const view = showDemo ? demoView(data) : real;
-  const time = tenure(view.memberSince);
 
   return (
     <Screen
       nativeHeader
-      title={own ? `${data.fullName} (você)` : data.fullName}
+      title=""
+      largeTitle={false}
       onBack={onBack}
+      // Since when: at the end of the scroll, like a footer (same as the student's profile).
+      endFooter={
+        <Text variant="caption" textAlign="center">
+          {`Na academia desde ${memberSinceLabel(view.memberSince)}`}
+        </Text>
+      }
       headerRight={
         <Box flexDirection="row" alignItems="center" gap="s16">
           {__DEV__ ? (
@@ -120,11 +122,29 @@ export function InstructorProfileScreen({ academyId, userId, onBack }: { academy
       }
     >
       <Box gap="s32">
-        {/* Top: photo, role and since when (name is the header title). */}
-        <Box alignItems="center" gap="s12">
-          <Avatar name={data.fullName} path={data.avatarPath} size="large" expandable />
-          <Text variant="captionCaps">{roleLabel[data.role]}</Text>
-          <Text variant="caption" textAlign="center">{`Na academia desde ${memberSinceLabel(view.memberSince)}`}</Text>
+        {/* Top like the student's profile: photo, name under it ("Proprietário" for the owner); the bio close under them. */}
+        <Box gap="s16">
+          <Box alignItems="center" gap="s12">
+            <Avatar name={data.fullName} path={data.avatarPath} size="large" expandable />
+            <Text variant="title" textAlign="center" accessibilityRole="header">
+              {own ? `${data.fullName} (você)` : data.fullName}
+            </Text>
+            {/* Only the owner is labeled (an instructor has no role line). */}
+            {data.role === 'owner' ? (
+              <Text variant="body" color="textMuted">
+                {roleLabel.owner}
+              </Text>
+            ) : null}
+          </Box>
+
+          {view.bio ? (
+            // A bit smaller than body (16) and centered under the top, set apart from the other text.
+            <Text variant="body" fontSize={14} lineHeight={20} textAlign="center">
+              {view.bio}
+            </Text>
+          ) : own ? (
+            <Button title="Adicionar bio" variant="ghost" icon="plus" onPress={() => router.push('/editar-perfil')} />
+          ) : null}
         </Box>
 
         {view.belts.length > 0 ? (
@@ -150,51 +170,13 @@ export function InstructorProfileScreen({ academyId, userId, onBack }: { academy
           </Card>
         ) : null}
 
-        {view.bio ? (
-          <Text variant="body">{view.bio}</Text>
-        ) : own ? (
-          <Button title="Adicionar bio" variant="ghost" icon="plus" onPress={() => router.push('/editar-perfil')} />
-        ) : null}
-
-        <Box flexDirection="row" gap="s8">
-          <NumberCard value={view.graduationsCount} label="Alunos graduados" />
-          <NumberCard value={view.competitorsCount} label="Competidores" />
-          <NumberCard value={time.value} label={time.label} />
-        </Box>
-
         {view.groups.length > 0 ? <ClassesSection groups={view.groups} next={view.next} /> : null}
-
-        {view.instagram || view.whatsapp ? (
-          <Box gap="s12">
-            <Text variant="captionCaps">Contato</Text>
-            {view.instagram ? (
-              <Button
-                title={`@${view.instagram}`}
-                variant="secondary"
-                icon="instagram"
-                onPress={() => open(instagramUrl(view.instagram!))}
-              />
-            ) : null}
-            {view.whatsapp ? (
-              <Button
-                title={formatWhatsapp(view.whatsapp)}
-                variant="secondary"
-                icon="whatsapp"
-                onPress={() => open(whatsappUrl(view.whatsapp!))}
-              />
-            ) : null}
-          </Box>
-        ) : null}
 
         <OwnerActions academyId={academyId} profile={data} modalities={allModalities} />
       </Box>
     </Screen>
   );
 }
-
-const open = (url: string) => {
-  Linking.openURL(url).catch(() => Alert.alert('Contato', 'Não foi possível abrir o link.'));
-};
 
 function buildView(
   academyId: string,
@@ -213,8 +195,6 @@ function buildView(
   return {
     bio: data.bio,
     belts: beltRows,
-    graduationsCount: data.graduationsCount,
-    competitorsCount: data.competitorsCount,
     memberSince: data.memberSince,
     groups: teachingGroups(data.schedules, modalities),
     next: found && today
@@ -223,21 +203,7 @@ function buildView(
           label: found.status === 'live' ? 'Em andamento' : `Próxima · ${daysBetweenLabel(today, found.date)}`,
         }
       : null,
-    instagram: data.instagram,
-    whatsapp: data.whatsapp,
   };
-}
-
-/** One of the three number cards: Barlow Condensed number + caps label (DESIGN-SYSTEM 3.5, compact). */
-function NumberCard({ value, label }: { value: number; label: string }) {
-  return (
-    <Card flex={1} alignItems="center" gap="s4" accessible accessibilityLabel={`${value} ${label}`}>
-      <Text variant="displayLg">{value}</Text>
-      <Text variant="captionCaps" textAlign="center">
-        {label}
-      </Text>
-    </Card>
-  );
 }
 
 /** "Aulas que dá": one card per modality, one row per time with its weekdays; the next class in accent. */
@@ -343,7 +309,6 @@ function OwnerActions({ academyId, profile, modalities }: { academyId: string; p
       <ModalitiesSheet
         visible={sheet === 'modalities'}
         title="Modalidades do professor"
-        caption="Os competidores destas modalidades contam no perfil dele."
         modalities={modalities}
         initial={profile.modalityIds}
         confirmLabel="Salvar"

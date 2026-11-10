@@ -1,57 +1,7 @@
 import type { Modality } from '@domain/Classes/classesTypes';
 
-import {
-  formatWhatsapp,
-  isValidInstagram,
-  isValidWhatsapp,
-  normalizeInstagram,
-  normalizeWhatsapp,
-  teachingGroups,
-  tenure,
-} from '../instructorRules';
+import { teachingGroups } from '../instructorRules';
 import type { InstructorSchedule } from '../instructorTypes';
-
-describe('instagram', () => {
-  it('keeps the handle only, in lower case', () => {
-    expect(normalizeInstagram('  @Prof.Ana ')).toBe('prof.ana');
-    expect(normalizeInstagram('https://www.instagram.com/Prof_Ana/?hl=pt')).toBe('prof_ana');
-    expect(normalizeInstagram('instagram.com/prof.ana')).toBe('prof.ana');
-  });
-  it('validates the handle', () => {
-    expect(isValidInstagram('prof.ana')).toBe(true);
-    expect(isValidInstagram('prof ana')).toBe(false);
-    expect(isValidInstagram('')).toBe(false);
-    expect(isValidInstagram('a'.repeat(31))).toBe(false);
-  });
-});
-
-describe('whatsapp', () => {
-  it('adds 55 to a Brazilian number with the area code only', () => {
-    expect(normalizeWhatsapp('(11) 99999-0000')).toBe('5511999990000');
-    expect(normalizeWhatsapp('11 3333-4444')).toBe('551133334444');
-    expect(normalizeWhatsapp('+55 11 99999-0000')).toBe('5511999990000');
-    expect(normalizeWhatsapp('+351 912 345 678')).toBe('351912345678');
-  });
-  it('validates and formats', () => {
-    expect(isValidWhatsapp('5511999990000')).toBe(true);
-    expect(isValidWhatsapp('99990000')).toBe(false);
-    expect(formatWhatsapp('5511999990000')).toBe('+55 11 99999-0000');
-    expect(formatWhatsapp('351912345678')).toBe('+351912345678');
-  });
-});
-
-describe('tenure', () => {
-  const now = new Date(2026, 10, 10);
-  it('counts months under one year', () => {
-    expect(tenure(new Date(2026, 7, 10).toISOString(), now)).toEqual({ value: 3, label: 'Meses de academia' });
-    expect(tenure(new Date(2026, 9, 1).toISOString(), now)).toEqual({ value: 1, label: 'Mês de academia' });
-    expect(tenure(new Date(2026, 10, 9).toISOString(), now)).toEqual({ value: 0, label: 'Meses de academia' });
-  });
-  it('counts whole years from one year on', () => {
-    expect(tenure(new Date(2025, 10, 10).toISOString(), now)).toEqual({ value: 1, label: 'Ano de academia' });
-    expect(tenure(new Date(2023, 10, 11).toISOString(), now)).toEqual({ value: 2, label: 'Anos de academia' });
-  });
-});
 
 describe('teachingGroups', () => {
   const modalities: Modality[] = [

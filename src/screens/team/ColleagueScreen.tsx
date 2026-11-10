@@ -4,7 +4,6 @@ import { ActivityIndicator } from 'react-native';
 import { Avatar, BeltChip, Box, Card, EmptyState, LoadError, Screen, Text } from '@components';
 import { useFightSummary } from '@domain/Competition';
 import { useAcademyToday } from '@domain/Classes';
-import { roleLabel } from '@domain/Membership';
 import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { memberSinceLabel, useClassmates } from '@domain/Team';
 import { FightRecordCard } from '@screens/competition/FightRecord';
@@ -74,7 +73,18 @@ export function ColleagueScreen() {
   const showBelt = !!link && !!selected?.usesBelts;
 
   return (
-    <Screen nativeHeader title="" largeTitle={false} onBack={back}>
+    <Screen
+      nativeHeader
+      title=""
+      largeTitle={false}
+      onBack={back}
+      // Since when: at the end of the scroll, like a footer (same as the instructor profile).
+      endFooter={
+        <Text variant="caption" textAlign="center">
+          {`Treina aqui desde ${memberSinceLabel(member.memberSince)}`}
+        </Text>
+      }
+    >
       <Box gap="s24">
         <Box alignItems="center" gap="s12">
           <Avatar name={member.fullName} path={member.avatarPath} size="large" competitor={competes} />
@@ -91,15 +101,6 @@ export function ColleagueScreen() {
             {cartel ? <FightRecordCard record={cartel} /> : null}
           </Box>
         ) : null}
-
-        <Box alignItems="center" gap="s12">
-          <Text variant="body" color="textMuted">
-            {roleLabel[member.role]}
-          </Text>
-          <Text variant="caption" textAlign="center">
-            {`Treina aqui desde ${memberSinceLabel(member.memberSince)}`}
-          </Text>
-        </Box>
 
         {showBelt ? (
           <Box gap="s8">

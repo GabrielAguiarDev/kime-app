@@ -18,7 +18,6 @@ export interface InstructorBelt {
 
 /**
  * An owner / instructor as shown on their profile (get_instructor_profile).
- * Contacts are null when the viewer may not see them.
  */
 export interface InstructorProfile {
   membershipId: string;
@@ -28,24 +27,12 @@ export interface InstructorProfile {
   role: MembershipRole;
   memberSince: string;
   bio: string | null;
-  /** Handle without "@". */
-  instagram: string | null;
-  /** Digits with country code (wa.me format). */
-  whatsapp: string | null;
-  showContactsToStudents: boolean;
-  /** Graduations the person made in the academy. */
-  graduationsCount: number;
-  /** Active competitors in the person's modalities. */
-  competitorsCount: number;
   modalityIds: string[];
   belts: InstructorBelt[];
   schedules: InstructorSchedule[];
 }
 
-/** What the person edits on their own profile. */
+/** What the person edits on their own profile (belts save on their own). */
 export interface InstructorProfileInput {
   bio: string | null;
-  instagram: string | null;
-  whatsapp: string | null;
-  showContactsToStudents: boolean;
 }
