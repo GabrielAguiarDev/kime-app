@@ -26,7 +26,7 @@ export function WaterWidgetScreen() {
     <Screen nativeHeader title="Widget de água" onBack={back}>
       <Box gap="s24">
         <Box alignItems="center" gap="s12">
-          <KimiMascot size="hero" />
+          <KimiMascot size="hero" animated />
           <Text variant="body" color="textMuted" textAlign="center">
             Registre uma garrafa direto da tela de início, sem abrir o app.
           </Text>

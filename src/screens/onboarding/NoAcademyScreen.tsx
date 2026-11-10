@@ -86,7 +86,7 @@ function Choice({ onJoin, notice }: { onJoin: () => void; notice?: ReactNode }) 
     <Screen header={<AccountHeader />} feedback={notice} footer={<SignedInFooter />}>
       <Box gap="s24">
         <Box alignItems="center" gap="s16">
-          <KimiMascot size="empty" />
+          <KimiMascot size="empty" animated />
           <Text variant="title" textAlign="center" accessibilityRole="header">
             Como você quer usar o Kimi?
           </Text>

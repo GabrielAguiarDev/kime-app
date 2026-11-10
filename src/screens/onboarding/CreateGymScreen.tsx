@@ -200,7 +200,7 @@ function Done({ gymId, name, logoSaved }: { gymId: string; name: string; logoSav
     >
       <Stack.Screen options={{ gestureEnabled: false }} />
       <Box flex={1} alignItems="center" justifyContent="center" gap="s24">
-        <KimiMascot size="hero" />
+        <KimiMascot size="hero" animated />
         <Text variant="title" textAlign="center" accessibilityRole="header">
           Sua academia está pronta
         </Text>

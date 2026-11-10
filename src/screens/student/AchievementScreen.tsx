@@ -54,7 +54,7 @@ export function AchievementScreen() {
       {/* TODO(motion): title and stat cards entrance. */}
       <Box flex={1} alignItems="center" justifyContent="center" gap="s24">
         {/* New belt: graduation peeking with one eye (twice, then still). */}
-        <KimiMascot size="hero" pose={belt ? 'graduation' : 'guard'} animated={!!belt} />
+        <KimiMascot size="hero" pose={belt ? 'graduation' : 'guard'} animated />
         <Text variant="title" textAlign="center" accessibilityRole="header">
           {title}
         </Text>
