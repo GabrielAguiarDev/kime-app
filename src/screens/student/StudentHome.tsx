@@ -12,6 +12,7 @@ import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { trainingStreak, useWaterStreak } from '@domain/Streaks';
 import { CompetitorInviteCard } from '@screens/competition/CompetitorInviteCard';
 import { StudentEventsSection } from '@screens/events/HomeEventsSection';
+import { BlockedNotice, FinanceNotice, useMyFinance } from '@screens/finance/StudentFinance';
 import { useLogBottle } from '@screens/water/useLogBottle';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
@@ -26,8 +27,8 @@ import { WeekCard } from './home/WeekCard';
 /**
  * Início of a student (competitor or not), for the modality picked in the
  * header. Never empty: every section has a useful state without data.
- * Next class · championship · event · water · the week ·
- * ranking. Rewards (belt, milestone, confirmed check-in) are handled by HomeScreen.
+ * Own overdue fee notice · next class · championship · event · water · the week ·
+ * ranking. A student blocked for an overdue fee sees the notice and water only. Rewards (belt, milestone, confirmed check-in) are handled by HomeScreen.
  */
 export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   const { userId } = useSession();
@@ -44,6 +45,18 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   const ranking = useRanking(academyId, selected?.id, period);
   const water = useLogBottle();
   const waterStreak = useWaterStreak(water.userId, water.timeZone, water.goalMl, water.isLimit);
+
+  const finance = useMyFinance();
+
+  // Overdue fee with the block on: the academy features give way to the notice; water stays.
+  if (finance.blocked) {
+    return (
+      <Box gap="s24" paddingTop="s16">
+        <BlockedNotice compact />
+        <WaterCard />
+      </Box>
+    );
+  }
 
   const queries = [today, schedules, checkins, modalityStats];
   if (queries.some((q) => q.isLoading)) {
@@ -77,6 +90,8 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
 
   return (
     <Box gap="s24" paddingTop="s16">
+      <FinanceNotice />
+
       {active
         ? modalities
             .filter((m) => m.link.competitorInvitedAt)

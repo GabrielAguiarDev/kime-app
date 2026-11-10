@@ -43,6 +43,7 @@ import { useSession } from '@services/session';
 import { haptics } from '@utils/haptics';
 
 import { InstructorField } from './InstructorField';
+import { useOpenPerson } from '@screens/team/useOpenPerson';
 
 /**
  * Lista de presença of one class (`?schedule=&date=`): pending check-ins on top
@@ -133,6 +134,7 @@ function AttendanceList({
   onBack: () => void;
   headerRight: ReactNode;
 }) {
+  const openPerson = useOpenPerson();
   const confirmAll = useConfirmAll(academyId);
   const sessions = useClassSessions(academyId, date);
   const members = useGymMembers(academyId);
@@ -197,7 +199,7 @@ function AttendanceList({
             ) : null}
             {confirmed.length ? <PersonList>{confirmed.map((c, index) => {
               const belt = beltFor(c.userId);
-              return <PersonRow key={c.id} name={c.fullName} avatarPath={c.avatarPath} last={index === confirmed.length - 1}
+              return <PersonRow key={c.id} name={c.fullName} avatarPath={c.avatarPath} last={index === confirmed.length - 1} onPress={openPerson(c.userId)}
                 secondary={belt ? <BeltChip belt={belt} /> : 'Confirmado'} />;
             })}</PersonList> : null}
           </Box>
@@ -214,6 +216,7 @@ function AttendanceList({
                   avatarPath={c.avatarPath}
                   secondary={<StatusBadge status="rejected" />}
                   last={index === rejected.length - 1}
+                  onPress={openPerson(c.userId)}
                 />
               ))}
             </PersonList>
@@ -242,6 +245,7 @@ function AttendanceList({
 }
 
 function PendingRow({ checkin, academyId, last }: { checkin: AcademyCheckin; academyId: string; last?: boolean }) {
+  const openPerson = useOpenPerson();
   const decide = useDecideCheckin(academyId);
   const run = (status: 'confirmed' | 'rejected') =>
     decide.mutate(
@@ -257,7 +261,7 @@ function PendingRow({ checkin, academyId, last }: { checkin: AcademyCheckin; aca
   const reject = async () => {
     if (await confirm({ title: `Recusar o check-in de ${checkin.fullName}?`, message: 'O check-in será recusado.', confirmLabel: 'Recusar', tone: 'danger' })) run('rejected');
   };
-  return <PersonRow name={checkin.fullName} avatarPath={checkin.avatarPath} secondary="Pendente" last={last}
+  return <PersonRow name={checkin.fullName} avatarPath={checkin.avatarPath} secondary="Pendente" last={last} onPress={openPerson(checkin.userId)}
     actions={[
       { icon: 'trash', label: `Recusar check-in de ${checkin.fullName}`, onPress: () => void reject(), disabled: decide.isPending },
       { icon: 'check', label: `Confirmar check-in de ${checkin.fullName}`, onPress: () => run('confirmed'), color: 'accent', disabled: decide.isPending },

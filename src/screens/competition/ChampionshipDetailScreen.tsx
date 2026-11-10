@@ -27,6 +27,7 @@ import { ChampionshipForm } from './ChampionshipForm';
 import { ResultLine } from './FightRecord';
 import { RecordResultsSheet } from './RecordResultsSheet';
 import { Section } from './shared';
+import { useOpenPerson } from '@screens/team/useOpenPerson';
 
 /**
  * Staff: one championship — countdown, details (edit / delete) and the
@@ -85,6 +86,7 @@ function ChampionshipDetail({
   championship: Championship;
   onBack: () => void;
 }) {
+  const openPerson = useOpenPerson();
   const today = useAcademyToday(academyId);
   const members = useGymMembers(academyId);
   const entries = useChampionshipEntries(academyId);
@@ -256,6 +258,7 @@ function ChampionshipDetail({
                       ) : undefined
                     }
                     actions={actions}
+                    onPress={openPerson(athleteId)}
                   />
                 );
               })}

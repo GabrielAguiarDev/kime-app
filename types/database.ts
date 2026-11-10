@@ -304,6 +304,38 @@ export type Database = {
           },
         ]
       }
+      academy_finance_settings: {
+        Row: {
+          academy_id: string
+          block_overdue: boolean
+          default_due_day: number
+          enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          academy_id: string
+          block_overdue?: boolean
+          default_due_day?: number
+          enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          academy_id?: string
+          block_overdue?: boolean
+          default_due_day?: number
+          enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_finance_settings_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: true
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academy_invite_codes: {
         Row: {
           academy_id: string
@@ -1070,6 +1102,247 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_charges: {
+        Row: {
+          academy_id: string
+          amount_cents: number
+          created_at: string
+          due_date: string
+          id: string
+          paid_amount_cents: number | null
+          paid_marked_at: string | null
+          paid_marked_by: string | null
+          paid_on: string | null
+          payment_method:
+            | Database["public"]["Enums"]["finance_payment_method"]
+            | null
+          reference_month: string
+          student_name: string
+          user_id: string | null
+        }
+        Insert: {
+          academy_id: string
+          amount_cents: number
+          created_at?: string
+          due_date: string
+          id?: string
+          paid_amount_cents?: number | null
+          paid_marked_at?: string | null
+          paid_marked_by?: string | null
+          paid_on?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["finance_payment_method"]
+            | null
+          reference_month: string
+          student_name: string
+          user_id?: string | null
+        }
+        Update: {
+          academy_id?: string
+          amount_cents?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          paid_amount_cents?: number | null
+          paid_marked_at?: string | null
+          paid_marked_by?: string | null
+          paid_on?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["finance_payment_method"]
+            | null
+          reference_month?: string
+          student_name?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_charges_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_charges_paid_marked_by_fkey"
+            columns: ["paid_marked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_charges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_expenses: {
+        Row: {
+          academy_id: string
+          amount_cents: number
+          category: Database["public"]["Enums"]["finance_expense_category"]
+          created_at: string
+          created_by: string | null
+          description: string
+          expense_date: string
+          id: string
+          repeats_monthly: boolean
+          series_id: string
+          updated_at: string
+        }
+        Insert: {
+          academy_id: string
+          amount_cents: number
+          category: Database["public"]["Enums"]["finance_expense_category"]
+          created_at?: string
+          created_by?: string | null
+          description: string
+          expense_date: string
+          id?: string
+          repeats_monthly?: boolean
+          series_id?: string
+          updated_at?: string
+        }
+        Update: {
+          academy_id?: string
+          amount_cents?: number
+          category?: Database["public"]["Enums"]["finance_expense_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          expense_date?: string
+          id?: string
+          repeats_monthly?: boolean
+          series_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_expenses_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_plans: {
+        Row: {
+          academy_id: string
+          amount_cents: number
+          archived_at: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          academy_id: string
+          amount_cents: number
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          academy_id?: string
+          amount_cents?: number
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_plans_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_student_billing: {
+        Row: {
+          academy_id: string
+          custom_amount_cents: number | null
+          due_day: number | null
+          is_exempt: boolean
+          membership_id: string
+          plan_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          academy_id: string
+          custom_amount_cents?: number | null
+          due_day?: number | null
+          is_exempt?: boolean
+          membership_id: string
+          plan_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          academy_id?: string
+          custom_amount_cents?: number | null
+          due_day?: number | null
+          is_exempt?: boolean
+          membership_id?: string
+          plan_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_student_billing_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_student_billing_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: true
+            referencedRelation: "instructor_class_stats"
+            referencedColumns: ["membership_id"]
+          },
+          {
+            foreignKeyName: "finance_student_billing_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: true
+            referencedRelation: "membership_class_stats"
+            referencedColumns: ["membership_id"]
+          },
+          {
+            foreignKeyName: "finance_student_billing_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: true
+            referencedRelation: "memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_student_billing_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: true
+            referencedRelation: "modality_class_stats"
+            referencedColumns: ["membership_id"]
+          },
+          {
+            foreignKeyName: "finance_student_billing_plan_id_academy_id_fkey"
+            columns: ["plan_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "finance_plans"
+            referencedColumns: ["id", "academy_id"]
           },
         ]
       }
@@ -2117,6 +2390,24 @@ export type Database = {
           wins: number
         }[]
       }
+      finance_open_charges: {
+        Args: { p_academy_id: string }
+        Returns: {
+          amount_cents: number
+          avatar_path: string
+          due_date: string
+          full_name: string
+          id: string
+          membership_id: string
+          overdue: boolean
+          reference_month: string
+          user_id: string
+        }[]
+      }
+      finance_report: {
+        Args: { p_academy_id: string; p_month: string }
+        Returns: Json
+      }
       get_profile_details: {
         Args: { p_user_id: string }
         Returns: {
@@ -2158,6 +2449,13 @@ export type Database = {
           academy_name: string
           code_type: Database["public"]["Enums"]["membership_role"]
           logo_path: string
+        }[]
+      }
+      my_finance_status: {
+        Args: { p_academy_id: string }
+        Returns: {
+          blocked: boolean
+          overdue_months: string[]
         }[]
       }
       my_water_days: {
@@ -2286,6 +2584,17 @@ export type Database = {
     Enums: {
       academy_event_rsvp_status: "going" | "not_going"
       checkin_status: "pending" | "confirmed" | "rejected"
+      finance_expense_category:
+        | "rent"
+        | "water"
+        | "energy"
+        | "internet"
+        | "equipment"
+        | "salaries"
+        | "maintenance"
+        | "taxes"
+        | "other"
+      finance_payment_method: "pix" | "cash" | "card" | "transfer" | "other"
       membership_role: "owner" | "instructor" | "student"
       membership_status: "pending" | "active" | "rejected"
     }
@@ -2417,6 +2726,18 @@ export const Constants = {
     Enums: {
       academy_event_rsvp_status: ["going", "not_going"],
       checkin_status: ["pending", "confirmed", "rejected"],
+      finance_expense_category: [
+        "rent",
+        "water",
+        "energy",
+        "internet",
+        "equipment",
+        "salaries",
+        "maintenance",
+        "taxes",
+        "other",
+      ],
+      finance_payment_method: ["pix", "cash", "card", "transfer", "other"],
       membership_role: ["owner", "instructor", "student"],
       membership_status: ["pending", "active", "rejected"],
     },

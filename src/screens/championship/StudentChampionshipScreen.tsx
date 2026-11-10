@@ -7,9 +7,9 @@ import { daysBetween, formatLocalDate, useChampionships } from '@domain/Competit
 import { useChampionshipCompetitors } from '@domain/Team';
 import { ResultLine } from '@screens/competition/FightRecord';
 import { LinkRow } from '@screens/competition/shared';
-import { openColleague } from '@screens/team/StudentTeamScreen';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
+import { useOpenPerson } from '@screens/team/useOpenPerson';
 
 const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -20,6 +20,7 @@ const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
  * and the tally of each athlete. Entered competitors can open their diet and log weight.
  */
 export function StudentChampionshipScreen() {
+  const openPerson = useOpenPerson();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userId } = useSession();
   const { active } = useActiveGym();
@@ -115,7 +116,7 @@ export function StudentChampionshipScreen() {
                       <BeltChip belt={p.belt} />
                     ) : undefined
                   }
-                  onPress={() => openColleague(p.userId)}
+                  onPress={openPerson(p.userId)}
                 />
               ))}
             </Card>

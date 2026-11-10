@@ -1,1 +1,4 @@
-export { CartelScreen as default } from '@screens/competition/FightRecord';
+import { CartelScreen } from '@screens/competition/FightRecord';
+import { withFinanceGate } from '@screens/finance/StudentFinance';
+
+export default withFinanceGate(CartelScreen, 'Cartel');

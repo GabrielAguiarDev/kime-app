@@ -73,17 +73,27 @@ export function ClassCard({ academyId, userId, today, date, schedule, checkin, h
         accessibilityLabel={`Detalhes da aula ${schedule.modality} às ${schedule.startTime}`}
       >
         <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap="s12">
-          <Box flex={1} gap="s4">
-            <Text variant={highlight ? 'displayLg' : 'heading'}>{schedule.startTime}</Text>
-            <Text variant="body" color="textMuted">
-              {schedule.modality}
-            </Text>
-            {highlight ? (
-              <Text variant="bodyStrong" color={isToday ? 'accent' : 'textMuted'}>
-                {highlight}
+          {highlight ? (
+            // Início highlight, compact: big time with modality and "Começa em…" beside it.
+            <Box flex={1} flexDirection="row" alignItems="center" gap="s12">
+              <Text variant="displayLg">{schedule.startTime}</Text>
+              <Box flex={1} gap="s4">
+                <Text variant="body" color="textMuted" numberOfLines={1}>
+                  {schedule.modality}
+                </Text>
+                <Text variant="bodyStrong" color={isToday ? 'accent' : 'textMuted'} numberOfLines={1}>
+                  {highlight}
+                </Text>
+              </Box>
+            </Box>
+          ) : (
+            <Box flex={1} gap="s4">
+              <Text variant="heading">{schedule.startTime}</Text>
+              <Text variant="body" color="textMuted">
+                {schedule.modality}
               </Text>
-            ) : null}
-          </Box>
+            </Box>
+          )}
           {/* TODO(motion): badge changing from pending to confirmed. */}
           {checkin ? <StatusBadge status={checkin.status} /> : null}
         </Box>
