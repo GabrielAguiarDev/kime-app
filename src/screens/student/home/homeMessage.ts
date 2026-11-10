@@ -7,10 +7,8 @@ import { missing } from '@utils/plural';
 export interface HomeMessageInput {
   /** A check-in of today (selected modality) waits for the professor. */
   pendingCheckin: boolean;
-  /** Weeks in the training streak; at risk when this week has no confirmed class yet. */
-  trainingStreak: { current: number; currentDone: boolean } | null;
-  /** Days in the water streak; at risk when today's goal is not met yet. */
-  waterStreak: { current: number; currentDone: boolean } | null;
+  /** Weeks in the Disciplina; at risk while this week is not done yet. */
+  discipline: { current: number; weekDone: boolean } | null;
   /** Water of today (null goal = unknown). */
   water: { totalMl: number; goalMl: number | null; isLimit: boolean } | null;
   /** Academy-local time `HH:MM`. */
@@ -43,17 +41,14 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 export function homeMessage(i: HomeMessageInput): string {
   if (i.pendingCheckin) return 'Check-in enviado. Aguardando o professor.';
-  if (i.trainingStreak && i.trainingStreak.current > 0 && !i.trainingStreak.currentDone) {
-    return `Treine até domingo para manter sua disciplina de ${plural(i.trainingStreak.current, 'semana', 'semanas')}.`;
+  if (i.discipline && i.discipline.current > 0 && !i.discipline.weekDone) {
+    return `Cumpra a semana até domingo para manter sua disciplina de ${plural(i.discipline.current, 'semana', 'semanas')}.`;
   }
   if (i.water && i.water.goalMl && !i.water.isLimit && i.nowTime >= LATE_WATER_TIME) {
     const left = i.water.goalMl - i.water.totalMl;
     if (i.water.totalMl < i.water.goalMl * LATE_WATER_SHARE && left > 0) {
       return `Faltam ${left.toLocaleString('pt-BR')} ml para a sua meta de hoje.`;
     }
-  }
-  if (i.waterStreak && i.waterStreak.current > 0 && !i.waterStreak.currentDone && i.nowTime >= LATE_WATER_TIME) {
-    return `Cumpra a água de hoje para manter sua disciplina de ${plural(i.waterStreak.current, 'dia', 'dias')}.`;
   }
   if (i.belt && i.belt.left > 0 && i.belt.left <= BELT_CLOSE) {
     return `${missing(i.belt.left, 'aula', 'aulas')} para a faixa ${i.belt.name}.`;

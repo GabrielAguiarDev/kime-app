@@ -20,7 +20,7 @@ export function useWaterSync() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterToday, userId] }),
         queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking] }),
-        // The water streak reads the server totals.
+        // The last days bars and the Disciplina read the server totals.
         queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterDays, userId] }),
         queryClient.invalidateQueries({ queryKey: [QueryKeys.Discipline, userId] }),
       ]);

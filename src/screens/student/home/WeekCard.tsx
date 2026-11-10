@@ -3,35 +3,31 @@ import { useEffect, useState } from 'react';
 
 import { Box, Card, Icon, Text } from '@components';
 import { addDays, nowTimeIn, WEEKDAY_LABELS, weekdayOf, weekStart, type LocalDate } from '@domain/Classes';
-import type { Streak } from '@domain/Streaks';
+import { weekProgressText, weeksLabel, type Discipline } from '@domain/Streaks';
 import { useAppTheme } from '@theme';
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * "Sua semana" (Duolingo-like calendar): Monday–Sunday in small circles with
- * two marks per day (confirmed class, water goal met), the days trained this
- * week against the days the modality's grid has classes, and both streaks. A streak at
- * risk turns the text into a friendly alert. Opens Disciplina.
+ * "Sua semana": Monday–Sunday in small circles with two marks per day
+ * (confirmed class of the modality, water goal met), the days trained this
+ * week against the days the modality's grid has classes, and the Disciplina
+ * (weeks in a row + this week's progress). On Sunday evening a week not done
+ * yet turns the text into a friendly alert. Opens Disciplina.
  */
 export function WeekCard({
   today,
   trainedDays,
-  waterDoneDays,
   classDays,
-  training,
-  water,
+  discipline,
   timeZone,
 }: {
   today: LocalDate;
   /** Days with a confirmed class (selected modality). */
   trainedDays: Set<LocalDate>;
-  /** Days with the water goal met. */
-  waterDoneDays: Set<LocalDate>;
   /** Days of the week with a class of the selected modality in the grid. */
   classDays: number;
-  training: Streak | null;
-  water: Streak | null;
+  discipline: Discipline | null;
   timeZone: string | undefined;
 }) {
   const theme = useAppTheme();
@@ -46,12 +42,11 @@ export function WeekCard({
   const classes = days.filter((d) => trainedDays.has(d)).length;
   const dot = theme.spacing.s8;
 
-  const trainingRisk = late && weekdayOf(today) === 0 && !!training && training.current > 0 && !training.currentDone;
-  const waterRisk = late && !!water && water.current > 0 && !water.currentDone;
-  const alert = trainingRisk
-    ? `Treine até domingo para manter sua disciplina de ${plural(training!.current, 'semana', 'semanas')}.`
-    : waterRisk
-      ? `Cumpra a água de hoje para manter sua disciplina de ${plural(water!.current, 'dia', 'dias')}.`
+  const waterDoneDays = new Set((discipline?.days ?? []).filter((d) => d.water === 'done').map((d) => d.day));
+  const current = discipline?.current ?? 0;
+  const alert =
+    late && weekdayOf(today) === 0 && !!discipline && current > 0 && !discipline.weekDone
+      ? `Cumpra a semana hoje para manter sua disciplina de ${weeksLabel(current)}.`
       : null;
 
   return (
@@ -97,15 +92,11 @@ export function WeekCard({
         })}
       </Box>
       <Text variant="bodyStrong">{`${classes} de ${plural(classDays, 'treino', 'treinos')} desta semana`}</Text>
-      <Box flexDirection="row" gap="s24">
-        <Box flexDirection="row" alignItems="center" gap="s8">
-          <Icon name="flame" color={training && training.current > 0 ? 'accent' : 'disabled'} active={!!training?.currentDone} />
-          <Text variant="caption">{`${plural(training?.current ?? 0, 'semana', 'semanas')} de treino`}</Text>
-        </Box>
-        <Box flexDirection="row" alignItems="center" gap="s8">
-          <Icon name="drop" color={water && water.current > 0 ? 'water' : 'disabled'} active={!!water?.currentDone} />
-          <Text variant="caption">{`${plural(water?.current ?? 0, 'dia', 'dias')} de água`}</Text>
-        </Box>
+      <Box flexDirection="row" alignItems="center" gap="s8">
+        <Icon name="flame" color={current > 0 ? 'accent' : 'disabled'} active={!!discipline?.weekDone} />
+        <Text variant="caption" flex={1}>
+          {discipline ? `${weeksLabel(current)} de disciplina · ${weekProgressText(discipline)}` : `${weeksLabel(0)} de disciplina`}
+        </Text>
       </Box>
       {alert ? (
         <Box flexDirection="row" alignItems="center" gap="s8">

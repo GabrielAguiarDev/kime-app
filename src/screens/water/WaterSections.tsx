@@ -4,8 +4,7 @@ import { Box, Card, Icon, Text, TextButton } from '@components';
 import { addDays, WEEKDAY_LABELS, weekdayOf, type LocalDate } from '@domain/Classes';
 import { planInForce, useWaterPlans } from '@domain/Competition';
 import { useMyProfile } from '@domain/Profile';
-import { streakUnit, type Streak, type WaterDayTotal } from '@domain/Streaks';
-import { autoDailyGoalMl, waterDayState } from '@domain/Water';
+import { autoDailyGoalMl, waterDayState, type WaterDayTotal } from '@domain/Water';
 import { WaterPlanWeek } from '@screens/competition/shared';
 import { useAppTheme } from '@theme';
 
@@ -55,32 +54,6 @@ export function LastDaysBars({ days, today }: { days: WaterDayTotal[]; today: Lo
         })}
       </Card>
     </Box>
-  );
-}
-
-/** Water streak and the freezes in stock; opens Disciplina. */
-export function WaterStreakCard({ streak }: { streak: Streak }) {
-  return (
-    <Card
-      flexDirection="row"
-      alignItems="center"
-      gap="s16"
-      onPress={() => router.push('/disciplina')}
-      accessibilityLabel={`Disciplina de água: ${streak.current} ${streakUnit(streak.current, 'day')}. ${streak.freezes} congelamentos. Ver disciplina`}
-    >
-      {/* TODO(motion): flame lighting up when today's goal is met. */}
-      <Box flexDirection="row" alignItems="center" gap="s8" flex={1}>
-        <Icon name="flame" color={streak.current > 0 ? 'accent' : 'disabled'} active={streak.currentDone} />
-        <Box>
-          <Text variant="counter">{streak.current}</Text>
-          <Text variant="caption">{`${streakUnit(streak.current, 'day')} seguidos`}</Text>
-        </Box>
-      </Box>
-      <Box flexDirection="row" alignItems="center" gap="s8">
-        <Icon name="freeze" color={streak.freezes > 0 ? 'water' : 'disabled'} active={streak.freezes > 0} />
-        <Text variant="caption">{streak.freezes === 1 ? '1 congelamento' : `${streak.freezes} congelamentos`}</Text>
-      </Box>
-    </Card>
   );
 }
 

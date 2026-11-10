@@ -2,8 +2,7 @@ import { homeMessage, TIPS, type HomeMessageInput } from '../homeMessage';
 
 const base: HomeMessageInput = {
   pendingCheckin: false,
-  trainingStreak: { current: 0, currentDone: false },
-  waterStreak: { current: 0, currentDone: false },
+  discipline: { current: 0, weekDone: false },
   water: { totalMl: 2000, goalMl: 2500, isLimit: false },
   nowTime: '10:00',
   belt: null,
@@ -13,16 +12,16 @@ const base: HomeMessageInput = {
 
 describe('homeMessage', () => {
   it('pending check-in comes first', () => {
-    expect(homeMessage({ ...base, pendingCheckin: true, trainingStreak: { current: 4, currentDone: false } })).toBe(
+    expect(homeMessage({ ...base, pendingCheckin: true, discipline: { current: 4, weekDone: false } })).toBe(
       'Check-in enviado. Aguardando o professor.',
     );
   });
 
-  it('training streak at risk', () => {
-    expect(homeMessage({ ...base, trainingStreak: { current: 4, currentDone: false } })).toBe(
-      'Treine até domingo para manter sua disciplina de 4 semanas.',
+  it('disciplina at risk while the week is not done', () => {
+    expect(homeMessage({ ...base, discipline: { current: 4, weekDone: false } })).toBe(
+      'Cumpra a semana até domingo para manter sua disciplina de 4 semanas.',
     );
-    expect(homeMessage({ ...base, trainingStreak: { current: 4, currentDone: true } })).toBe(TIPS[3]);
+    expect(homeMessage({ ...base, discipline: { current: 4, weekDone: true } })).toBe(TIPS[3]);
   });
 
   it('late water only from 17:00 and under 60 % of the goal', () => {
