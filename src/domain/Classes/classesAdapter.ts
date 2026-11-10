@@ -34,6 +34,7 @@ function toSchedule(row: ScheduleRowApi): ClassSchedule {
     modalityId: row.modality_id,
     modality: row.modality?.name ?? 'Aula',
     active: row.active,
+    instructorId: row.instructor_id,
   };
 }
 

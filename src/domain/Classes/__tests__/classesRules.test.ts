@@ -208,7 +208,7 @@ describe('belt colors', () => {
 
 describe('classesOn', () => {
   const s = (id: string, weekday: ClassSchedule['weekday'], startTime: string, active = true): ClassSchedule => ({
-    id, academyId: 'a', weekday, startTime, modalityId: 'bjj', modality: 'Jiu-Jitsu', active,
+    id, academyId: 'a', weekday, startTime, modalityId: 'bjj', modality: 'Jiu-Jitsu', active, instructorId: null,
   });
   it('returns active classes of that weekday by time', () => {
     const list = [s('late', 3, '19:00'), s('early', 3, '07:00'), s('off', 3, '12:00', false), s('thu', 4, '07:00')];

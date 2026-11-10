@@ -35,6 +35,7 @@ import { CurrencyCircleDollar } from 'phosphor-react-native/src/icons/CurrencyCi
 import { MapPin } from 'phosphor-react-native/src/icons/MapPin';
 import { UserCheck } from 'phosphor-react-native/src/icons/UserCheck';
 import { CalendarPlus } from 'phosphor-react-native/src/icons/CalendarPlus';
+import { InstagramLogo } from 'phosphor-react-native/src/icons/InstagramLogo';
 import { Info } from 'phosphor-react-native/src/icons/Info';
 import { LinkBreak } from 'phosphor-react-native/src/icons/LinkBreak';
 import { ListChecks } from 'phosphor-react-native/src/icons/ListChecks';
@@ -59,6 +60,7 @@ import { Trash } from 'phosphor-react-native/src/icons/Trash';
 import { Trophy } from 'phosphor-react-native/src/icons/Trophy';
 import { User } from 'phosphor-react-native/src/icons/User';
 import { Users } from 'phosphor-react-native/src/icons/Users';
+import { WhatsappLogo } from 'phosphor-react-native/src/icons/WhatsappLogo';
 import { Warning } from 'phosphor-react-native/src/icons/Warning';
 import { X } from 'phosphor-react-native/src/icons/X';
 import { XCircle } from 'phosphor-react-native/src/icons/XCircle';
@@ -137,6 +139,9 @@ const ICONS = {
   money: CurrencyCircleDollar,
   attended: UserCheck,
   newEvent: CalendarPlus,
+  // Instructor contacts.
+  instagram: InstagramLogo,
+  whatsapp: WhatsappLogo,
 } as const;
 
 export type IconName = keyof typeof ICONS;

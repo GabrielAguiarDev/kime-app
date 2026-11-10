@@ -18,6 +18,8 @@ export interface ClassSchedule {
   /** Name of the modality (display). */
   modality: string;
   active: boolean;
+  /** Who gives the class (active owner/instructor), or none. */
+  instructorId: string | null;
 }
 
 export interface ScheduleInput {

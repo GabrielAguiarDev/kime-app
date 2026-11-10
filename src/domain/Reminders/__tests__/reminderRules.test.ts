@@ -10,6 +10,7 @@ const schedule = (id: string, weekday: ClassSchedule['weekday'], startTime: stri
   modalityId,
   modality: modalityId === 'jj' ? 'Jiu-Jitsu' : 'No-Gi',
   active: true,
+  instructorId: null,
 });
 
 describe('zonedTime', () => {

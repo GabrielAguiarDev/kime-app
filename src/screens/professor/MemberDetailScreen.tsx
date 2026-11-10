@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 
 import {
   Avatar,
@@ -19,7 +19,6 @@ import {
   Screen,
   SelectionCard,
   Text,
-  TextButton,
 } from '@components';
 import {
   beltName,
@@ -29,31 +28,30 @@ import {
   useAwardBelt,
   useBeltHistory,
   useBelts,
-  useInstructorStats,
   useModalities,
   useModalityStats,
   type Modality,
   type ModalityBelt,
   type ModalityStats,
 } from '@domain/Classes';
-import { membershipLabel, useGymMembers, useRemoveMembership, type GymMember } from '@domain/Membership';
+import { membershipLabel, useGymMembers, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { CompetitorSection } from '@screens/competition/CompetitorSection';
 import { FightRecordSection } from '@screens/competition/FightRecord';
 import { StudentBillingSection } from '@screens/finance/StudentBillingSection';
+import { InstructorProfileScreen } from '@screens/instructor/InstructorProfileScreen';
 import { useActiveGym } from '@services/activeGym';
-import { useConfirm } from '@services/confirm';
-import { useSession } from '@services/session';
 import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
 import { BodyDataCard } from './BodyDataCard';
+import { RemoveMemberSection } from './RemoveMemberSection';
 import { formatDate, SheetForm } from './shared';
 import { StudentModalitiesSection } from './StudentModalitiesSection';
 
 /**
  * Staff: one member of the academy.
- *  - owner / instructor: photo, name, role and classes taught (they do not train in the app);
+ *  - owner / instructor: the instructor profile (InstructorProfileScreen, same for everyone);
  *  - student: body data (competitors), classes and belt progress per modality,
  *    competition team, record ("Cartel": tapping it opens the Cartel screen, where staff also
  *    edit the history before the app), belt history, "Definir faixa".
@@ -100,7 +98,9 @@ export function MemberDetailScreen() {
     );
   }
 
-  if (member.role !== 'student') return <StaffMemberDetail academyId={active.gymId} member={member} />;
+  if (member.role !== 'student') {
+    return <InstructorProfileScreen academyId={active.gymId} userId={member.userId} onBack={() => router.back()} />;
+  }
   return <StudentDetail academyId={active.gymId} member={member} />;
 }
 
@@ -111,31 +111,6 @@ function MemberHeader({ member }: { member: GymMember }) {
       {/* The name is the header title. */}
       <Text variant="captionCaps">{membershipLabel(member)}</Text>
     </Box>
-  );
-}
-
-/** Owner / instructor: photo, role and the classes they taught (no check-ins, no belts). */
-function StaffMemberDetail({ academyId, member }: { academyId: string; member: GymMember }) {
-  const stats = useInstructorStats(academyId);
-  const taught = stats.data?.find((s) => s.membershipId === member.id)?.classesTaught ?? 0;
-  return (
-    <Screen nativeHeader title={member.fullName} onBack={() => router.back()}>
-      <Box gap="s24">
-        <MemberHeader member={member} />
-        {stats.isLoading ? <ActivityIndicator /> : null}
-        {stats.data ? (
-          <Card>
-            <BigCounter value={taught} label="Aulas dadas" />
-          </Card>
-        ) : null}
-        {stats.isError ? (
-          <Text variant="caption" color="danger">
-            {errorMessage(stats.error)}
-          </Text>
-        ) : null}
-        <RemoveMemberSection member={member} />
-      </Box>
-    </Screen>
   );
 }
 
@@ -427,39 +402,5 @@ function AwardForm({
         </Text>
       ) : null}
     </SheetForm>
-  );
-}
-
-/**
- * "Remover da academia", at the end in its own area (owner only; never the
- * owner nor yourself). The list in Equipe has no remove button.
- */
-function RemoveMemberSection({ member }: { member: GymMember }) {
-  const { isOwner } = useActiveGym();
-  const { userId } = useSession();
-  const remove = useRemoveMembership();
-  const confirm = useConfirm();
-  const { border } = useAppTheme();
-  if (!isOwner || member.role === 'owner' || member.userId === userId) return null;
-
-  const ask = async () => {
-    const ok = await confirm({
-      title: 'Remover da academia?',
-      message: `${member.fullName} perde o acesso à academia. O histórico de aulas fica guardado.`,
-      confirmLabel: 'Remover',
-      tone: 'danger',
-    });
-    if (!ok) return;
-    remove.mutate(member.id, {
-      onSuccess: () => router.back(),
-      onError: (e) => Alert.alert('Remover', errorMessage(e)),
-    });
-  };
-
-  return (
-    <Box gap="s12" marginTop="s24" paddingTop="s24" borderTopWidth={border.width} borderColor="border">
-      <Text variant="captionCaps">Ações sensíveis</Text>
-      <TextButton title="Remover da academia" color="danger" disabled={remove.isPending} onPress={ask} />
-    </Box>
   );
 }

@@ -8,6 +8,7 @@ import { roleLabel } from '@domain/Membership';
 import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { memberSinceLabel, useClassmates } from '@domain/Team';
 import { FightRecordCard } from '@screens/competition/FightRecord';
+import { InstructorProfileScreen } from '@screens/instructor/InstructorProfileScreen';
 import { days, points } from '@screens/ranking/rankingFormat';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
@@ -16,7 +17,8 @@ import { useSession } from '@services/session';
 const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 /**
- * A member seen by a classmate, for the modality selected in the Início
+ * A member seen by a classmate (owner / instructor: InstructorProfileScreen),
+ * for the modality selected in the Início
  * header only (user decision: no list of modalities): big photo, name, the
  * cartel (competitor: always right after the name; the trophy badge on the
  * photo marks it), role, "Treina aqui desde …", the graduation
@@ -64,8 +66,12 @@ export function ColleagueScreen() {
     );
   }
 
-  const isStaffMember = member.role !== 'student';
-  const showBelt = !isStaffMember && !!link && !!selected?.usesBelts;
+  // Owner / instructor: the instructor profile, the same screen the staff sees.
+  if (member.role !== 'student') {
+    return <InstructorProfileScreen academyId={active.gymId} userId={member.userId} onBack={back} />;
+  }
+
+  const showBelt = !!link && !!selected?.usesBelts;
 
   return (
     <Screen nativeHeader title="" largeTitle={false} onBack={back}>
@@ -91,7 +97,7 @@ export function ColleagueScreen() {
             {roleLabel[member.role]}
           </Text>
           <Text variant="caption" textAlign="center">
-            {`${isStaffMember ? 'Na academia' : 'Treina aqui'} desde ${memberSinceLabel(member.memberSince)}`}
+            {`Treina aqui desde ${memberSinceLabel(member.memberSince)}`}
           </Text>
         </Box>
 

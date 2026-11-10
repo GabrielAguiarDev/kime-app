@@ -2,7 +2,7 @@ import { supabase, type TablesInsert } from '@infra/supabase';
 
 import type { CheckinStatus, ScheduleInput, Weekday } from './classesTypes';
 
-const SCHEDULE_COLUMNS = 'id, academy_id, weekday, start_time, modality_id, active, modality:academy_modalities(name)';
+const SCHEDULE_COLUMNS = 'id, academy_id, weekday, start_time, modality_id, active, instructor_id, modality:academy_modalities(name)';
 const CHECKIN_COLUMNS = 'id, user_id, schedule_id, modality_id, class_date, status, reviewed_at';
 
 async function academyToday(academyId: string) {
@@ -55,6 +55,18 @@ async function updateSchedules(
 ) {
   if (ids.length === 0) return;
   const { error } = await supabase.from('class_schedules').update(patch).in('id', ids);
+  if (error) throw error;
+}
+
+/** Sets who gives the class on every active row of a group (time + modality). */
+async function setGroupInstructor(academyId: string, startTime: string, modalityId: string, instructorId: string | null) {
+  const { error } = await supabase
+    .from('class_schedules')
+    .update({ instructor_id: instructorId })
+    .eq('academy_id', academyId)
+    .eq('start_time', startTime)
+    .eq('modality_id', modalityId)
+    .eq('active', true);
   if (error) throw error;
 }
 
@@ -325,6 +337,7 @@ export const classesApi = {
   createSchedules,
   updateSchedule,
   updateSchedules,
+  setGroupInstructor,
   setScheduleActive,
   deleteSchedules,
   listModalities,

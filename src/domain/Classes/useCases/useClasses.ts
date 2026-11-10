@@ -32,6 +32,8 @@ export function useScheduleMutations(academyId: string) {
   const onSuccess = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: [QueryKeys.ClassSchedules, academyId] }),
     queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking, academyId] }),
+    // "Aulas que dá" on the instructor profiles.
+    queryClient.invalidateQueries({ queryKey: [QueryKeys.InstructorProfile, academyId] }),
   ]);
   return {
     create: useMutation({ mutationFn: (input: ScheduleInput) => service.createSchedule(academyId, input), onSuccess }),
@@ -45,8 +47,17 @@ export function useScheduleMutations(academyId: string) {
     }),
     /** One time + modality on several weekdays (see planScheduleGroup). */
     saveGroup: useMutation({
-      mutationFn: ({ plan, startTime, modalityId }: { plan: ScheduleGroupPlan; startTime: string; modalityId: string }) =>
-        service.saveScheduleGroup(academyId, plan, startTime, modalityId),
+      mutationFn: ({
+        plan,
+        startTime,
+        modalityId,
+        instructorId,
+      }: {
+        plan: ScheduleGroupPlan;
+        startTime: string;
+        modalityId: string;
+        instructorId: string | null;
+      }) => service.saveScheduleGroup(academyId, plan, startTime, modalityId, instructorId),
       onSuccess,
     }),
     setGroupActive: useMutation({
@@ -266,6 +277,8 @@ export function useAwardBelt(academyId: string, membershipId: string) {
         queryClient.invalidateQueries({ queryKey: [QueryKeys.ModalityStats, academyId] }),
         queryClient.invalidateQueries({ queryKey: [QueryKeys.BeltHistory, membershipId] }),
         queryClient.invalidateQueries({ queryKey: [QueryKeys.GymMembers, academyId] }),
+        // "Alunos graduados" on the instructor profile.
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.InstructorProfile, academyId] }),
       ]),
   });
 }
