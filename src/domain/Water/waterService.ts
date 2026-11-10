@@ -174,4 +174,7 @@ async function syncOnce(userId: string): Promise<void> {
   }
 }
 
-export const waterService = { day, localDayTotals, log, undoLast, readConfig, publishConfig, sync, clearDevice };
+/** Records today's goal on the server (plan or automatic; derived there). */
+const recordGoal = () => waterApi.recordWaterGoal();
+
+export const waterService = { day, localDayTotals, log, undoLast, readConfig, publishConfig, sync, clearDevice, recordGoal };

@@ -9,7 +9,7 @@ import {
 } from '@domain/Classes';
 import { upcomingChampionships, useChampionships } from '@domain/Competition';
 import { rankingPeriod, useRanking } from '@domain/Ranking';
-import { trainingStreak, useWaterStreak } from '@domain/Streaks';
+import { useDiscipline } from '@domain/Streaks';
 import { CompetitorInviteCard } from '@screens/competition/CompetitorInviteCard';
 import { StudentEventsSection } from '@screens/events/HomeEventsSection';
 import { BlockedNotice, FinanceNotice, useMyFinance } from '@screens/finance/StudentFinance';
@@ -44,7 +44,7 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   const period = today.data ? rankingPeriod(today.data) : undefined;
   const ranking = useRanking(academyId, selected?.id, period);
   const water = useLogBottle();
-  const waterStreak = useWaterStreak(water.userId, water.timeZone, water.goalMl, water.isLimit);
+  const discipline = useDiscipline(userId);
 
   const finance = useMyFinance();
 
@@ -76,12 +76,7 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   const list = checkins.data ?? [];
   const modalitySchedules = (schedules.data ?? []).filter((s) => s.active && s.modalityId === selected?.id);
   const ofModality = list.filter((c) => c.modalityId === selected?.id);
-  const training = trainingStreak(
-    list.filter((c) => c.status === 'confirmed').map((c) => c.classDate),
-    today.data,
-  );
   const trainedDays = new Set(ofModality.filter((c) => c.status === 'confirmed').map((c) => c.classDate));
-  const waterDoneDays = new Set((waterStreak.streak?.periods ?? []).filter((p) => p.state === 'done').map((p) => p.key));
   const upcoming = upcomingChampionships(
     (championships.data ?? []).filter((c) => c.modalityId === selected?.id),
     today.data,
@@ -117,10 +112,8 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
       <WeekCard
         today={today.data}
         trainedDays={trainedDays}
-        waterDoneDays={waterDoneDays}
         classDays={new Set(modalitySchedules.map((s) => s.weekday)).size}
-        training={training}
-        water={waterStreak.streak}
+        discipline={discipline.data ?? null}
         timeZone={water.timeZone}
       />
 

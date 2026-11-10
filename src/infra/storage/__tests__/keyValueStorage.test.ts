@@ -6,7 +6,7 @@ describe('isUserScopedKey (sign-out cleanup)', () => {
   it('matches the scoped keys of the user, alone or with more scope', () => {
     expect(isUserScopedKey(`kimi.joinRequests.v1.${user}`, user)).toBe(true);
     expect(isUserScopedKey(`kimi.timerLast.v1.${user}.gym-1`, user)).toBe(true);
-    expect(isUserScopedKey(`kimi.streakRecords.v1.${user}.training.gym-1`, user)).toBe(true);
+    expect(isUserScopedKey(`kimi.streakRecords.v1.${user}.discipline`, user)).toBe(true);
   });
 
   it('keeps other users, look-alike ids and non-scoped keys', () => {

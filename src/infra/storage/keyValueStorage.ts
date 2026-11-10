@@ -26,9 +26,9 @@ const ScopedKeys = {
   joinRequests: 'kimi.joinRequests.v1',
   /** Last water goal sent to the server (`day:goal`), per user: avoids re-sending it on every render. */
   waterGoalRecorded: 'kimi.waterGoalRecorded.v1',
-  /** Streak records already celebrated (JSON {water, training}), per user (+ academy for training). */
+  /** Disciplina record already celebrated ("Novo recorde."), per user. */
   streakRecords: 'kimi.streakRecords.v1',
-  /** Last running streak already shown ("Nada mal."), per user (+ academy for training). */
+  /** Last Disciplina streak already shown ("Nada mal."), per user. */
   streakCurrent: 'kimi.streakCurrent.v1',
   /** Class reminders switched on on this device ('on'), per user. */
   classReminders: 'kimi.classReminders.v1',

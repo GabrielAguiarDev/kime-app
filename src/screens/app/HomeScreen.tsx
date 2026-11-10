@@ -145,26 +145,15 @@ export function HomeScreen() {
         ) : rewards.confirmedCount !== null ? (
           <CheckinConfirmedSheet count={rewards.confirmedCount} total={confirmedTotal} onAction={rewards.dismissConfirmed} />
         ) : goalFeedback.visible && water ? (
-          <WaterGoalSheet
-            isLimit={!!waterSettings?.isLimit}
-            totalMl={water.totalMl}
-            streak={streak.waterCurrent}
-            onAction={goalFeedback.dismiss}
-          />
+          <WaterGoalSheet isLimit={!!waterSettings?.isLimit} totalMl={water.totalMl} onAction={goalFeedback.dismiss} />
         ) : streak.notice ? (
           <FeedbackSheet
-            key={`${streak.notice.kind}.${streak.notice.count}`}
+            key={`${streak.notice.record}.${streak.notice.count}`}
             tone="accent"
             title={streak.notice.record ? 'Novo recorde.' : 'Nada mal.'}
             pose="streak"
             animated
-            message={
-              streak.notice.kind === 'water'
-                ? `${streak.notice.count} dias seguidos cumprindo o objetivo de água.`
-                : streak.notice.count === 1
-                  ? '1 semana treinando.'
-                  : `${streak.notice.count} semanas seguidas treinando.`
-            }
+            message={streak.notice.count === 1 ? '1 semana de disciplina.' : `${streak.notice.count} semanas seguidas de disciplina.`}
             actionLabel={streak.notice.record ? 'Ver disciplina' : 'Continuar'}
             onAction={() => {
               streak.dismiss();

@@ -57,9 +57,9 @@ Para preservar congelamentos, a RPC devolve o histórico booleano conhecido de h
 - `src/screens/professor/MemberDetailScreen.tsx`: modalidades do aluno.
 - `src/screens/staff/StaffHome.tsx`: resumo do ranking contínuo.
 - `src/domain/Classes/useCases/useClasses.ts`, `src/domain/Water/useCases/useWater.ts`, `src/services/water/useWaterSync.ts`: calendário/cache.
-- `src/domain/Streaks/streakApi.ts`, `src/services/water/useRecordWaterGoal.ts`: meta derivada no servidor.
+- `src/domain/Water/waterApi.ts`, `src/services/water/useRecordWaterGoal.ts`: meta derivada no servidor.
 - `src/infra/query/queryKeys.ts`, `types/database.ts`: chaves e contratos.
-- `supabase/tests/database/ranking.test.sql`, `water_streak.test.sql`, `src/domain/Ranking/__tests__/rankingRules.test.ts`: comportamento e segurança.
+- `supabase/tests/database/ranking.test.sql`, `water_streak.test.sql` (histórico de metas), `discipline.test.sql`, `src/domain/Ranking/__tests__/rankingRules.test.ts`: comportamento e segurança.
 
 Validação concluída: 222 testes Jest (23 suítes), 556 testes pgTAP (12 arquivos), TypeScript, Expo lint, lint SQL e replay da migração em banco sombra com diff vazio. As migrações de base foram aplicadas no Supabase conectado ao app. A migração de modalidades deve ser aplicada e verificada antes de usar a nova interface. Os avisos de políticas permissivas em `checkins`/`memberships` e da volatilidade de `is_valid_timezone` antecedem esta alteração. O advisor remoto também sinaliza funções SECURITY DEFINER expostas a authenticated: nas novas RPCs isso é intencional para agregar dados sob RLS e capturar históricos, com validação explícita do usuário/academia e privilégios mínimos. Acesso de anon foi revogado. O aviso de proteção contra senhas vazadas é anterior e não foi alterado. Não foi realizada validação visual no simulador nesta entrega.
 

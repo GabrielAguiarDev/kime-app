@@ -2,8 +2,7 @@ import { router } from 'expo-router';
 import { ActivityIndicator, Alert } from 'react-native';
 
 import { Box, Button, Card, EmptyState, Icon, Screen, Text, TextButton, WaterRing } from '@components';
-import { useWaterStreak } from '@domain/Streaks';
-import { waterDayState, useLogWater, useUndoWater, useWaterDay } from '@domain/Water';
+import { waterDayState, useLogWater, useUndoWater, useWaterDay, useWaterHistory } from '@domain/Water';
 import { errorMessage } from '@infra';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
 import { haptics } from '@utils/haptics';
@@ -12,12 +11,12 @@ import { useActiveModality } from '@services/activeModality';
 
 import { formatMl, formatTime } from './format';
 import { WaterGoalSheet } from './WaterGoalSheet';
-import { AddWidgetLink, CompetitorWater, LastDaysBars, WaterStreakCard } from './WaterSections';
+import { AddWidgetLink, CompetitorWater, LastDaysBars } from './WaterSections';
 
 /**
  * Water of today (profile time zone): ring (3.4), "+{garrafa} ML" water button,
  * today's logs (from the app and the widget) and undo of the last one; the
- * last 7 days in bars, the water streak and its freezes; for competitors the
+ * last 7 days in bars; for competitors the
  * professor's plan of the week and today's diet; "Adicionar widget" at the end.
  * Bottle, weight and height: settings icon at the top-right.
  */
@@ -34,7 +33,7 @@ export function WaterScreen() {
   const isLimit = settings?.isLimit ?? false;
   const totalMl = day.data?.totalMl ?? 0;
   const goalFeedback = useWaterGoalFeedback(userId, day.data?.date, day.data?.totalMl, goalMl, isLimit);
-  const water = useWaterStreak(userId, timeZone, goalMl, isLimit);
+  const waterDays = useWaterHistory(userId, timeZone, goalMl, isLimit);
   const { modalities } = useActiveModality();
   const competes = modalities.some((m) => m.link.isCompetitor);
 
@@ -101,12 +100,7 @@ export function WaterScreen() {
       topAction={settingsAction}
       feedback={
         goalFeedback.visible ? (
-          <WaterGoalSheet
-            isLimit={!!isLimit}
-            totalMl={totalMl}
-            streak={water.streak?.current}
-            onAction={goalFeedback.dismiss}
-          />
+          <WaterGoalSheet isLimit={!!isLimit} totalMl={totalMl} onAction={goalFeedback.dismiss} />
         ) : undefined
       }
       footer={
@@ -162,8 +156,7 @@ export function WaterScreen() {
           ) : null}
         </Box>
 
-        {day.data ? <LastDaysBars days={water.days} today={day.data.date} /> : null}
-        {water.streak ? <WaterStreakCard streak={water.streak} /> : null}
+        {day.data ? <LastDaysBars days={waterDays} today={day.data.date} /> : null}
         {competes && userId && day.data ? <CompetitorWater userId={userId} today={day.data.date} /> : null}
         <AddWidgetLink />
       </Box>

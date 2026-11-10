@@ -2,7 +2,6 @@ import { classesAdapter } from '../classesAdapter';
 import {
   bestMonth,
   graduationSteps,
-  longestStreak,
   modalityMilestones,
   monthlySeries,
   reportTotal,
@@ -68,10 +67,6 @@ describe('report numbers', () => {
   it('finds the best month across modalities', () => {
     expect(bestMonth(report())).toEqual({ month: '2026-03-01', classes: 12 });
     expect(bestMonth(report({ months: [] }))).toBeNull();
-  });
-  it('takes the streak record from the weeks', () => {
-    expect(longestStreak(report())).toBe(3);
-    expect(longestStreak(report({ weeks: [] }))).toBe(0);
   });
   it('sorts the milestones', () => {
     expect(modalityMilestones(report(), 'bjj').map((m) => m.count)).toEqual([10, 25]);

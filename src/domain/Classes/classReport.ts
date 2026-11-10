@@ -1,4 +1,3 @@
-import { trainingStreak } from '@domain/Streaks/streakRules';
 
 import { weeklyAverage } from './classesRules';
 import type { ClassReport, LocalDate, ModalityBelt } from './classesTypes';
@@ -62,11 +61,6 @@ export function bestMonth(report: ClassReport): MonthCount | null {
     if (classes > 0 && (!best || classes > best.classes || (classes === best.classes && month > best.month))) best = { month, classes };
   }
   return best;
-}
-
-/** Longest training streak in weeks (the record of the Disciplina screen). */
-export function longestStreak(report: ClassReport): number {
-  return report.weeks.length ? trainingStreak(report.weeks, report.today).record : 0;
 }
 
 /** Milestones reached in a modality (10, 25, 50…) with the day of each, in order. */

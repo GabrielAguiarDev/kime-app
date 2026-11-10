@@ -6,12 +6,10 @@ import {
   beltName,
   beltNeedsDarkText,
   isBeltColorKey,
-  useAcademyToday,
   useMemberStats,
-  useMyCheckins,
   type BeltLook,
 } from '@domain/Classes';
-import { trainingStreak } from '@domain/Streaks';
+import { useDiscipline } from '@domain/Streaks';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 import { useAppTheme, type ColorToken } from '@theme';
@@ -25,8 +23,7 @@ export function AchievementScreen() {
   const { userId } = useSession();
   const { active } = useActiveGym();
   const stats = useMemberStats(active?.gymId);
-  const checkins = useMyCheckins(active?.gymId, userId);
-  const today = useAcademyToday(active?.gymId);
+  const discipline = useDiscipline(userId);
 
   useEffect(() => {
     haptics.success();
@@ -34,12 +31,7 @@ export function AchievementScreen() {
 
   const own = stats.data?.find((s) => s.userId === userId);
   const total = own?.confirmedTotal ?? Number(value ?? 0);
-  const streak = today.data
-    ? trainingStreak(
-        (checkins.data ?? []).filter((c) => c.status === 'confirmed').map((c) => c.classDate),
-        today.data,
-      ).current
-    : 0;
+  const streak = discipline.data?.current ?? 0;
   const belt: BeltLook | null =
     kind === 'belt' && isBeltColorKey(beltPrimary)
       ? { primary: beltPrimary, tip: isBeltColorKey(beltTip) ? beltTip : null }
