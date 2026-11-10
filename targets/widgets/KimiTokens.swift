@@ -30,6 +30,7 @@ enum KimiTokens {
     static let accentEdge = dynamic(light: 0xA63008, dark: 0xB8420F)
     static let water = dynamic(light: 0x1E88E5, dark: 0x3D9BF0)
     static let waterEdge = dynamic(light: 0x1565B0, dark: 0x2373C0)
+    static let ice = dynamic(light: 0x5AB4DC, dark: 0x9AD8F2)
     static let success = dynamic(light: 0x1F9D57, dark: 0x2FB86A)
     static let successEdge = dynamic(light: 0x177641, dark: 0x238A50)
     static let warning = dynamic(light: 0xF2A100, dark: 0xF5B32E)

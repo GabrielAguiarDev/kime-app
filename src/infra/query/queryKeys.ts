@@ -28,6 +28,7 @@ export enum QueryKeys {
   AthleteWater = 'AthleteWater',
   DietDays = 'DietDays',
   WaterDays = 'WaterDays',
+  Discipline = 'Discipline',
   Ranking = 'Ranking',
   RankingModalities = 'RankingModalities',
   PersonalTimerPresets = 'PersonalTimerPresets',

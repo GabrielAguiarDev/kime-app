@@ -22,6 +22,7 @@ export function useWaterSync() {
         queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking] }),
         // The water streak reads the server totals.
         queryClient.invalidateQueries({ queryKey: [QueryKeys.WaterDays, userId] }),
+        queryClient.invalidateQueries({ queryKey: [QueryKeys.Discipline, userId] }),
       ]);
     const sync = () => {
       void refresh();

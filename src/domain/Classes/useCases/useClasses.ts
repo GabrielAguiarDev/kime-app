@@ -150,7 +150,7 @@ export function useCheckIn(academyId: string, userId: string) {
   return useMutation({
     mutationFn: ({ scheduleId, date }: { scheduleId: string; date: LocalDate }) =>
       service.createCheckin(academyId, userId, scheduleId, date),
-    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: [QueryKeys.MyCheckins, academyId, userId] }), queryClient.invalidateQueries({ queryKey: ['classAttendees'] })]),
+    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: [QueryKeys.MyCheckins, academyId, userId] }), queryClient.invalidateQueries({ queryKey: ['classAttendees'] }), queryClient.invalidateQueries({ queryKey: [QueryKeys.Discipline, userId] })]),
   });
 }
 
@@ -158,7 +158,7 @@ export function useCancelCheckin(academyId: string, userId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (checkinId: string) => service.cancelCheckin(checkinId),
-    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: [QueryKeys.MyCheckins, academyId, userId] }), queryClient.invalidateQueries({ queryKey: ['classAttendees'] })]),
+    onSuccess: () => Promise.all([queryClient.invalidateQueries({ queryKey: [QueryKeys.MyCheckins, academyId, userId] }), queryClient.invalidateQueries({ queryKey: ['classAttendees'] }), queryClient.invalidateQueries({ queryKey: [QueryKeys.Discipline, userId] })]),
   });
 }
 

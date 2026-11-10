@@ -63,6 +63,7 @@ Mantenha os tokens em um único `tokens.json` e gere a partir dele os arquivos d
 | accent-edge | `#A63008` | `#B8420F` | Borda 3D do botão primário |
 | water | `#1E88E5` | `#3D9BF0` | Tudo relacionado a água |
 | water-edge | `#1565B0` | `#2373C0` | Borda 3D do botão de água |
+| ice | `#5AB4DC` | `#9AD8F2` | Semana congelada da Disciplina (azul-gelo) |
 | success | `#1F9D57` | `#2FB86A` | Check-in confirmado, meta batida |
 | warning | `#F2A100` | `#F5B32E` | Check-in pendente (texto escuro sobre ele) |
 | danger | `#D92D4A` | `#EF4C66` | Erros, recusado, ações destrutivas |
