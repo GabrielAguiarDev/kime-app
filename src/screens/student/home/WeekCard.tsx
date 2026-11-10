@@ -20,6 +20,7 @@ export function WeekCard({
   trainedDays,
   classDays,
   discipline,
+  todayWaterDone,
   timeZone,
 }: {
   today: LocalDate;
@@ -28,6 +29,8 @@ export function WeekCard({
   /** Days of the week with a class of the selected modality in the grid. */
   classDays: number;
   discipline: Discipline | null;
+  /** Today's water met on the device (logs not synced yet, the widget). */
+  todayWaterDone: boolean;
   timeZone: string | undefined;
 }) {
   const theme = useAppTheme();
@@ -43,6 +46,7 @@ export function WeekCard({
   const dot = theme.spacing.s8;
 
   const waterDoneDays = new Set((discipline?.days ?? []).filter((d) => d.water === 'done').map((d) => d.day));
+  if (todayWaterDone) waterDoneDays.add(today);
   const current = discipline?.current ?? 0;
   const alert =
     late && weekdayOf(today) === 0 && !!discipline && current > 0 && !discipline.weekDone
