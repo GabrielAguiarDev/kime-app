@@ -15,6 +15,7 @@ export enum QueryKeys {
   AvatarUrl = 'AvatarUrl',
   ClassSessions = 'ClassSessions',
   InstructorStats = 'InstructorStats',
+  InstructorProfile = 'InstructorProfile',
   MyCheckins = 'MyCheckins',
   AcademyCheckins = 'AcademyCheckins',
   MemberStats = 'MemberStats',
