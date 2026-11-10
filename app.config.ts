@@ -22,10 +22,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        // Background color only, no image: the app intro (screens/intro/AppIntro) draws the
+        // Solid dark screen, no logo: the app intro (screens/intro/AppIntro) draws the
         // mascot and hides this splash once it is on screen. The app opens in the dark
         // theme by default, so the splash is dark regardless of the system appearance.
+        // The image is a 1x1 fully transparent PNG on purpose: without `image`, the plugin
+        // (SDK 58) leaves the iOS storyboard on systemBackgroundColor (white in light mode).
         backgroundColor: tokens.color.dark.bg,
+        image: './assets/brand/splash-transparent.png',
       },
     ],
   ],
