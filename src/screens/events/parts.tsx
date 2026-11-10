@@ -55,14 +55,22 @@ export function CancelledBadge() {
 }
 
 /** Overlapping photos of who is going + "12 vão". */
-export function GoingFaces({ people, max = 5 }: { people: Pick<EventPerson, 'userId' | 'fullName' | 'avatarPath'>[]; max?: number }) {
+export function GoingFaces({
+  people,
+  max = 5,
+  size = 32,
+}: {
+  people: Pick<EventPerson, 'userId' | 'fullName' | 'avatarPath'>[];
+  max?: number;
+  size?: number;
+}) {
   if (people.length === 0) return null;
   return (
     <Box flexDirection="row" alignItems="center" gap="s8" accessible accessibilityLabel={goingLabel(people.length)}>
       <Box flexDirection="row">
         {people.slice(0, max).map((p, index) => (
-          <Box key={p.userId} style={{ marginLeft: index ? -10 : 0 }}>
-            <Avatar name={p.fullName} path={p.avatarPath} size={32} />
+          <Box key={p.userId} style={{ marginLeft: index ? -Math.round(size * 0.3) : 0 }}>
+            <Avatar name={p.fullName} path={p.avatarPath} size={size} />
           </Box>
         ))}
       </Box>
@@ -80,6 +88,25 @@ export function EventCover({ path, rounded = true }: { path: string | null; roun
       width="100%"
       style={{ aspectRatio: 16 / 9 }}
       borderRadius={rounded ? 'md' : 'none'}
+      overflow="hidden"
+      backgroundColor="surfaceRaised"
+      accessibilityRole="image"
+      accessibilityLabel="Capa do evento"
+    >
+      <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={0} />
+    </Box>
+  );
+}
+
+/** Square cover thumbnail for the compact card. Without a cover: nothing. */
+export function EventThumb({ path, size = 72 }: { path: string | null; size?: number }) {
+  const url = coverUrl(path);
+  if (!url) return null;
+  return (
+    <Box
+      width={size}
+      height={size}
+      borderRadius="md"
       overflow="hidden"
       backgroundColor="surfaceRaised"
       accessibilityRole="image"

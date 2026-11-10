@@ -34,6 +34,7 @@ export function StudentEventsSection({ academyId, userId, today }: { academyId: 
         mine={myStatus(answers, next.id, userId)}
         faces
         cover
+        compact
         onGoing={() => rsvp.answer(next.id, 'going')}
         goingPending={rsvp.pendingEventId === next.id}
       />
