@@ -83,7 +83,7 @@ export function WaitingScreen() {
         <Text variant="title" textAlign="center">
           {first.gymName}
         </Text>
-        <KimiMascot size="empty" />
+        <KimiMascot size="empty" animated />
         <Text variant="body" color="textMuted" textAlign="center">
           Pedido enviado. Aguardando aprovação {approver}.
         </Text>

@@ -97,7 +97,7 @@ export function TimerRunScreen() {
           <Box flex={1} alignItems="center" justifyContent="center" gap="s24">
             {session ? (
               <>
-                <KimiMascot size="empty" />
+                <KimiMascot size="empty" animated />
                 <Text variant="title" textAlign="center" accessibilityRole="header">
                   Treino concluído
                 </Text>
