@@ -1,16 +1,14 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState, type ReactNode } from 'react';
+import { ActivityIndicator, Alert, Pressable } from 'react-native';
 
-import { BottomSheet, Box, Card, Icon, LoadError, Screen, Text } from '@components';
+import { BottomSheet, Box, Card, HeaderMenu, Icon, LoadError, Screen, Text } from '@components';
 import type { Modality } from '@domain/Classes';
 import {
   fightDetails,
   fightTitle,
   formatLocalDate,
   formatTally,
-  hasMedals,
-  MEDALS,
   placementLabel,
   recordsByModality,
   tallyAccessibilityLabel,
@@ -20,8 +18,6 @@ import {
   type Fight,
   type FightRecord,
   type FightTally,
-  type Medal,
-  type MedalCount,
   type Placement,
   type PreviousRecord,
 } from '@domain/Competition';
@@ -37,14 +33,13 @@ import { useMyFinance } from '@screens/finance/StudentFinance';
  * system): gold = yellow belt, silver = light gray, bronze = light brown.
  */
 const MEDAL_COLOR = { gold: 'beltYellow', silver: 'beltLightGray', bronze: 'beltLightBrown' } as const;
-const MEDAL_NAMES: Record<Medal, [string, string]> = {
-  gold: ['ouro', 'ouros'],
-  silver: ['prata', 'pratas'],
-  bronze: ['bronze', 'bronzes'],
-};
 
-/** "8 · 2 · 1" in display-lg with Vitórias / Derrotas / Empates under each number. */
-export function FightTallyDisplay({ tally }: { tally: FightTally }) {
+/**
+ * "8 · 2 · 1" with Vitórias / Derrotas / Empates under each number: display-lg on the Cartel
+ * screen, `compact` (title) on the summary cards.
+ */
+export function FightTallyDisplay({ tally, compact = false }: { tally: FightTally; compact?: boolean }) {
+  const number = compact ? 'title' : 'displayLg';
   const stats: [number, string][] = [
     [tally.wins, 'Vitórias'],
     [tally.losses, 'Derrotas'],
@@ -55,39 +50,21 @@ export function FightTallyDisplay({ tally }: { tally: FightTally }) {
       flexDirection="row"
       justifyContent="center"
       alignItems="flex-start"
-      gap="s12"
+      gap={compact ? 's8' : 's12'}
       accessible
       accessibilityLabel={tallyAccessibilityLabel(tally)}
     >
       {stats.map(([value, label], index) => (
-        <Box key={label} flexDirection="row" alignItems="flex-start" gap="s12">
+        <Box key={label} flexDirection="row" alignItems="flex-start" gap={compact ? 's8' : 's12'}>
           {index > 0 ? (
-            <Text variant="displayLg" color="textMuted">
+            <Text variant={number} color="textMuted">
               ·
             </Text>
           ) : null}
           <Box alignItems="center">
-            <Text variant="displayLg">{value}</Text>
+            <Text variant={number}>{value}</Text>
             <Text variant="caption">{label}</Text>
           </Box>
-        </Box>
-      ))}
-    </Box>
-  );
-}
-
-/** Medals won: one chip per kind with its count (nothing when there are none). */
-export function MedalRow({ medals }: { medals: MedalCount }) {
-  if (!hasMedals(medals)) return null;
-  const label = MEDALS.filter((m) => medals[m] > 0)
-    .map((m) => `${medals[m]} ${MEDAL_NAMES[m][medals[m] === 1 ? 0 : 1]}`)
-    .join(', ');
-  return (
-    <Box flexDirection="row" justifyContent="center" gap="s16" accessible accessibilityLabel={`Medalhas: ${label}`}>
-      {MEDALS.filter((m) => medals[m] > 0).map((m) => (
-        <Box key={m} flexDirection="row" alignItems="center" gap="s4">
-          <Icon name="medal" color={MEDAL_COLOR[m]} active />
-          <Text variant="bodyStrong">{medals[m]}</Text>
         </Box>
       ))}
     </Box>
@@ -120,22 +97,25 @@ export function ResultLine({ placement, tally }: { placement: Placement | null; 
   );
 }
 
-/** Summary card of one modality: name (optional), tally and medals. */
-export function FightRecordCard({ record, title }: { record: FightRecord; title?: string }) {
+/** Summary card of one modality: name (optional) and the tally; `onPress` opens the history. */
+export function FightRecordCard({ record, title, onPress }: { record: FightRecord; title?: string; onPress?: () => void }) {
   return (
-    <Card gap="s16">
+    <Card
+      gap="s12"
+      onPress={onPress}
+      accessibilityLabel={
+        onPress ? `Cartel${title ? ` de ${title}` : ''}: ${tallyAccessibilityLabel(record)}. Ver histórico de lutas` : undefined
+      }
+    >
       {title ? (
-        <Text variant="captionCaps" textAlign="center">
-          {title}
-        </Text>
+        <Box flexDirection="row" alignItems="center">
+          <Text variant="captionCaps" flex={1}>
+            {title}
+          </Text>
+          {onPress ? <Icon name="chevronRight" color="textMuted" size={20} /> : null}
+        </Box>
       ) : null}
-      <FightTallyDisplay tally={record} />
-      <MedalRow medals={record} />
-      {record.championships === 0 ? (
-        <Text variant="caption" textAlign="center">
-          Nenhum campeonato realizado ainda.
-        </Text>
-      ) : null}
+      <FightTallyDisplay tally={record} compact />
     </Card>
   );
 }
@@ -158,6 +138,17 @@ export function FightRow({ fight, onPress, last }: { fight: Fight; onPress?: () 
   );
 }
 
+/** Discreet seal of an internal championship: listed, but out of the record. */
+export function InternalSeal() {
+  return (
+    <Box alignSelf="flex-start" paddingHorizontal="s8" paddingVertical="s4" borderRadius="sm" backgroundColor="surfaceRaised">
+      <Text variant="caption" color="textMuted">
+        Não conta no cartel
+      </Text>
+    </Box>
+  );
+}
+
 /** Discreet seal of a previous championship (recorded by staff, before the app). */
 export function PreviousSeal() {
   return (
@@ -171,68 +162,9 @@ export function PreviousSeal() {
 
 const BEFORE_KIMI = 'Antes do Kimi';
 
-/** "Vitórias, derrotas e empates" + medals of the previous record, for screen readers. */
+/** "Antes do Kimi: vitórias, derrotas e empates", for screen readers. */
 function previousAccessibilityLabel(record: PreviousRecord): string {
-  const medals = MEDALS.filter((m) => record[m] > 0)
-    .map((m) => `${record[m]} ${MEDAL_NAMES[m][record[m] === 1 ? 0 : 1]}`)
-    .join(', ');
-  return [`${BEFORE_KIMI}: ${tallyAccessibilityLabel(record)}`, medals ? `medalhas: ${medals}` : null].filter(Boolean).join('; ');
-}
-
-/** Medals inline and small (one icon + count per kind). */
-function InlineMedals({ medals }: { medals: MedalCount }) {
-  if (!hasMedals(medals)) return null;
-  return (
-    <Box flexDirection="row" alignItems="center" gap="s8">
-      {MEDALS.filter((m) => medals[m] > 0).map((m) => (
-        <Box key={m} flexDirection="row" alignItems="center" gap="s4">
-          <Icon name="medal" color={MEDAL_COLOR[m]} active size={16} />
-          <Text variant="caption" color="text">
-            {medals[m]}
-          </Text>
-        </Box>
-      ))}
-    </Box>
-  );
-}
-
-/** "Antes do Kimi" (card): the summarized previous record of a modality. */
-export function BeforeKimiCard({ record, onPress }: { record: PreviousRecord; onPress?: () => void }) {
-  return (
-    <Card onPress={onPress} accessibilityLabel={previousAccessibilityLabel(record)} flexDirection="row" alignItems="center" gap="s12">
-      <Box flex={1} gap="s4">
-        <Text variant="bodyStrong">{BEFORE_KIMI}</Text>
-        <Box flexDirection="row" alignItems="center" gap="s12">
-          <Text variant="caption" color="text">
-            {formatTally(record)}
-          </Text>
-          <InlineMedals medals={record} />
-        </Box>
-      </Box>
-      {onPress ? <Icon name="edit" color="textMuted" /> : null}
-    </Card>
-  );
-}
-
-/** A held championship in the history: name, date, placement and tally; opens its fights. */
-export function ChampionshipResultRow({ result, onPress }: { result: ChampionshipResult; onPress: () => void }) {
-  const tally = tallyFights(result.fights);
-  return (
-    <Card
-      onPress={onPress}
-      accessibilityLabel={[result.name, formatLocalDate(result.eventDate), result.isHistorical ? 'registro anterior' : null]
-        .filter(Boolean)
-        .join(', ')}
-      flexDirection="row" alignItems="center" gap="s12">
-      <Box flex={1} gap="s4">
-        <Text variant="bodyStrong">{result.name}</Text>
-        <Text variant="caption">{formatLocalDate(result.eventDate)}</Text>
-        <ResultLine placement={result.placement} tally={tally} />
-        {result.isHistorical ? <PreviousSeal /> : null}
-      </Box>
-      <Icon name="chevronRight" color="textMuted" />
-    </Card>
-  );
+  return `${BEFORE_KIMI}: ${tallyAccessibilityLabel(record)}`;
 }
 
 /** Read-only fights of one championship (sheet). */
@@ -264,10 +196,10 @@ function ChampionshipFightsSheet({ result, onClose }: { result: ChampionshipResu
 }
 
 /**
- * "Cartel" of an athlete, per modality, for the athlete themself and staff:
- * tally in display-lg, medals and the championships held (each opens its
- * fights). `modalityIds` are the modalities to show even without results
- * (where the athlete competes now).
+ * Staff, member page: "Cartel" of an athlete, per modality — tally in display-lg and medals.
+ * Tapping a card opens the Cartel screen of that athlete and modality (championships and
+ * fights). `modalityIds` are the modalities to show even without results (where the athlete
+ * competes now).
  */
 export function FightRecordSection({
   academyId,
@@ -275,6 +207,7 @@ export function FightRecordSection({
   modalities,
   modalityIds,
   only,
+  athleteName,
   title = 'Cartel',
 }: {
   academyId: string;
@@ -283,11 +216,12 @@ export function FightRecordSection({
   modalityIds: string[];
   /** Show just this modality. */
   only?: string;
+  /** Header subtitle of the Cartel screen opened from a card. */
+  athleteName: string;
   /** Section title; null = none (the Cartel screen has it in the header). */
   title?: string | null;
 }) {
   const cartel = useCartel(academyId, athleteId);
-  const [open, setOpen] = useState<ChampionshipResult | null>(null);
   const records = cartel.ready
     ? recordsByModality(cartel.history ?? [], modalityIds, cartel.previous).filter((r) => !only || r.modalityId === only)
     : [];
@@ -301,21 +235,19 @@ export function FightRecordSection({
       {title ? <Text variant="captionCaps">{title}</Text> : null}
       {cartel.isLoading ? <ActivityIndicator accessibilityLabel="Carregando cartel" /> : null}
       {cartel.isError ? <LoadError title="Não foi possível carregar o cartel" onRetry={cartel.refetch} /> : null}
-      {records.map((record) => {
-        // Previous and app championships together, newest first; the previous record last.
-        const championships = (cartel.history ?? []).filter((h) => h.modalityId === record.modalityId);
-        const before = cartel.previous?.find((p) => p.modalityId === record.modalityId);
-        return (
-          <Box key={record.modalityId} gap="s8">
-            <FightRecordCard record={record} title={nameOf(record.modalityId)} />
-            {championships.map((c) => (
-              <ChampionshipResultRow key={c.entryId} result={c} onPress={() => setOpen(c)} />
-            ))}
-            {before ? <BeforeKimiCard record={before} /> : null}
-          </Box>
-        );
-      })}
-      <ChampionshipFightsSheet result={open} onClose={() => setOpen(null)} />
+      {records.map((record) => (
+        <FightRecordCard
+          key={record.modalityId}
+          record={record}
+          title={nameOf(record.modalityId)}
+          onPress={() =>
+            router.push({
+              pathname: '/cartel',
+              params: { athleteId, modalityId: record.modalityId, modalityName: nameOf(record.modalityId), athleteName },
+            })
+          }
+        />
+      ))}
     </Box>
   );
 }
@@ -351,8 +283,7 @@ export function MyFightRecordCard() {
             <Text variant="captionCaps" flex={1}>{`Cartel · ${selected.name}`}</Text>
             <Icon name="chevronRight" color="textMuted" size={20} />
           </Box>
-          <FightTallyDisplay tally={record} />
-          <MedalRow medals={record} />
+          <FightTallyDisplay tally={record} compact />
         </Card>
       ) : null}
     </Box>
@@ -401,7 +332,7 @@ function EventRow({ result, last, onPress }: { result: ChampionshipResult; last:
   const outcome = [placement, fights].filter(Boolean).join(' · ') || 'Resultado ainda não registrado';
   const where = [formatLocalDate(result.eventDate), result.location || null].filter(Boolean).join(' · ');
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${result.name}, ${where}. ${outcome}.${result.isHistorical ? ' Registro anterior.' : ''} Ver lutas`}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${result.name}, ${where}. ${outcome}.${result.isHistorical ? ' Registro anterior.' : ''}${result.countsInRecord ? '' : ' Não conta no cartel.'} Ver lutas`}>
       <Box
         flexDirection="row"
         alignItems="center"
@@ -422,6 +353,7 @@ function EventRow({ result, last, onPress }: { result: ChampionshipResult; last:
             {outcome}
           </Text>
           {result.isHistorical ? <PreviousSeal /> : null}
+          {!result.countsInRecord ? <InternalSeal /> : null}
         </Box>
         <Icon name="chevronRight" color="textMuted" />
       </Box>
@@ -429,45 +361,71 @@ function EventRow({ result, last, onPress }: { result: ChampionshipResult; last:
   );
 }
 
-/** "Antes do Kimi" in the grouped history list: the previous record (not tappable), always last. */
-function BeforeKimiRow({ record }: { record: PreviousRecord }) {
-  return (
+/** "Antes do Kimi" in the grouped history list, always last; `onPress` (staff) edits it. */
+function BeforeKimiRow({ record, onPress }: { record: PreviousRecord; onPress?: () => void }) {
+  const row = (
     <Box
       flexDirection="row"
       alignItems="center"
       gap="s12"
       paddingVertical="s12"
-      accessible
-      accessibilityLabel={previousAccessibilityLabel(record)}
+      accessible={!onPress}
+      accessibilityLabel={onPress ? undefined : previousAccessibilityLabel(record)}
     >
       <Box width={40} height={40} alignItems="center" justifyContent="center" backgroundColor="surfaceRaised" style={{ borderRadius: 20 }}>
         <Icon name="clock" color="textMuted" size={20} />
       </Box>
       <Box flex={1} gap="s4">
         <Text variant="bodyStrong">{BEFORE_KIMI}</Text>
-        <Box flexDirection="row" alignItems="center" gap="s12">
-          <Text variant="caption" color="text">
-            {formatTally(record)}
-          </Text>
-          <InlineMedals medals={record} />
-        </Box>
+        <Text variant="caption" color="text">
+          {formatTally(record)}
+        </Text>
       </Box>
+      {onPress ? <Icon name="edit" color="textMuted" /> : null}
     </Box>
+  );
+  if (!onPress) return row;
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${previousAccessibilityLabel(record)}. Editar`}>
+      {row}
+    </Pressable>
   );
 }
 
+/** Staff's edit requests from the Cartel screen (see PreviousHistoryEditor). */
+export type CartelEditRequest =
+  | { kind: 'record'; modalityId: string }
+  | { kind: 'create' }
+  | { kind: 'championship'; championshipId: string; mode: 'results' | 'edit' };
+
 /**
- * Cartel (stack screen, from the Perfil card), own, of the modality selected
- * in the Início header (in the header subtitle): the summary (tally, medals,
- * events) and "Histórico de lutas" — one row per event, newest first, with a
- * discreet result badge; each opens its fights.
+ * Cartel (stack screen): the summary (tally, medals, events) and "Histórico de lutas" — one
+ * row per event, newest first, with a discreet result badge; each opens its fights.
+ *  - From the Perfil card: own, of the modality selected in the Início header (header subtitle).
+ *  - From a member's page (staff): params `athleteId`, `modalityId`, `modalityName`, `athleteName`.
+ *    Staff get a "⋯" menu (register the previous record / add a previous championship) and edit
+ *    the previous items by tapping them; `staffEditor` renders the sheets that do it.
  */
-export function CartelScreen() {
+export function CartelScreen({
+  staffEditor,
+}: {
+  staffEditor?: (ctx: {
+    athleteId: string;
+    modalityId: string;
+    request: CartelEditRequest | null;
+    onRequestChange: (request: CartelEditRequest | null) => void;
+  }) => ReactNode;
+} = {}) {
   const { userId } = useSession();
   const { active } = useActiveGym();
-  const { selected } = useActiveModality();
-  const cartel = useCartel(active?.gymId, userId ?? undefined);
+  const own = useActiveModality().selected;
+  const params = useLocalSearchParams<{ athleteId?: string; modalityId?: string; modalityName?: string; athleteName?: string }>();
+  const ofOther = !!params.athleteId && !!params.modalityId;
+  const selected = ofOther ? { id: params.modalityId!, name: params.modalityName ?? '' } : own;
+  const cartel = useCartel(active?.gymId, ofOther ? params.athleteId : (userId ?? undefined));
   const [open, setOpen] = useState<ChampionshipResult | null>(null);
+  const [request, setRequest] = useState<CartelEditRequest | null>(null);
+  const staff = ofOther && !!staffEditor;
   // Previous and app championships together, by date (newest first).
   const events = (cartel.history ?? [])
     .filter((h) => h.modalityId === selected?.id)
@@ -479,14 +437,26 @@ export function CartelScreen() {
       : undefined;
 
   return (
-    <Screen nativeHeader title="Cartel" subtitle={selected?.name} onBack={() => router.back()}>
+    <Screen
+      nativeHeader
+      title="Cartel"
+      subtitle={ofOther ? [params.athleteName, selected?.name].filter(Boolean).join(' · ') : selected?.name}
+      onBack={() => router.back()}
+      headerRight={
+        staff && selected ? (
+          <StaffCartelMenu
+            hasPrevious={!!before}
+            onSelect={(kind) => setRequest(kind === 'record' ? { kind, modalityId: selected.id } : { kind })}
+          />
+        ) : undefined
+      }
+    >
       {cartel.isLoading ? <ActivityIndicator accessibilityLabel="Carregando cartel" /> : null}
       {cartel.isError ? <LoadError title="Não foi possível carregar o cartel" onRetry={cartel.refetch} /> : null}
       {record ? (
         <Box gap="s32" paddingTop="s16">
           <Card gap="s16" paddingVertical="s24">
             <FightTallyDisplay tally={record} />
-            <MedalRow medals={record} />
             <Text variant="caption" textAlign="center">
               {record.championships === 0
                 ? 'Nenhum campeonato ainda'
@@ -500,20 +470,69 @@ export function CartelScreen() {
             </Text>
             {events.length === 0 && !before ? (
               <Text variant="body" color="textMuted">
-                Os campeonatos que você disputar aparecem aqui, com o resultado de cada luta.
+                {ofOther
+                  ? 'Os campeonatos que o atleta disputar aparecem aqui, com o resultado de cada luta.'
+                  : 'Os campeonatos que você disputar aparecem aqui, com o resultado de cada luta.'}
               </Text>
             ) : (
               <Card paddingVertical="none">
                 {events.map((e, i) => (
-                  <EventRow key={e.entryId} result={e} last={!before && i === events.length - 1} onPress={() => setOpen(e)} />
+                  <EventRow
+                    key={e.entryId}
+                    result={e}
+                    last={!before && i === events.length - 1}
+                    onPress={() =>
+                      // Staff edit a previous championship; everything else opens its fights.
+                      staff && e.isHistorical
+                        ? setRequest({ kind: 'championship', championshipId: e.championshipId, mode: 'results' })
+                        : setOpen(e)
+                    }
+                  />
                 ))}
-                {before ? <BeforeKimiRow record={before} /> : null}
+                {before ? (
+                  <BeforeKimiRow
+                    record={before}
+                    onPress={staff && selected ? () => setRequest({ kind: 'record', modalityId: selected.id }) : undefined}
+                  />
+                ) : null}
               </Card>
             )}
           </Box>
         </Box>
       ) : null}
+      {staff
+        ? staffEditor!({ athleteId: params.athleteId!, modalityId: params.modalityId!, request, onRequestChange: setRequest })
+        : null}
       <ChampionshipFightsSheet result={open} onClose={() => setOpen(null)} />
     </Screen>
+  );
+}
+
+const STAFF_MENU = [
+  { id: 'record', title: 'Registrar cartel anterior' },
+  { id: 'create', title: 'Adicionar campeonato anterior' },
+] as const;
+
+/** Staff, header "⋯": the history before the app (previous record, previous championship). */
+function StaffCartelMenu({ hasPrevious, onSelect }: { hasPrevious: boolean; onSelect: (kind: 'record' | 'create') => void }) {
+  const options = STAFF_MENU.map((o) => ({
+    id: o.id,
+    title: o.id === 'record' && hasPrevious ? 'Editar cartel anterior' : o.title,
+  }));
+  return (
+    <HeaderMenu
+      accessibilityLabel="Mais opções"
+      label={<Icon name="more" color="text" />}
+      options={options}
+      selectedId={null}
+      onSelect={(id) => onSelect(id as 'record' | 'create')}
+      // Build without the native menu: the same two options in an alert.
+      onFallbackPress={() =>
+        Alert.alert('Cartel', undefined, [
+          ...options.map((o) => ({ text: o.title, onPress: () => onSelect(o.id) })),
+          { text: 'Cancelar', style: 'cancel' as const },
+        ])
+      }
+    />
   );
 }

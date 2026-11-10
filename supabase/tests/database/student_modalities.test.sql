@@ -12,7 +12,7 @@ create extension if not exists pgtap with schema extensions;
 select set_config('search_path', concat_ws(',',
   (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
   'public', 'extensions'), true);
-select plan(129);
+select plan(122);
 grant usage on schema private to authenticated;
 grant execute on function private.ranking_facts_internal(uuid,uuid,date,date) to authenticated;
 
@@ -491,36 +491,34 @@ $$;
 create function pg_temp.classes(p_user text, p_mod text, p_day date) returns int language sql as $$
   select (e->>'classes')::int from jsonb_array_elements(pg_temp.facts(p_user, p_mod)->'attendance') e where e->>'day' = p_day::text
 $$;
+create function pg_temp.scheduled(p_user text, p_mod text, p_day date) returns int language sql as $$
+  select (e->>'scheduled')::int from jsonb_array_elements(pg_temp.facts(p_user, p_mod)->'attendance') e where e->>'day' = p_day::text
+$$;
+grant execute on function pg_temp.scheduled(text, text, date) to public;
 create function pg_temp.done(p_user text, p_day date) returns boolean language sql as $$
   select (e->>'done')::boolean from jsonb_array_elements(pg_temp.facts(p_user, 'jj')->'hydration') e where e->>'day' = p_day::text
 $$;
 grant execute on function pg_temp.facts(text, text), pg_temp.classes(text, text, date), pg_temp.done(text, date) to public;
 
 select pg_temp.login(pg_temp.id('o'));
-select is((pg_temp.facts('r', 'jj')->>'weekly_goal')::int, 2, 'weekly goal: defaults to the modality goal (2)');
-update public.academy_modalities set weekly_class_goal = 3 where id = pg_temp.mod('jj');
-select is((pg_temp.facts('r', 'jj')->>'weekly_goal')::int, 3, 'weekly goal: follows the modality goal set by the owner');
-select is((pg_temp.facts('r', 'mt')->>'weekly_goal')::int, 2, 'weekly goal: another modality keeps its own goal');
-select lives_ok($$ select public.set_student_weekly_goal(pg_temp.mid('r'), pg_temp.mod('jj'), 5::smallint) $$,
-  'weekly goal: staff override it for one student');
-select is((pg_temp.facts('r', 'jj')->>'weekly_goal')::int, 5, 'weekly goal: the override wins');
-select is((pg_temp.facts('r', 'mt')->>'weekly_goal')::int, 2, 'weekly goal: the override is per modality');
-select is((pg_temp.facts('r2', 'jj')->>'weekly_goal')::int, 3, 'weekly goal: other students keep the modality goal');
-select throws_ok($$ select public.set_student_weekly_goal(pg_temp.mid('r'), pg_temp.mod('jj'), 0::smallint) $$,
-  '22023', 'weekly_goal_invalid', 'weekly goal: 0 is refused');
-select throws_ok($$ select public.set_student_weekly_goal(pg_temp.mid('r'), pg_temp.mod('jj'), 15::smallint) $$,
-  '22023', 'weekly_goal_invalid', 'weekly goal: more than 14 is refused');
-select throws_ok($$ select public.set_student_weekly_goal(pg_temp.mid('r2'), pg_temp.mod('mt'), 3::smallint) $$,
-  '22023', 'invalid_modality_enrollment', 'weekly goal: only for a modality the student is linked to');
-select lives_ok($$ select public.set_student_weekly_goal(pg_temp.mid('r'), pg_temp.mod('jj'), null) $$, 'weekly goal: null clears the override');
-select is((pg_temp.facts('r', 'jj')->>'weekly_goal')::int, 3, 'weekly goal: back to the modality goal');
-select pg_temp.login(pg_temp.id('r'));
-select throws_ok($$ select public.set_student_weekly_goal(pg_temp.mid('r'), pg_temp.mod('jj'), 1::smallint) $$,
-  '42501', 'forbidden', 'weekly goal: a student cannot set their own override');
-update public.academy_modalities set weekly_class_goal = 14 where id = pg_temp.mod('jj');
+-- Ranking presence follows the modality's grid: scheduled classes per eligible day.
 select pg_temp.logout();
-select is((select weekly_class_goal from public.academy_modalities where id = pg_temp.mod('jj')), 3::smallint,
-  'weekly goal: a student cannot change the modality goal (RLS filters the update)');
+update public.class_schedules set created_at = now() - interval '40 days' where academy_id = pg_temp.id('a1');
+select pg_temp.login(pg_temp.id('o'));
+select is(pg_temp.scheduled('r', 'jj', pg_temp.today() - 3), 2, 'grid: both Jiu-Jitsu classes of that weekday');
+select is(pg_temp.scheduled('r', 'mt', pg_temp.today() - 3), 1, 'grid: the Muay Thai ranking counts only its own classes');
+select pg_temp.logout();
+insert into public.class_schedules (academy_id, weekday, start_time, modality_id, active, created_at) values
+  (pg_temp.id('a1'), extract(dow from pg_temp.today() - 4)::int, '21:00', pg_temp.mod('jj'), false, now() - interval '40 days'),
+  (pg_temp.id('a1'), extract(dow from pg_temp.today() - 2)::int, '21:00', pg_temp.mod('jj'), true, now());
+select pg_temp.login(pg_temp.id('o'));
+select is(pg_temp.scheduled('r', 'jj', pg_temp.today() - 4), 2, 'grid: an inactive schedule is not counted');
+select is(pg_temp.scheduled('r', 'jj', pg_temp.today() - 2), 2, 'grid: a schedule created after the day is not counted for it');
+select pg_temp.logout();
+delete from public.class_schedules where academy_id = pg_temp.id('a1') and start_time = '21:00';
+select ok(to_regprocedure('public.set_student_weekly_goal(uuid,uuid,smallint)') is null, 'weekly goal: the per-student RPC is gone');
+select hasnt_column('public', 'academy_modalities', 'weekly_class_goal', 'weekly goal: modalities have no goal');
+select hasnt_column('public', 'student_modality_enrollments', 'weekly_class_goal', 'weekly goal: students have no goal');
 
 -- Confirmed classes per day, by modality.
 insert into public.checkins (user_id, academy_id, schedule_id, class_date, status) values

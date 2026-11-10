@@ -3,8 +3,11 @@ import { computeStreak, WATER_STREAK_RULE } from '@domain/Streaks/streakRules';
 
 import { RANKING_CONFIG, type RankingConfig } from './rankingConfig';
 
-/** One eligible day of the student in the modality (academy and modality links both active). */
-export interface AttendanceFact { day: string; classes: number }
+/**
+ * One eligible day of the student in the modality (academy and modality links both active):
+ * confirmed classes and the classes the modality's grid has that day.
+ */
+export interface AttendanceFact { day: string; classes: number; scheduled: number }
 export interface HydrationFact { day: string; known: boolean; done: boolean; eligible: boolean }
 export interface RankingFacts {
   modalityId: string;
@@ -14,8 +17,6 @@ export interface RankingFacts {
   today: string;
   periodFrom: string;
   periodTo: string;
-  /** Confirmed classes per week that count as 100 % (student override or the modality's goal). */
-  weeklyGoal: number;
   /** Eligible days of the period with the confirmed classes of the modality that day. */
   attendance: AttendanceFact[];
   /** Entire known history, including before periodFrom, for the water freezes. */
@@ -28,11 +29,12 @@ export interface RankingEntry {
   fullName: string;
   avatarPath: string | null;
   rankingScore: number;
-  /** Mean of the weekly presence (confirmed ÷ weekly goal, at most 100 % per week). */
+  /** Mean of the weekly presence (confirmed ÷ classes in the grid, at most 100 % per week). */
   attendanceRate: number;
   hydrationRate: number;
   confirmedClasses: number;
-  weeklyGoal: number;
+  /** Classes of the modality's grid on the eligible days of the window. */
+  scheduledClasses: number;
   /** Weeks of the window with at least one eligible day. */
   weeks: number;
   hydrationGoalsAchieved: number;
@@ -58,25 +60,25 @@ function dayDiff(a: string, b: string): number {
 }
 
 /**
- * Weekly presence: the period is split into weeks of 7 days counted back from
- * its last day. Each week with eligible days counts confirmed ÷ goal, at most
- * 100 %, with the goal prorated by the eligible days of that week (a student
- * linked mid-week is not asked for a whole week). The presence is the mean of
- * those weeks.
+ * Weekly presence (user decision 2026-11-10: the modality's grid, no weekly goal): the period
+ * is split into weeks of 7 days counted back from its last day. Each week counts confirmed ÷
+ * the classes of the grid on its eligible days, at most 100 % (a student linked mid-week is
+ * only asked for the classes after the link). A week without classes in the grid is left
+ * out. The presence is the mean of the weeks that count.
  */
-export function weeklyPresence(attendance: AttendanceFact[], periodTo: string, weeklyGoal: number) {
-  const weeks = new Map<number, { days: number; classes: number }>();
+export function weeklyPresence(attendance: AttendanceFact[], periodTo: string) {
+  const weeks = new Map<number, { classes: number; scheduled: number }>();
   for (const a of attendance) {
     const week = Math.floor(dayDiff(a.day, periodTo) / 7);
-    const w = weeks.get(week) ?? { days: 0, classes: 0 };
-    w.days += 1;
+    const w = weeks.get(week) ?? { classes: 0, scheduled: 0 };
     w.classes += a.classes;
+    w.scheduled += a.scheduled;
     weeks.set(week, w);
   }
-  if (!weeks.size || weeklyGoal <= 0) return { rate: 0, weeks: weeks.size };
-  let sum = 0;
-  for (const w of weeks.values()) sum += Math.min(1, w.classes / ((weeklyGoal * w.days) / 7));
-  return { rate: sum / weeks.size, weeks: weeks.size };
+  const rated = [...weeks.values()].filter((w) => w.scheduled > 0);
+  if (!rated.length) return { rate: 0, weeks: weeks.size };
+  const sum = rated.reduce((n, w) => n + Math.min(1, w.classes / w.scheduled), 0);
+  return { rate: sum / rated.length, weeks: weeks.size };
 }
 
 /** The single score implementation. Inputs are authorized, server-derived facts;
@@ -103,15 +105,16 @@ export function calculateRanking(facts: RankingFacts[], modalityId: string, conf
     const protectedDays = waterDays.length - water.length;
     const hydrationGoalsAchieved = water.filter((d) => d.done).length;
     const hydrationRate = water.length ? hydrationGoalsAchieved / water.length : 0;
-    const presence = weeklyPresence(attendance, f.periodTo, f.weeklyGoal);
+    const presence = weeklyPresence(attendance, f.periodTo);
     const confirmedClasses = attendance.reduce((n, a) => n + a.classes, 0);
+    const scheduledClasses = attendance.reduce((n, a) => n + a.scheduled, 0);
     const eligibleDays = attendance.length;
     const score = (presence.rate * config.attendanceWeight + hydrationRate * config.hydrationWeight) * config.score.max;
     const daysToQualify = Math.max(0, config.eligibility.minEligibleDays - eligibleDays);
     return {
       modalityId, userId: f.userId, fullName: f.fullName, avatarPath: f.avatarPath, position: null,
       rankingScore: Math.max(config.score.min, Math.min(config.score.max, score)),
-      attendanceRate: presence.rate, hydrationRate, confirmedClasses, weeklyGoal: f.weeklyGoal, weeks: presence.weeks,
+      attendanceRate: presence.rate, hydrationRate, confirmedClasses, scheduledClasses, weeks: presence.weeks,
       hydrationGoalsAchieved, eligibleHydrationDays: water.length, protectedDays,
       eligibleDays, daysToQualify, status: daysToQualify ? 'qualifying' : 'ranked', previousPosition: null,
     };

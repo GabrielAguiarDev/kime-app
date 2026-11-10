@@ -16,13 +16,13 @@ Não existe ledger de penalidades ou congelamentos novo. A consulta não escreve
 
 Parâmetros centralizados em `src/domain/Ranking/rankingConfig.ts`. Sempre UMA modalidade (não existe "Todas", nem para owner e professor).
 
-- **Presença (70%)**: a janela de 28 dias completos é dividida em 4 semanas de 7 dias, contadas para trás a partir de ontem. Em cada semana com dias elegíveis, presença = aulas confirmadas na modalidade ÷ meta semanal, limitada a 100%. A meta semanal é a do aluno nessa modalidade (`student_modality_enrollments.weekly_class_goal`, definida pelo staff no detalhe do aluno) ou a da modalidade (`academy_modalities.weekly_class_goal`, padrão 2, definida pelo owner em Modalidades). Numa semana com só parte dos dias elegíveis (vínculo novo), a meta é proporcional aos dias. Presença final = média das semanas.
+- **Presença (70%)**: a janela de 28 dias completos é dividida em 4 semanas de 7 dias, contadas para trás a partir de ontem. Em cada semana, presença = aulas confirmadas na modalidade ÷ aulas da grade da modalidade nos dias elegíveis da semana, limitada a 100% (decisão do usuário, 2026-11-10: não existe mais meta semanal). A grade de um dia = horários ativos da modalidade naquele dia da semana, criados até aquele dia. Numa semana com só parte dos dias elegíveis (vínculo novo), contam só as aulas desses dias. Semana sem aula na grade fica fora da média. Presença final = média das semanas que contam. Ver `supabase/migrations/20261110020000_attendance_by_schedule.sql`.
 - **Água (30%)**: dias em que o aluno cumpriu a PRÓPRIA meta ÷ dias com meta conhecida e elegíveis. Nunca o volume. A meta do dia é a do plano do professor (competidores) ou a automática. Dia de **meta**: cumprido com total ≥ valor. Dia de **limite** (plano): cumprido com total entre 90% e 100% do valor; passar do limite = não cumprido. A água é pessoal: o mesmo histórico vale em todas as modalidades do aluno.
 - **Sem penalidades.** Congelamentos de água continuam (1 a cada 7 dias seguidos, até 2): o dia coberto sai do denominador, sem somar nem tirar ponto.
 - **Pontuação** = (0,7 × presença + 0,3 × água) × 100.
 - **Classificação**: mínimo de 7 dias elegíveis (vínculo ativo na academia e na modalidade). Antes disso, "Em classificação", sem posição.
 - **Desempate**: pontuação, total de aulas confirmadas no período, taxa de água, UUID estável.
-- **Tela**: colegas aparecem só com posição, foto, nome e pontuação. O próprio aluno toca na sua linha para ver presença, aulas, meta semanal, dias de água cumpridos e dias protegidos.
+- **Tela**: colegas aparecem só com posição, foto, nome e pontuação. O próprio aluno toca na sua linha para ver presença, aulas confirmadas de quantas da grade, dias de água cumpridos e dias protegidos.
 
 `academy_ranking_facts` devolve, por aluno: `weekly_goal`, `attendance` = um item por dia elegível `{day, classes}` (check-ins confirmados da modalidade no dia) e `hydration` (booleano `done` já com a regra de meta/limite; volumes nunca saem do banco).
 
@@ -59,7 +59,7 @@ Para preservar congelamentos, a RPC devolve o histórico booleano conhecido de h
 
 - `src/domain/Ranking/`: configuração, cálculo, tipos e consulta.
 - `src/screens/ranking/RankingScreen.tsx`: lista (colegas: posição, foto, nome e pontuação) e os números do próprio aluno.
-- `src/screens/professor/MemberDetailScreen.tsx`: modalidades do aluno e meta semanal dele.
+- `src/screens/professor/MemberDetailScreen.tsx`: modalidades do aluno.
 - `src/screens/staff/StaffHome.tsx`: resumo do ranking contínuo.
 - `src/domain/Classes/useCases/useClasses.ts`, `src/domain/Water/useCases/useWater.ts`, `src/services/water/useWaterSync.ts`: calendário/cache.
 - `src/domain/Streaks/streakApi.ts`, `src/services/water/useRecordWaterGoal.ts`: meta derivada no servidor.
@@ -71,6 +71,6 @@ Validação concluída: 222 testes Jest (23 suítes), 556 testes pgTAP (12 arqui
 
 ## Vínculo aluno ↔ modalidade (2026-11-05)
 
-`student_modality_enrollments` é o vínculo do aluno com cada modalidade: `active` ou `ended` (a suspensão saiu; as suspensas viraram encerradas), com `started_at`, a meta semanal do aluno e o competidor POR modalidade (`is_competitor`, `competitor_since`, convite). `private.modality_active_periods` guarda cada intervalo ativo. Um aluno ativo tem sempre pelo menos um vínculo ativo (constraint trigger adiado, `student_modality_required`). Escrita só pelas RPCs `approve_student` (aprovação com as modalidades) e `set_student_modalities` (o conjunto inteiro, mínimo um); remover encerra o vínculo e preserva aulas e faixas. Ver `supabase/migrations/20261105210000_student_modalities.sql`.
+`student_modality_enrollments` é o vínculo do aluno com cada modalidade: `active` ou `ended` (a suspensão saiu; as suspensas viraram encerradas), com `started_at` e o competidor POR modalidade (`is_competitor`, `competitor_since`, convite). `private.modality_active_periods` guarda cada intervalo ativo. Um aluno ativo tem sempre pelo menos um vínculo ativo (constraint trigger adiado, `student_modality_required`). Escrita só pelas RPCs `approve_student` (aprovação com as modalidades) e `set_student_modalities` (o conjunto inteiro, mínimo um); remover encerra o vínculo e preserva aulas e faixas. Ver `supabase/migrations/20261105210000_student_modalities.sql`.
 
 O banco filtra os participantes pelo vínculo com a modalidade; consultas que terminam antes de ontem incluem vínculos que estiveram ativos no período. Para alunos, a RPC exige o próprio vínculo: um aluno de Muay Thai não consulta o ranking de BJJ trocando o identificador.

@@ -95,6 +95,7 @@ export const hasMedals = (m: MedalCount) => m.gold + m.silver + m.bronze > 0;
  * Record per modality from the athlete's history (staff and the athlete see the full history).
  * Totals = previous record ("Antes do Kimi") + previous championships + championships in the app
  * (the last two are both in `history`). `championships` counts the championships only.
+ * An internal championship (`countsInRecord` false) stays out of every total.
  */
 export function recordsByModality(
   history: ChampionshipResult[],
@@ -103,7 +104,7 @@ export function recordsByModality(
 ): FightRecord[] {
   const ids = [...new Set([...modalityIds, ...history.map((h) => h.modalityId), ...previous.map((p) => p.modalityId)])];
   return ids.map((modalityId) => {
-    const own = history.filter((h) => h.modalityId === modalityId);
+    const own = history.filter((h) => h.modalityId === modalityId && h.countsInRecord);
     const tally = tallyFights(own.flatMap((h) => h.fights));
     const medals = countMedals(own.map((h) => h.placement));
     const before = previous.find((p) => p.modalityId === modalityId);
@@ -126,6 +127,15 @@ export const PREVIOUS_RECORD_MAX = 9999;
 /** A previous championship happened before today (academy-local date). */
 export function isPastDate(today: LocalDate, date: LocalDate): boolean {
   return date < today;
+}
+
+/**
+ * Medals of the previous record come from its fights (user decision 2026-11-10): each win is
+ * a gold medal, each loss a silver one; a draw gives none. Saved with the record, so the
+ * server summary (classmates) adds the same numbers.
+ */
+export function previousMedals({ wins, losses }: Pick<FightTally, 'wins' | 'losses'>): MedalCount {
+  return { gold: wins, silver: losses, bronze: 0 };
 }
 
 /** Nothing recorded (all zeros): saving it removes the line. */

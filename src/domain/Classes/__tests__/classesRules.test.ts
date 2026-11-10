@@ -143,8 +143,8 @@ describe('beltsOf', () => {
 
 describe('trainedModalities', () => {
   const mods: Modality[] = [
-    { id: 'bjj', name: 'Jiu-Jitsu', position: 0, usesBelts: true, weeklyClassGoal: 2 },
-    { id: 'mt', name: 'Muay Thai', position: 1, usesBelts: false, weeklyClassGoal: 2 },
+    { id: 'bjj', name: 'Jiu-Jitsu', position: 0, usesBelts: true },
+    { id: 'mt', name: 'Muay Thai', position: 1, usesBelts: false },
   ];
   const stat = (modalityId: string, over: Partial<ModalityStats> = {}): ModalityStats => ({
     membershipId: 'm', userId: 'u', modalityId, beltId: null, beltAwardedAt: null,

@@ -132,6 +132,22 @@ select is((select count(*)::int from public.athlete_fight_history(pg_temp.id('ac
 select is((select wins||'-'||losses||'-'||draws||'/'||bronze from public.fight_record_summary(pg_temp.id('academy'),pg_temp.id('ana'))),
   '1-1-0/1','summary of own record');
 
+-- Internal championship: does not count in the record (staff decide).
+update public.championships set counts_in_record=false where id=pg_temp.id('past');
+select pg_temp.admin();
+select is((select counts_in_record from public.championships where id=pg_temp.id('past')),true,'the athlete cannot change counts_in_record');
+select pg_temp.login(pg_temp.id('inst'));
+update public.championships set counts_in_record=false where id=pg_temp.id('past');
+select is((select counts_in_record from public.championships where id=pg_temp.id('past')),false,'staff mark a championship as internal');
+select pg_temp.login(pg_temp.id('ana'));
+select is((select wins||'-'||losses||'-'||draws||'/'||championships from public.fight_record_summary(pg_temp.id('academy'),pg_temp.id('ana'))),
+  '0-0-0/0','an internal championship stays out of the record');
+select is((select counts_in_record::text||'/'||jsonb_array_length(fights) from public.athlete_fight_history(pg_temp.id('academy'),pg_temp.id('ana'))),
+  'false/2','history still lists the internal championship, flagged');
+select pg_temp.login(pg_temp.id('inst'));
+update public.championships set counts_in_record=true where id=pg_temp.id('past');
+select pg_temp.login(pg_temp.id('ana'));
+
 select pg_temp.login(pg_temp.id('bia'));
 select is((select count(*)::int from public.championship_fights),0,'a classmate does not read fights');
 select throws_ok(format('select * from public.athlete_fight_history(%L,%L)',pg_temp.id('academy'),pg_temp.id('ana')),

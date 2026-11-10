@@ -1,7 +1,7 @@
 import { supabase } from '@infra/supabase';
 
 const ENROLLMENTS =
-  'student_modality_enrollments(id, modality_id, status, started_at, weekly_class_goal, is_competitor, competitor_invited_at, competitor_since)';
+  'student_modality_enrollments(id, modality_id, status, started_at, is_competitor, competitor_invited_at, competitor_since)';
 
 async function listMine(userId: string) {
   const { data, error } = await supabase
@@ -70,17 +70,6 @@ async function setStudentModalities(membershipId: string, modalityIds: string[])
   if (error) throw error;
 }
 
-/** Staff: weekly class goal of one student in one modality (null = the modality's goal). */
-async function setStudentWeeklyGoal(membershipId: string, modalityId: string, goal: number | null) {
-  const { error } = await supabase.rpc('set_student_weekly_goal', {
-    p_membership_id: membershipId,
-    p_modality_id: modalityId,
-    // Null is valid for the RPC (back to the modality's goal); the generated type says number.
-    p_goal: goal as number,
-  });
-  if (error) throw error;
-}
-
 export const membershipApi = {
   listMine,
   listByGym,
@@ -89,7 +78,6 @@ export const membershipApi = {
   decide,
   approveStudent,
   setStudentModalities,
-  setStudentWeeklyGoal,
   transferOwnership,
 };
 

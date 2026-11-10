@@ -19,6 +19,7 @@ interface CardProps extends BoxProps {
 /**
  * Card (DESIGN-SYSTEM.md, 3.2): surface, 2px border, radius-lg, padding 16.
  * Outer spacing (margins) applies to the whole card including its edge; everything else styles the face.
+ * Every card takes the edge's 4px below the face (transparent on a static card), so gaps match.
  * Visual states: rest, pressed (tappable only), selected, disabled.
  */
 export function Card({
@@ -41,8 +42,11 @@ export function Card({
     // TODO(motion): tappable card sinking on press and rising back (same as the tactile button).
     const edgeHeight = tappable && !pressed && !disabled ? theme.border.edgeWidth : 0;
     const offset = tappable ? theme.border.edgeWidth - edgeHeight : 0;
+    // A static card keeps the edge's room (transparent): in a list mixing static and tappable
+    // cards, every gap looks the same.
+    const room = tappable ? 0 : theme.border.edgeWidth;
     return (
-      <Box style={{ paddingTop: offset }}>
+      <Box style={{ paddingTop: offset, paddingBottom: room }}>
         <Box
           backgroundColor={edgeHeight > 0 ? 'edge' : 'transparent'}
           borderRadius="lg"

@@ -42,6 +42,7 @@ import { EnvelopeSimple } from 'phosphor-react-native/src/icons/EnvelopeSimple';
 import { Lock } from 'phosphor-react-native/src/icons/Lock';
 import { Medal } from 'phosphor-react-native/src/icons/Medal';
 import { Minus } from 'phosphor-react-native/src/icons/Minus';
+import { DotsThree } from 'phosphor-react-native/src/icons/DotsThree';
 import { Moon } from 'phosphor-react-native/src/icons/Moon';
 import { PencilSimple } from 'phosphor-react-native/src/icons/PencilSimple';
 import { Plus } from 'phosphor-react-native/src/icons/Plus';
@@ -93,6 +94,7 @@ const ICONS = {
   locked: Lock,
   plus: Plus,
   minus: Minus,
+  more: DotsThree,
   deactivate: Prohibit,
   trash: Trash,
   apple: AppleLogo,

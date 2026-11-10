@@ -9,8 +9,6 @@ export interface StudentModality {
   modalityId: string;
   /** Start of the current link. */
   startedAt: string;
-  /** Staff override of the modality's weekly class goal (null = the modality's goal). */
-  weeklyClassGoal: number | null;
   /** Accepted the invite to compete in this modality. */
   isCompetitor: boolean;
   /** Pending invite to compete in this modality. */

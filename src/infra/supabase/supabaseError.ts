@@ -20,7 +20,6 @@ export type AppErrorCode =
   | 'invalid_belts'
   | 'invalid_modality_enrollment'
   | 'student_modality_required'
-  | 'weekly_goal_invalid'
   | 'modality_enrollment_required'
   | 'invalid_ranking_modality'
   | 'invalid_ranking_period'
@@ -79,7 +78,6 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'invalid_belts',
   'invalid_modality_enrollment',
   'student_modality_required',
-  'weekly_goal_invalid',
   'modality_enrollment_required',
   'invalid_ranking_modality',
   'invalid_ranking_period',
@@ -195,7 +193,6 @@ const MESSAGES: Record<AppErrorCode, string> = {
   invalid_belts: 'Confira as faixas das modalidades.',
   invalid_modality_enrollment: 'Confira se o aluno e a modalidade estão ativos nesta academia.',
   student_modality_required: 'O aluno precisa de pelo menos uma modalidade.',
-  weekly_goal_invalid: 'A meta semanal vai de 1 a 14 aulas.',
   modality_enrollment_required: 'Ative a matrícula do aluno nesta modalidade antes de definir uma turma obrigatória.',
   invalid_ranking_modality: 'Escolha uma modalidade desta academia para consultar o ranking.',
   invalid_ranking_period: 'Escolha um período de dias completos, de até 366 dias.',

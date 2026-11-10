@@ -1,4 +1,4 @@
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { FlipType, ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { ImagePickerOptions } from 'expo-image-picker';
 import { Platform } from 'react-native';
 
@@ -21,6 +21,7 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 export async function prepareSquareImage(
   uri: string,
   size: number = SQUARE_IMAGE_SIZE,
+  mirror = false,
 ): Promise<{ bytes: ArrayBuffer; contentType: string; extension: string }> {
   const original = await ImageManipulator.manipulate(uri).renderAsync();
   const side = Math.min(original.width, original.height);
@@ -33,6 +34,7 @@ export async function prepareSquareImage(
       height: side,
     });
   }
+  if (mirror) context.flip(FlipType.Horizontal);
   context.resize({ width: size, height: size });
   const image = await context.renderAsync();
   const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });

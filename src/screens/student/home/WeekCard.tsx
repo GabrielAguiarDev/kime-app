@@ -10,15 +10,15 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /**
  * "Sua semana" (Duolingo-like calendar): Monday–Sunday in small circles with
- * two marks per day (confirmed class, water goal met), the classes of the
- * week against the modality's weekly goal, and both streaks. A streak at
+ * two marks per day (confirmed class, water goal met), the days trained this
+ * week against the days the modality's grid has classes, and both streaks. A streak at
  * risk turns the text into a friendly alert. Opens Disciplina.
  */
 export function WeekCard({
   today,
   trainedDays,
   waterDoneDays,
-  weeklyGoal,
+  classDays,
   training,
   water,
   timeZone,
@@ -28,7 +28,8 @@ export function WeekCard({
   trainedDays: Set<LocalDate>;
   /** Days with the water goal met. */
   waterDoneDays: Set<LocalDate>;
-  weeklyGoal: number;
+  /** Days of the week with a class of the selected modality in the grid. */
+  classDays: number;
   training: Streak | null;
   water: Streak | null;
   timeZone: string | undefined;
@@ -95,7 +96,7 @@ export function WeekCard({
           );
         })}
       </Box>
-      <Text variant="bodyStrong">{`${classes} de ${plural(weeklyGoal, 'treino', 'treinos')} desta semana`}</Text>
+      <Text variant="bodyStrong">{`${classes} de ${plural(classDays, 'treino', 'treinos')} desta semana`}</Text>
       <Box flexDirection="row" gap="s24">
         <Box flexDirection="row" alignItems="center" gap="s8">
           <Icon name="flame" color={training && training.current > 0 ? 'accent' : 'disabled'} active={!!training?.currentDone} />

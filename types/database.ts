@@ -393,7 +393,6 @@ export type Database = {
           position: number
           updated_at: string
           uses_belts: boolean
-          weekly_class_goal: number
         }
         Insert: {
           academy_id: string
@@ -403,7 +402,6 @@ export type Database = {
           position?: number
           updated_at?: string
           uses_belts?: boolean
-          weekly_class_goal?: number
         }
         Update: {
           academy_id?: string
@@ -413,7 +411,6 @@ export type Database = {
           position?: number
           updated_at?: string
           uses_belts?: boolean
-          weekly_class_goal?: number
         }
         Relationships: [
           {
@@ -676,6 +673,7 @@ export type Database = {
       championships: {
         Row: {
           academy_id: string
+          counts_in_record: boolean
           created_at: string
           event_date: string
           historical_athlete_id: string | null
@@ -688,6 +686,7 @@ export type Database = {
         }
         Insert: {
           academy_id: string
+          counts_in_record?: boolean
           created_at?: string
           event_date: string
           historical_athlete_id?: string | null
@@ -700,6 +699,7 @@ export type Database = {
         }
         Update: {
           academy_id?: string
+          counts_in_record?: boolean
           created_at?: string
           event_date?: string
           historical_athlete_id?: string | null
@@ -1580,8 +1580,8 @@ export type Database = {
           hydration_rate: number
           modality_id: string
           protected_days: number
+          scheduled_classes: number
           user_id: string
-          weekly_goal: number
           weeks: number
         }
         Insert: {
@@ -1595,8 +1595,8 @@ export type Database = {
           hydration_rate: number
           modality_id: string
           protected_days: number
+          scheduled_classes?: number
           user_id: string
-          weekly_goal: number
           weeks: number
         }
         Update: {
@@ -1610,8 +1610,8 @@ export type Database = {
           hydration_rate?: number
           modality_id?: string
           protected_days?: number
+          scheduled_classes?: number
           user_id?: string
-          weekly_goal?: number
           weeks?: number
         }
         Relationships: [
@@ -1853,7 +1853,6 @@ export type Database = {
           started_at: string
           status: string
           updated_at: string
-          weekly_class_goal: number | null
         }
         Insert: {
           competitor_invited_at?: string | null
@@ -1867,7 +1866,6 @@ export type Database = {
           started_at?: string
           status: string
           updated_at?: string
-          weekly_class_goal?: number | null
         }
         Update: {
           competitor_invited_at?: string | null
@@ -1881,7 +1879,6 @@ export type Database = {
           started_at?: string
           status?: string
           updated_at?: string
-          weekly_class_goal?: number | null
         }
         Relationships: [
           {
@@ -2298,6 +2295,7 @@ export type Database = {
         Args: { p_academy_id: string; p_athlete_id: string }
         Returns: {
           championship_id: string
+          counts_in_record: boolean
           entry_id: string
           event_date: string
           fights: Json
@@ -2561,10 +2559,6 @@ export type Database = {
       }
       set_student_modalities: {
         Args: { p_membership_id: string; p_modality_ids: string[] }
-        Returns: undefined
-      }
-      set_student_weekly_goal: {
-        Args: { p_goal: number; p_membership_id: string; p_modality_id: string }
         Returns: undefined
       }
       set_water_plan: {

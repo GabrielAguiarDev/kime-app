@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { Alert } from 'react-native';
 
-import { BottomSheet, Box, Button, Card, Icon, LoadError, Text, TextField } from '@components';
+import { BottomSheet, Box, Button, Text, TextField } from '@components';
 import { useAcademyToday, type Modality } from '@domain/Classes';
 import {
   isEmptyPreviousRecord,
   parseRecordCount,
+  previousMedals,
   PREVIOUS_RECORD_MAX,
   useCartel,
   usePreviousHistoryMutations,
@@ -19,52 +20,57 @@ import { useConfirm } from '@services/confirm';
 import { haptics } from '@utils/haptics';
 
 import { ChampionshipForm } from './ChampionshipForm';
-import { BeforeKimiCard, ChampionshipResultRow } from './FightRecord';
+import type { CartelEditRequest } from './FightRecord';
 import { RecordResultsContent } from './RecordResultsSheet';
 
-type Sheet =
-  | { kind: 'record'; modalityId: string }
-  | { kind: 'create' }
-  | { kind: 'championship'; championshipId: string; mode: 'results' | 'edit' };
+/** What the Cartel screen asks to open (its "⋯" menu, or a tap on a previous item). */
+type PreviousHistorySheet = CartelEditRequest;
 
+/** Fights only: the medals come from them (previousMedals). */
 const FIELDS = [
   ['wins', 'Vitórias'],
   ['losses', 'Derrotas'],
   ['draws', 'Empates'],
-  ['gold', 'Ouro'],
-  ['silver', 'Prata'],
-  ['bronze', 'Bronze'],
 ] as const;
 type Field = (typeof FIELDS)[number][0];
 
 /**
- * Staff, competitor's page: "Histórico anterior" — fights from before the app.
- *  - Previous record per modality (numbers only): "Antes do Kimi" in the Cartel.
- *  - Previous championships: only in this athlete's history (never in the Início
- *    or the academy's list); placement and fights as in any championship.
+ * Staff, Cartel screen of an athlete: the sheets that edit the history before the app.
+ *  - Previous record of the modality (numbers only): "Antes do Kimi" in the Cartel.
+ *  - Previous championships: only in this athlete's history (never in the Início or the
+ *    academy's list); placement and fights as in any championship.
+ * The Cartel screen opens them (menu "⋯" and taps on the previous items of the history).
  * Only staff create, edit and delete; the athlete only sees it in their Cartel.
  */
-export function PreviousHistorySection({
+export function PreviousHistoryEditor({
   academyId,
   member,
   modalities,
+  modalityId,
+  sheet,
+  onSheetChange,
 }: {
   academyId: string;
   member: GymMember;
   modalities: Modality[];
+  /** Only this modality (the Cartel screen of one modality). */
+  modalityId: string;
+  sheet: PreviousHistorySheet | null;
+  onSheetChange: (sheet: PreviousHistorySheet | null) => void;
 }) {
   const cartel = useCartel(academyId, member.userId);
   const today = useAcademyToday(academyId);
   const mutations = usePreviousHistoryMutations(academyId, member.userId);
   const confirm = useConfirm();
-  const [sheet, setSheet] = useState<Sheet | null>(null);
-  const close = () => setSheet(null);
+  const setSheet = onSheetChange;
+  const close = () => onSheetChange(null);
 
   const nameOf = (id: string) => modalities.find((m) => m.id === id)?.name ?? 'Modalidade removida';
-  const competing = member.modalities.filter((l) => l.isCompetitor).map((l) => l.modalityId);
-  const recordModalities = [...new Set([...competing, ...(cartel.previous ?? []).map((p) => p.modalityId)])];
+  const formModalities = modalities.filter((m) => m.id === modalityId);
   const recordOf = (modalityId: string) => cartel.previous?.find((p) => p.modalityId === modalityId);
-  const previousChampionships = (cartel.history ?? []).filter((h) => h.isHistorical);
+  const previousChampionships = (cartel.history ?? []).filter(
+    (h) => h.isHistorical && h.modalityId === modalityId,
+  );
   const open = sheet?.kind === 'championship' ? previousChampionships.find((c) => c.championshipId === sheet.championshipId) : undefined;
 
   const remove = async (c: ChampionshipResult) => {
@@ -75,86 +81,16 @@ export function PreviousHistorySection({
       confirmLabel: 'Apagar',
       tone: 'danger',
     });
-    if (ok) mutations.deleteChampionship.mutate(c.championshipId, { onSuccess: () => haptics.success() });
+    if (ok) {
+      mutations.deleteChampionship.mutate(c.championshipId, {
+        onSuccess: () => haptics.success(),
+        onError: (e) => Alert.alert('Campeonato anterior', errorMessage(e)),
+      });
+    }
   };
 
   return (
-    <Box gap="s12">
-      <Text variant="captionCaps" accessibilityRole="header">
-        Histórico anterior
-      </Text>
-      <Text variant="caption">
-        Lutas de antes do Kimi. Somam no cartel do atleta, que só pode ver.
-      </Text>
-      {cartel.isLoading ? <ActivityIndicator accessibilityLabel="Carregando histórico anterior" /> : null}
-      {cartel.isError ? <LoadError title="Não foi possível carregar o histórico anterior" onRetry={cartel.refetch} /> : null}
-
-      {cartel.ready ? (
-        <>
-          <Box gap="s8">
-            <Text variant="bodyStrong">Cartel anterior resumido</Text>
-            {recordModalities.length === 0 ? (
-              <Text variant="body" color="textMuted">
-                O atleta não compete em nenhuma modalidade agora.
-              </Text>
-            ) : null}
-            {recordModalities.map((modalityId) => {
-              const record = recordOf(modalityId);
-              const edit = () => setSheet({ kind: 'record', modalityId });
-              return (
-                <Box key={modalityId} gap="s4">
-                  {recordModalities.length > 1 || record ? <Text variant="caption">{nameOf(modalityId)}</Text> : null}
-                  {record ? (
-                    <BeforeKimiCard record={record} onPress={edit} />
-                  ) : (
-                    <Card
-                      onPress={edit}
-                      accessibilityLabel={`Registrar cartel anterior de ${nameOf(modalityId)}`}
-                      flexDirection="row"
-                      alignItems="center"
-                      gap="s12"
-                    >
-                      <Text variant="body" color="textMuted" flex={1}>
-                        {`Registrar cartel anterior${recordModalities.length > 1 ? '' : ` de ${nameOf(modalityId)}`}`}
-                      </Text>
-                      <Icon name="plus" color="accent" />
-                    </Card>
-                  )}
-                </Box>
-              );
-            })}
-          </Box>
-
-          <Box gap="s8">
-            <Text variant="bodyStrong">Campeonatos anteriores</Text>
-            {previousChampionships.length === 0 ? (
-              <Text variant="body" color="textMuted">
-                Nenhum campeonato anterior registrado.
-              </Text>
-            ) : null}
-            {previousChampionships.map((c) => (
-              <ChampionshipResultRow
-                key={c.entryId}
-                result={c}
-                onPress={() => setSheet({ kind: 'championship', championshipId: c.championshipId, mode: 'results' })}
-              />
-            ))}
-            <Button
-              title="Adicionar campeonato anterior"
-              variant="secondary"
-              icon="plus"
-              disabled={!today.data}
-              onPress={() => setSheet({ kind: 'create' })}
-            />
-            {mutations.deleteChampionship.error ? (
-              <Text variant="caption" color="danger">
-                {errorMessage(mutations.deleteChampionship.error)}
-              </Text>
-            ) : null}
-          </Box>
-        </>
-      ) : null}
-
+    <>
       <BottomSheet visible={!!sheet && (sheet.kind !== 'championship' || !!open)} onRequestClose={close}>
         {sheet?.kind === 'record' ? (
           <PreviousRecordForm
@@ -181,7 +117,7 @@ export function PreviousHistorySection({
           <ChampionshipForm
             title="Campeonato anterior"
             pastBefore={today.data}
-            modalities={modalities}
+            modalities={formModalities}
             saving={mutations.createChampionship.isPending}
             error={mutations.createChampionship.error}
             onSave={(input) =>
@@ -201,8 +137,8 @@ export function PreviousHistorySection({
             <ChampionshipForm
               title="Editar campeonato anterior"
               pastBefore={today.data}
-              initial={{ modalityId: open.modalityId, name: open.name, eventDate: open.eventDate, location: open.location }}
-              modalities={modalities}
+              initial={{ modalityId: open.modalityId, name: open.name, eventDate: open.eventDate, location: open.location, countsInRecord: open.countsInRecord }}
+              modalities={formModalities}
               saving={mutations.updateChampionship.isPending}
               error={mutations.updateChampionship.error}
               onSave={(input) =>
@@ -231,11 +167,11 @@ export function PreviousHistorySection({
           )
         ) : null}
       </BottomSheet>
-    </Box>
+    </>
   );
 }
 
-/** Sheet: the previous record of one modality, numbers only (all zeros removes it). */
+/** Sheet: the previous record of one modality, fights only; medals follow (all zeros removes it). */
 function PreviousRecordForm({
   modalityName,
   initial,
@@ -257,7 +193,8 @@ function PreviousRecordForm({
   const parsed = {} as Record<Field, number | null>;
   for (const [key] of FIELDS) parsed[key] = parseRecordCount(text[key]);
   const valid = FIELDS.every(([key]) => parsed[key] !== null);
-  const values = parsed as Record<Field, number>;
+  const tally = parsed as Record<Field, number>;
+  const values = { ...tally, ...previousMedals(tally) };
   const clearing = valid && isEmptyPreviousRecord(values);
 
   const field = (key: Field, label: string) => (
@@ -288,18 +225,12 @@ function PreviousRecordForm({
       }
     >
       <Text variant="body" color="textMuted">
-        Lutas e medalhas antes do Kimi, só os números. Somam no cartel do atleta.
+        Lutas antes do Kimi, só os números. Somam no cartel do atleta.
       </Text>
       <Box gap="s8">
         <Text variant="captionCaps">Lutas</Text>
         <Box flexDirection="row" gap="s12">
-          {FIELDS.slice(0, 3).map(([key, label]) => field(key, label))}
-        </Box>
-      </Box>
-      <Box gap="s8">
-        <Text variant="captionCaps">Medalhas</Text>
-        <Box flexDirection="row" gap="s12">
-          {FIELDS.slice(3).map(([key, label]) => field(key, label))}
+          {FIELDS.map(([key, label]) => field(key, label))}
         </Box>
       </Box>
       {error ? (

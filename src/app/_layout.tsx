@@ -160,6 +160,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="evento/editar" options={header} />
             <Stack.Screen name="athlete/water-plan" options={header} />
             <Stack.Screen name="athlete/progress" options={header} />
+            <Stack.Screen name="athlete/weight-history" options={header} />
             <Stack.Screen name="athlete/diet" options={header} />
           </Stack.Protected>
           <Stack.Protected guard={access.owner} redirectTo={redirectTo}>

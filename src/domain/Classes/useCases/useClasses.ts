@@ -89,11 +89,6 @@ export function useModalityMutations(academyId: string) {
         service.updateModality(id, name, usesBelts),
       onSuccess,
     }),
-    setWeeklyGoal: useMutation({
-      mutationFn: ({ id, goal }: { id: string; goal: number }) => service.setModalityWeeklyGoal(id, goal),
-      onSuccess: () =>
-        Promise.all([onSuccess(), queryClient.invalidateQueries({ queryKey: [QueryKeys.Ranking] })]),
-    }),
     remove: useMutation({ mutationFn: (id: string) => service.deleteModality(id), onSuccess }),
   };
 }

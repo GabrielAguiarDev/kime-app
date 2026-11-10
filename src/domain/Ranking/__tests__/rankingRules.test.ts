@@ -17,14 +17,20 @@ import {
 const day = (n: number) => addDays('2026-11-01', n - 1);
 const water = (count: number, done = true, start = 1): HydrationFact[] =>
   Array.from({ length: count }, (_, i) => ({ day: day(start + i), done, known: true, eligible: true }));
-/** 28 eligible days; `classesOn` = days (1-based) with one confirmed class. */
-const days = (classesOn: number[] = [], count = 28, start = 1): AttendanceFact[] =>
-  Array.from({ length: count }, (_, i) => ({ day: day(start + i), classes: classesOn.includes(start + i) ? 1 : 0 }));
-/** Two classes in each of the four weeks (weeks counted back from day 28: 22–28, 15–21, 8–14, 1–7). */
+/** The modality's grid: one class on the 1st and 3rd day of each week (days 1, 3, 8, 10 …). */
+const inGrid = (n: number) => [0, 2].includes((n - 1) % 7);
+/** 28 eligible days; `classesOn` = days (1-based) with one confirmed class; `grid` = classes per grid day. */
+const days = (classesOn: number[] = [], count = 28, start = 1, grid = 1): AttendanceFact[] =>
+  Array.from({ length: count }, (_, i) => ({
+    day: day(start + i),
+    classes: classesOn.includes(start + i) ? 1 : 0,
+    scheduled: inGrid(start + i) ? grid : 0,
+  }));
+/** Every class of the grid: two in each of the four weeks (weeks counted back from day 28: 22–28, 15–21, 8–14, 1–7). */
 const FULL = [1, 3, 8, 10, 15, 17, 22, 24];
 const facts = (overrides: Partial<RankingFacts> = {}): RankingFacts => ({
   modalityId: 'mt', userId: 'a', fullName: 'Ana', avatarPath: null, today: day(29), periodFrom: day(1), periodTo: day(28),
-  weeklyGoal: 2, attendance: days(FULL), hydration: water(28), ...overrides,
+  attendance: days(FULL), hydration: water(28), ...overrides,
 });
 const calculateRanking = (rows: RankingFacts[], config?: RankingConfig) => calculateModalityRanking(rows, 'mt', config);
 const result = (overrides: Partial<RankingFacts> = {}) => calculateRanking([facts(overrides)])[0]!;
@@ -40,7 +46,7 @@ describe('ranking formula', () => {
     expect(RANKING_CONFIG).not.toHaveProperty('penalties');
   });
 
-  it('scores 100 with the weekly goal met every week and every water goal met', () => {
+  it('scores 100 at every class of the grid and every water goal met', () => {
     expect(result().rankingScore).toBe(100);
   });
 
@@ -55,18 +61,26 @@ describe('ranking formula', () => {
     expect(result({ attendance: days([22, 23, 24, 25, 26, 27]), hydration: [] }).attendanceRate).toBeCloseTo(0.25);
   });
 
-  it('uses the student weekly goal', () => {
-    expect(result({ weeklyGoal: 4 }).attendanceRate).toBeCloseTo(0.5);
-    expect(result({ weeklyGoal: 1 }).attendanceRate).toBe(1);
+  it('measures presence against the classes of the grid', () => {
+    // Two classes on each grid day: 4 a week; the same 2 classes a week = 50%.
+    expect(result({ attendance: days(FULL, 28, 1, 2) }).attendanceRate).toBeCloseTo(0.5);
+    expect(result({ attendance: days(FULL) }).scheduledClasses).toBe(8);
   });
 
-  it('prorates the goal of a week with fewer eligible days (linked mid-week)', () => {
-    // Only days 25–28 eligible (4 days of the last week): goal 2 × 4/7; one class = 87.5%.
-    expect(weeklyPresence(days([25], 4, 25), day(28), 2).rate).toBeCloseTo(0.875);
+  it('asks a student linked mid-week only for the classes after the link', () => {
+    // Only days 24–28 eligible: one class in the grid (day 24), attended = 100%.
+    expect(weeklyPresence(days([24], 5, 24), day(28)).rate).toBe(1);
+  });
+
+  it('leaves out a week without classes in the grid', () => {
+    // Days 25–28 have no grid class: nothing to measure, no presence (and no penalty).
+    expect(weeklyPresence(days([], 4, 25), day(28)).rate).toBe(0);
+    const att = days(FULL).map((a) => (a.day >= day(22) ? { ...a, classes: 0, scheduled: 0 } : a));
+    expect(weeklyPresence(att, day(28)).rate).toBe(1);
   });
 
   it('counts only eligible days inside the period', () => {
-    const f = facts({ attendance: [...days(FULL), { day: '2026-10-01', classes: 3 }, { day: day(29), classes: 1 }] });
+    const f = facts({ attendance: [...days(FULL), { day: '2026-10-01', classes: 3, scheduled: 1 }, { day: day(29), classes: 1, scheduled: 1 }] });
     expect(calculateRanking([f])[0]!.confirmedClasses).toBe(8);
   });
 
@@ -134,7 +148,7 @@ describe('ranking formula', () => {
       facts({ userId: 'b' }),
       facts({ userId: 'a' }),
       more,
-      facts({ userId: 'w', weeklyGoal: 1, attendance: days([1, 8, 15, 22]), ...water75 }),
+      facts({ userId: 'w', attendance: days([1, 8, 15, 22]), ...water75 }),
     ]);
     expect(entries.map((e) => e.userId)).toEqual(['z', 'a', 'b', 'w']);
   });
@@ -152,7 +166,7 @@ describe('ranking formula', () => {
 
   it('shows the viewer even beyond the top twenty', () => {
     const entries = calculateRanking(
-      Array.from({ length: 25 }, (_, i) => facts({ userId: `u${String(i).padStart(2, '0')}`, weeklyGoal: i + 1 })),
+      Array.from({ length: 25 }, (_, i) => facts({ userId: `u${String(i).padStart(2, '0')}` })),
     );
     const { list, ownBelow } = rankingSections(entries, 'u24');
     expect(list).toHaveLength(20);

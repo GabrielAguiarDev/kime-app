@@ -15,14 +15,18 @@ import { useMyProfile } from '@domain/Profile';
 import { dailyGoal, localDate, waterDayState } from '@domain/Water';
 import { formatMl } from '@screens/water/format';
 
+import { openWeightHistory } from './AthleteWeightHistoryScreen';
 import { Section, WeightRow, WeightSummary } from './shared';
 import { useAthlete } from './useAthlete';
 
 const WATER_DAYS = 7;
+/** Latest weigh-ins shown here; the rest are in the weight history screen. */
+const RECENT_WEIGHTS = 3;
 
 /**
  * Staff: how a competitor is doing — water of the last 7 days against the
- * goal of each day (plan or automatic) and the weigh-ins. Water shows what
+ * goal of each day (plan or automatic) and the latest weigh-ins (all of them, filtered by
+ * year and month, in the weight history screen). Water shows what
  * reached the server: logs still waiting on the athlete's phone are missing.
  */
 export function AthleteProgressScreen() {
@@ -126,9 +130,12 @@ export function AthleteProgressScreen() {
             </Text>
           ) : null}
           <WeightSummary logs={weightLogs} />
-          {weightLogs.map((log) => (
+          {weightLogs.slice(0, RECENT_WEIGHTS).map((log) => (
             <WeightRow key={log.id} log={log} />
           ))}
+          {weightLogs.length > 0 ? (
+            <Button title="Ver histórico de peso" variant="secondary" icon="chart" onPress={() => openWeightHistory(member.id)} />
+          ) : null}
         </Section>
       </Box>
     </Screen>

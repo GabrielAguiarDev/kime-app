@@ -118,8 +118,6 @@ export interface Modality {
   position: number;
   /** Has a belt sequence; false = only the class count. */
   usesBelts: boolean;
-  /** Confirmed classes per week that count as 100 % presence in the ranking (owner sets it). */
-  weeklyClassGoal: number;
 }
 
 /** A graduation of the student in the report: the time in that belt. */

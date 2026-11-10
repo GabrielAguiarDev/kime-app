@@ -13,7 +13,6 @@ function toStudentModalities(rows: EnrollmentRow[] | null | undefined): StudentM
       enrollmentId: r.id,
       modalityId: r.modality_id,
       startedAt: r.started_at,
-      weeklyClassGoal: r.weekly_class_goal,
       isCompetitor: r.is_competitor,
       competitorInvitedAt: r.competitor_invited_at,
       competitorSince: r.competitor_since,

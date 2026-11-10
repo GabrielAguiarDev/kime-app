@@ -63,14 +63,6 @@ async function setStudentModalities(membershipId: string, modalityIds: string[])
   }
 }
 
-async function setStudentWeeklyGoal(membershipId: string, modalityId: string, goal: number | null): Promise<void> {
-  try {
-    await membershipApi.setStudentWeeklyGoal(membershipId, modalityId, goal);
-  } catch (e) {
-    throw toAppError(e);
-  }
-}
-
 /** Owner only. The target must be an active professor; the owner becomes a professor. */
 async function transferOwnership(gymId: string, membershipId: string): Promise<void> {
   try {
@@ -89,5 +81,4 @@ export const membershipService = {
   decide,
   approveStudent,
   setStudentModalities,
-  setStudentWeeklyGoal,
 };
