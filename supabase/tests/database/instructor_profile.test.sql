@@ -49,15 +49,19 @@ insert into public.memberships (user_id, academy_id, role, status) values
   (pg_temp.id('s'), pg_temp.id('a'), 'student', 'active'),
   (pg_temp.id('c'), pg_temp.id('a'), 'student', 'active'),
   (pg_temp.id('n'), pg_temp.id('a'), 'student', 'active'),
-  (pg_temp.id('x'), pg_temp.id('b'), 'student', 'active');
-insert into ids select 'm:' || i.k, m.id from public.memberships m join ids i on i.v = m.user_id;
+  (pg_temp.id('x'), pg_temp.id('b'), 'student', 'active'),
+  (pg_temp.id('i'), pg_temp.id('b'), 'student', 'active');
+insert into ids select 'm:' || i.k, m.id from public.memberships m join ids i on i.v = m.user_id
+where m.academy_id = pg_temp.id('a') or i.k in ('x');
+insert into ids select 'mb:i', id from public.memberships where user_id = pg_temp.id('i') and academy_id = pg_temp.id('b');
 
 insert into public.student_modality_enrollments (membership_id, modality_id, status, is_competitor, competitor_since) values
   (pg_temp.id('m:s'), pg_temp.id('mod:BJJ'), 'active', true, now()),
   (pg_temp.id('m:c'), pg_temp.id('mod:BJJ'), 'active', false, null),
   (pg_temp.id('m:c'), pg_temp.id('mod:Boxe'), 'active', true, now()),
   (pg_temp.id('m:n'), pg_temp.id('mod:BJJ'), 'active', false, null),
-  (pg_temp.id('m:x'), pg_temp.id('mod:Judô'), 'active', true, now());
+  (pg_temp.id('m:x'), pg_temp.id('mod:Judô'), 'active', true, now()),
+  (pg_temp.id('mb:i'), pg_temp.id('mod:Judô'), 'active', false, null);
 
 insert into public.modality_belts (academy_id, modality_id, primary_color, tip_color, position, classes_required) values
   (pg_temp.id('a'), pg_temp.id('mod:BJJ'), 'white', null, 0, 10),
@@ -110,7 +114,19 @@ select throws_ok($$ update public.instructor_profiles set bio = repeat('a', 161)
   '23514', null, 'profiles: bio has at most 160 characters');
 select lives_ok($$ update public.instructor_profiles set bio = '   ' where user_id = pg_temp.id('i') $$, 'profiles: a blank bio is accepted');
 select is((select bio from public.instructor_profiles where user_id = pg_temp.id('i')), null, 'profiles: a blank bio becomes null');
-update public.instructor_profiles set bio = 'Faixa preta.' where user_id = pg_temp.id('i');
+select lives_ok($$
+  insert into public.instructor_profiles as t (user_id, bio, instagram, whatsapp, show_contacts_to_students)
+  values (pg_temp.id('i'), 'Faixa preta.', 'prof.i', '5511999990000', false)
+  on conflict (user_id) do update set user_id = excluded.user_id, bio = excluded.bio, instagram = excluded.instagram,
+    whatsapp = excluded.whatsapp, show_contacts_to_students = excluded.show_contacts_to_students
+$$, 'profiles: the PostgREST upsert (SET on every column, key included) works');
+select pg_temp.login(pg_temp.id('j'));
+select lives_ok($$
+  insert into public.instructor_profiles as t (user_id, bio)
+  values (pg_temp.id('j'), 'Prof J')
+  on conflict (user_id) do update set user_id = excluded.user_id, bio = excluded.bio
+$$, 'profiles: the first save (no row yet) also goes through the upsert');
+select pg_temp.login(pg_temp.id('i'));
 select throws_ok($$ insert into public.instructor_profiles (user_id, bio) values (pg_temp.id('j'), 'not mine') $$,
   '42501', null, 'profiles: nobody writes someone else''s profile');
 
@@ -123,6 +139,9 @@ select is((select count(*)::int from public.instructor_profiles where user_id = 
 
 select pg_temp.login(pg_temp.id('s'));
 select is((select count(*)::int from public.instructor_profiles), 0, 'profiles: students do not read the table directly');
+select pg_temp.login(pg_temp.id('o2'));
+select is((select count(*)::int from public.instructor_profiles where user_id = pg_temp.id('i')), 0,
+  'profiles: staff of an academy where the person is only a student do not read it');
 
 -- ================================================ instructor_modalities ===
 select pg_temp.login(pg_temp.id('i'));
@@ -150,42 +169,30 @@ select is((select count(*)::int from public.instructor_modalities), 0, 'modaliti
 
 -- ===================================================== instructor_belts ===
 select pg_temp.login(pg_temp.id('i'));
-select lives_ok($$
-  insert into public.instructor_belts (membership_id, academy_id, modality_id, belt_id)
-  values (pg_temp.id('m:i'), pg_temp.id('a'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:0'))
-$$, 'belts: the instructor sets their own belt');
-select lives_ok($$
-  insert into public.instructor_belts (membership_id, academy_id, modality_id, belt_id)
-  values (pg_temp.id('m:i'), pg_temp.id('a'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:1'))
-  on conflict (membership_id, modality_id) do update set belt_id = excluded.belt_id
-$$, 'belts: upsert switches it');
+select lives_ok($$ select public.set_instructor_belt(pg_temp.id('m:i'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:0')) $$,
+  'belts: the instructor sets their own belt');
+select lives_ok($$ select public.set_instructor_belt(pg_temp.id('m:i'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:1')) $$,
+  'belts: setting it again switches it');
 select is((select belt_id from public.instructor_belts where membership_id = pg_temp.id('m:i')), pg_temp.id('belt:1'), 'belts: switched');
-select throws_ok($$
-  insert into public.instructor_belts (membership_id, academy_id, modality_id, belt_id)
-  values (pg_temp.id('m:j'), pg_temp.id('a'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:0'))
-$$, '42501', null, 'belts: an instructor does not set a colleague''s belt');
-select throws_ok($$
-  insert into public.instructor_belts (membership_id, academy_id, modality_id, belt_id)
-  values (pg_temp.id('m:i'), pg_temp.id('a'), pg_temp.id('mod:Boxe'), pg_temp.id('belt:0'))
-$$, '42501', null, 'belts: only in modalities that use belts');
-select throws_ok($$
-  insert into public.instructor_belts (membership_id, academy_id, modality_id, belt_id)
-  values (pg_temp.id('m:i'), pg_temp.id('b'), pg_temp.id('mod:Judô'), pg_temp.id('belt:judo'))
-$$, '42501', null, 'belts: not in another academy');
+select throws_ok($$ select public.set_instructor_belt(pg_temp.id('m:j'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:0')) $$,
+  '42501', 'forbidden', 'belts: an instructor does not set a colleague''s belt');
+select throws_ok($$ select public.set_instructor_belt(pg_temp.id('m:i'), pg_temp.id('mod:Boxe'), pg_temp.id('belt:0')) $$,
+  '42501', null, 'belts: only in modalities that use belts');
+select throws_ok($$ select public.set_instructor_belt(pg_temp.id('mb:i'), pg_temp.id('mod:Judô'), pg_temp.id('belt:judo')) $$,
+  '42501', 'forbidden', 'belts: not where the person is a student');
+select throws_ok($$ update public.instructor_belts set modality_id = pg_temp.id('mod:Boxe') where membership_id = pg_temp.id('m:i') $$,
+  '42501', null, 'belts: the key columns cannot be updated directly');
 
 select pg_temp.login(pg_temp.id('o'));
-select lives_ok($$
-  insert into public.instructor_belts (membership_id, academy_id, modality_id, belt_id)
-  values (pg_temp.id('m:j'), pg_temp.id('a'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:0'))
-$$, 'belts: the owner sets any instructor''s belt');
-select lives_ok($$
-  insert into public.instructor_belts (membership_id, academy_id, modality_id, belt_id)
-  values (pg_temp.id('m:o'), pg_temp.id('a'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:1'))
-$$, 'belts: the owner sets their own belt');
-select throws_ok($$
-  insert into public.instructor_belts (membership_id, academy_id, modality_id, belt_id)
-  values (pg_temp.id('m:s'), pg_temp.id('a'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:0'))
-$$, '42501', null, 'belts: students are not staff (their belts live in belt_history)');
+select lives_ok($$ select public.set_instructor_belt(pg_temp.id('m:j'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:0')) $$,
+  'belts: the owner sets any instructor''s belt');
+select lives_ok($$ select public.set_instructor_belt(pg_temp.id('m:o'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:1')) $$,
+  'belts: the owner sets their own belt');
+select throws_ok($$ select public.set_instructor_belt(pg_temp.id('m:s'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:0')) $$,
+  '42501', 'forbidden', 'belts: students are not staff (their belts live in belt_history)');
+select lives_ok($$ select public.set_instructor_belt(pg_temp.id('m:j'), pg_temp.id('mod:BJJ'), null) $$, 'belts: null clears it');
+select is((select count(*)::int from public.instructor_belts where membership_id = pg_temp.id('m:j')), 0, 'belts: cleared');
+select public.set_instructor_belt(pg_temp.id('m:j'), pg_temp.id('mod:BJJ'), pg_temp.id('belt:0'));
 
 select pg_temp.login(pg_temp.id('j'));
 delete from public.instructor_belts where membership_id = pg_temp.id('m:i');

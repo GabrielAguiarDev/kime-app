@@ -44,6 +44,7 @@ import { memberSinceLabel } from '@domain/Team';
 import { errorMessage } from '@infra';
 import { RemoveMemberSection } from '@screens/professor/RemoveMemberSection';
 import { WeekdayChips } from '@screens/professor/WeekdayChips';
+import { ACADEMY_TIME_ZONE } from '@screens/student/home/NextClassCard';
 import { ModalitiesSheet } from '@screens/staff/ModalitiesSheet';
 import { useActiveGym } from '@services/activeGym';
 import { useConfirm } from '@services/confirm';
@@ -53,8 +54,6 @@ import { haptics } from '@utils/haptics';
 import { demoView } from './instructorDemo';
 import type { ProfileView } from './profileView';
 import { InstructorBeltSheet } from './InstructorBeltSheet';
-
-const ACADEMY_TIME_ZONE = 'America/Sao_Paulo';
 
 /**
  * Owner / instructor profile, the same screen for everyone in the academy

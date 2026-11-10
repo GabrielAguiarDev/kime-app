@@ -2658,6 +2658,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_instructor_belt: {
+        Args: { p_belt_id: string | null; p_membership_id: string; p_modality_id: string }
+        Returns: undefined
+      }
       set_instructor_modalities: {
         Args: { p_membership_id: string; p_modality_ids: string[] }
         Returns: undefined
