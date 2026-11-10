@@ -107,7 +107,7 @@ export function MemberDetailScreen() {
 function MemberHeader({ member }: { member: GymMember }) {
   return (
     <Box alignItems="center" gap="s12">
-      <Avatar name={member.fullName} path={member.avatarPath} size="large" competitor={member.isCompetitor} />
+      <Avatar name={member.fullName} path={member.avatarPath} size="large" competitor={member.isCompetitor} expandable />
       {/* The name is the header title. */}
       <Text variant="captionCaps">{membershipLabel(member)}</Text>
     </Box>
