@@ -17,8 +17,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   plugins: [
+    './plugins/with-cocoapods-project-version',
     ...(config.plugins ?? []),
     'expo-secure-store',
+    'expo-sharing',
     [
       'expo-splash-screen',
       {
