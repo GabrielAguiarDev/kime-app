@@ -146,6 +146,8 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             {/* Academy events: list and detail (members and staff). */}
             <Stack.Screen name="eventos" options={header} />
             <Stack.Screen name="evento/index" options={header} />
+            {/* Academy notices (members and staff; not gated by the fee block). */}
+            <Stack.Screen name="avisos" options={header} />
             <Stack.Screen name="colega/[userId]" options={header} />
             <Stack.Screen name="agua/widget" options={header} />
             {/* The only screen that may turn landscape (the user's choice, set by the screen). */}
@@ -159,6 +161,9 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="academy/championships" options={header} />
             <Stack.Screen name="academy/championship" options={header} />
             <Stack.Screen name="evento/editar" options={header} />
+            <Stack.Screen name="aviso/editar" options={header} />
+            <Stack.Screen name="prontos-para-graduar" options={header} />
+            <Stack.Screen name="sumidos" options={header} />
             <Stack.Screen name="athlete/water-plan" options={header} />
             <Stack.Screen name="athlete/progress" options={header} />
             <Stack.Screen name="athlete/weight-history" options={header} />

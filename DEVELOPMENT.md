@@ -1,7 +1,7 @@
 # Kimi — Contexto de Desenvolvimento
 
 > Arquivo mantido pelo agente mobile-senior-dev. Leia isto antes de continuar o desenvolvimento.
-> Última atualização: Vínculo aluno ↔ modalidade — 2026-11-05
+> Última atualização: Avisos, alunos sumidos e prontos para graduar — 2026-11-12
 
 ## 1. Visão geral
 
@@ -534,3 +534,15 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
   - Aluno: `FinanceNotice` na Início ("Sua mensalidade de novembro está em aberto. Fale com a academia."). Bloqueado: Início só com o aviso + água; `withFinanceGate` troca Aulas, aula, ranking, campeonato(s), competição, cartel, eventos, evento e relatório pela tela "Acesso pausado"; o cartel some do Perfil. O cliente salva configurações e mensalidade com update e, sem linha, insert (upsert exigiria UPDATE nas colunas-chave, que não têm grant).
 - **Testes:** `finance.test.sql` (118).
 - **Build novo:** sim, por causa de `expo-file-system` e `expo-sharing` (módulos nativos novos).
+
+## Avisos, alunos sumidos e prontos para graduar (2026-11-12, pedido do usuário; `20261112000000_academy_announcements` + `20261112000100_inactive_students`)
+
+- **Push remoto adiado** (decisão do usuário: APNs/FCM exigem contas pagas). Nada disso envia notificação; as notificações seguem só locais.
+- **Avisos** (`academy_announcements`): texto (2–1000), público = todos (`modality_id` null) ou UMA modalidade, `pinned`, `expires_on` (último dia, calendário da academia, inclusivo). Dono e professores publicam; o autor edita o seu; autor ou dono apaga (RLS + grants de coluna; trigger fixa `created_by`/`academy_id`/`created_at` e recusa último dia no passado, `announcement_expires_in_past`). Aluno vê os vigentes do seu público; staff vê todos (seção "Encerrados"). **Aluno bloqueado pela mensalidade vê** (decisão do usuário): o público usa `private.is_linked_to_modality`, NÃO `is_enrolled_in_modality` (que inclui o bloqueio), e `/avisos` não passa pelo `withFinanceGate`. Leitura pelo RPC `academy_announcements_feed` (invoker; nome/foto do autor via `private.announcement_author`, porque aluno não lê perfis da staff). Ordem: fixados, depois mais novos.
+  - App: domínio `src/domain/Announcements`, telas em `src/screens/announcements/`, rotas `/avisos` (todos) e `/aviso/editar[?id=]` (staff). Início do aluno (inclusive bloqueado): o fixado ou um dos últimos 7 dias (`homeAnnouncement`); mais antigos viram só o link "Avisos da academia". Staff: sem seção na Início (decisão do usuário, avisos são raros); entrada pelo "⋯" do header de Aulas (Eventos, Avisos e, para o dono, Horários), que substituiu os botões "Novo evento" e engrenagem. Sem "Fixar no topo" no formulário (decisão do usuário): a coluna `pinned` segue no banco, sempre false.
+  - A antiga seção "Avisos" da Início do staff virou **"Pendências"** (pedidos, prontos para graduar, sumidos, campeonatos em 30 dias).
+- **Alunos sumidos:** `academies.inactive_after_days` (7–90, padrão 14; só o dono altera, em Configurações da academia, roda `WheelPicker`). RPC `inactive_students(academia)` (só staff): aluno ativo sem check-in CONFIRMADO na academia (qualquer modalidade) há N dias; só contam aulas desde a aprovação (`decided_at`, ou `created_at` em linhas antigas): quem saiu e voltou começa do zero, e quem não treinou desde então conta da aprovação ("Sem treino desde que entrou"). Professor vê todos os alunos (decisão do usuário). Tela `/sumidos` com filtro por modalidade (vínculo ativo).
+- **Prontos para graduar:** sem banco; `readyToGraduate` (Classes) usa `modality_class_stats.confirmed_since_belt` contra o `classes_required` da próxima faixa (mesma regra do `beltProgress`); nunca na última faixa nem em faixa sem número de aulas; só alunos com vínculo ativo na modalidade. Só a staff vê (decisão do usuário): tela `/prontos-para-graduar`, selo `ReadyBadge` na Equipe e no detalhe do aluno. O selo some ao registrar a faixa nova.
+- **Testes:** `academy_announcements.test.sql` (58) e `inactive_students.test.sql` (36); jest: `announcementsRules`, `graduationReady`, `inactiveLabel`.
+- **Remoto:** as duas migrations aplicadas em 2026-11-12 (`db push`); os dois arquivos pgTAP novos passam lá. `types/database.ts` foi editado à mão para elas: o `npm run db:types` do remoto hoje gera um arquivo com outras diferenças antigas (ex.: `discipline_streaks`, `set_instructor_belt`) e quebra o typecheck em `useInstructorProfile.ts`; revisar à parte.
+- **Build novo:** não (só JS + migrations). Ícones novos do phosphor (Megaphone, PushPin, Hourglass).

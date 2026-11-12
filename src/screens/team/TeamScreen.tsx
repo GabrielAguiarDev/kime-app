@@ -23,10 +23,13 @@ import {
   useModalityStats,
   type Modality,
   type ModalityBelt,
+  type GraduationReady,
   type ModalityStats,
 } from '@domain/Classes';
 import { membershipLabel, splitMembers, useGymMembers, usePendingRequests, type GymMember } from '@domain/Membership';
 import { ModalityFilter } from '@screens/staff/ModalityFilter';
+import { ReadyBadge } from '@screens/staff/ReadyBadge';
+import { useGraduationReady } from '@screens/staff/useStudentAttention';
 import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 
@@ -36,7 +39,7 @@ import { InviteSheet } from './InviteSheet';
 /**
  * Equipe (owner / instructor; replaces Alunos): search always on top (by name,
  * every member), join requests banner, compact filters (modality, competitors)
- * and the members. "Convidar" in the header. Ranking opens from Início;
+ * and the members ("Pronto para graduar" seal on who reached the next belt). "Convidar" in the header. Ranking opens from Início;
  * championships from Perfil.
  */
 export function TeamScreen() {
@@ -47,6 +50,7 @@ export function TeamScreen() {
   const modalities = useModalities(academyId);
   const stats = useModalityStats(academyId);
   const belts = useBelts(academyId);
+  const graduation = useGraduationReady(academyId);
   const [query, setQuery] = useState('');
   const [modality, setModality] = useState<string | null>(null);
   const [onlyCompetitors, setOnlyCompetitors] = useState(false);
@@ -65,7 +69,12 @@ export function TeamScreen() {
 
   const q = query.trim().toLowerCase();
   const pending = requests.data?.length ?? 0;
-  const ctx: RowContext = { stats: stats.data ?? [], belts: belts.data ?? [], modalities: modalities.data ?? [] };
+  const ctx: RowContext = {
+    stats: stats.data ?? [],
+    belts: belts.data ?? [],
+    modalities: modalities.data ?? [],
+    ready: graduation.ready,
+  };
 
   return (
     <Screen
@@ -142,6 +151,8 @@ interface RowContext {
   stats: ModalityStats[];
   belts: ModalityBelt[];
   modalities: Modality[];
+  /** Students ready for the next belt (any modality). */
+  ready: GraduationReady[];
 }
 
 function SearchResults({ members, ctx }: { members: GymMember[]; ctx: RowContext }) {
@@ -238,6 +249,8 @@ function MemberRow({ member, ctx, modalityId, last }: { member: GymMember; ctx: 
         : latestBelt(own, ctx.belts);
   const invited = member.modalities.some((l) => l.competitorInvitedAt);
   const role = `${membershipLabel(member)}${invited ? ' · convidado para a equipe' : ''}`;
+  // In the filtered modality, else in any.
+  const ready = ctx.ready.some((r) => r.membershipId === member.id && (!modalityId || r.modalityId === modalityId));
 
   return (
     <PersonRow
@@ -245,7 +258,12 @@ function MemberRow({ member, ctx, modalityId, last }: { member: GymMember; ctx: 
       avatarPath={member.avatarPath}
       competitor={modalityId ? member.modalities.some((l) => l.modalityId === modalityId && l.isCompetitor) : member.isCompetitor}
       last={last}
-      secondary={<Box flexDirection="row" alignItems="center" gap="s8">{belt ? <BeltChip belt={belt} /> : null}<Text variant="caption">{role}</Text></Box>}
+      secondary={
+        <Box gap="s4">
+          <Box flexDirection="row" alignItems="center" gap="s8">{belt ? <BeltChip belt={belt} /> : null}<Text variant="caption">{role}</Text></Box>
+          {ready ? <ReadyBadge /> : null}
+        </Box>
+      }
       onPress={() => router.push({ pathname: '/member/[membershipId]', params: { membershipId: member.id } })}
     />
   );

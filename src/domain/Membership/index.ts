@@ -9,7 +9,7 @@ export {
   useRemoveMembership,
   useTransferOwnership,
 } from './useCases/useDecideMembership';
-export { usePendingRequests } from './useCases/usePendingRequests';
+export { useInactiveStudents, usePendingRequests } from './useCases/usePendingRequests';
 export {
   useApproveStudent,
   useSetStudentModalities,

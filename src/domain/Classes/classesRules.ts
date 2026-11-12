@@ -139,6 +139,45 @@ export function beltProgress(
   return { next, done: Math.min(sinceBelt, required), required };
 }
 
+/** A student who reached the classes for the next belt of a modality (staff only). */
+export interface GraduationReady {
+  membershipId: string;
+  userId: string;
+  modalityId: string;
+  nextBelt: ModalityBelt;
+  /** Confirmed classes since the last graduation (may exceed `required`). */
+  done: number;
+  required: number;
+}
+
+/**
+ * "Pronto para graduar": confirmed classes since the last graduation reached
+ * the next belt's `classesRequired`. Never for the last belt or a belt
+ * without a number of classes. `isLinked` keeps only active students linked
+ * to the modality. Most classes over the goal first.
+ */
+export function readyToGraduate(
+  stats: ModalityStats[],
+  belts: ModalityBelt[],
+  isLinked: (membershipId: string, modalityId: string) => boolean,
+): GraduationReady[] {
+  const ready: GraduationReady[] = [];
+  for (const s of stats) {
+    if (!isLinked(s.membershipId, s.modalityId)) continue;
+    const { next, required } = beltProgress(beltsOf(belts, s.modalityId), s.beltId, s.confirmedSinceBelt);
+    if (!next || required <= 0 || s.confirmedSinceBelt < required) continue;
+    ready.push({
+      membershipId: s.membershipId,
+      userId: s.userId,
+      modalityId: s.modalityId,
+      nextBelt: next,
+      done: s.confirmedSinceBelt,
+      required,
+    });
+  }
+  return ready.sort((a, b) => b.done - b.required - (a.done - a.required));
+}
+
 /**
  * Modalities a student trains: a confirmed class or a belt in it. When there
  * is none yet, every modality of the academy (the student still sees the

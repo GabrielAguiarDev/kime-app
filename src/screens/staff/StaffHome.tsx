@@ -25,6 +25,8 @@ import { StaffEventsSection } from '@screens/events/HomeEventsSection';
 import { OwnerFinanceCard } from '@screens/finance/OwnerFinanceCard';
 import { useActiveGym } from '@services/activeGym';
 
+import { useGraduationReady, useInactiveMembers } from './useStudentAttention';
+
 /** Academy calendar (fixed time zone, see academies.timezone). */
 const ACADEMY_TIME_ZONE = 'America/Sao_Paulo';
 /** Championships within this many days show up as a notice. */
@@ -32,8 +34,8 @@ const CHAMPIONSHIP_NOTICE_DAYS = 30;
 
 /**
  * Início (owner / instructor): only the next class (attendance and timer),
- * the owner's "Mensalidades" card (unpaid charges, finance on), notices (join requests, a championship in the
- * next 30 days) only when there are any, the next events ("Novo evento") and the week summary.
+ * the owner's "Mensalidades" card (unpaid charges, finance on), "Pendências" (join requests, students ready
+ * to graduate, inactive students, a championship in the next 30 days) only when there are any, the next events ("Novo evento") and the week summary.
  */
 export function StaffHome() {
   const { active, isOwner } = useActiveGym();
@@ -71,7 +73,7 @@ export function StaffHome() {
       ) : null}
 
       {isOwner ? <OwnerFinanceCard academyId={academyId} /> : null}
-      <Notices academyId={academyId} today={today.data} />
+      <Pending academyId={academyId} today={today.data} />
       <StaffEventsSection academyId={academyId} today={today.data} />
       <WeekSummary academyId={academyId} today={today.data} />
     </Box>
@@ -131,19 +133,27 @@ function NextClassCard({ next, counts }: { next: NextClass; counts: { confirmed:
   );
 }
 
-/** Only when there is something: join requests waiting, a championship in the next 30 days. */
-function Notices({ academyId, today }: { academyId: string; today: string }) {
+/**
+ * "Pendências", only when there is something: join requests waiting, students
+ * ready to graduate, inactive students, a championship in the next 30 days.
+ */
+function Pending({ academyId, today }: { academyId: string; today: string }) {
   const requests = usePendingRequests(academyId);
   const championships = useChampionships(academyId);
+  const graduation = useGraduationReady(academyId);
+  const inactive = useInactiveMembers(academyId);
   const pendingCount = requests.data?.length ?? 0;
+  // One student ready in two modalities counts once.
+  const readyCount = new Set(graduation.ready.map((r) => r.membershipId)).size;
+  const inactiveCount = inactive.list.length;
   const soon = upcomingChampionships(championships.data ?? [], today).filter(
     (c) => daysBetween(today, c.eventDate) <= CHAMPIONSHIP_NOTICE_DAYS,
   );
-  if (pendingCount === 0 && soon.length === 0) return null;
+  if (pendingCount === 0 && readyCount === 0 && inactiveCount === 0 && soon.length === 0) return null;
 
   return (
     <Box gap="s12">
-      <Text variant="captionCaps">Avisos</Text>
+      <Text variant="captionCaps">Pendências</Text>
       {pendingCount > 0 ? (
         <Card
           onPress={() => router.push('/pedidos')}
@@ -155,6 +165,36 @@ function Notices({ academyId, today }: { academyId: string; today: string }) {
           <Icon name="users" color="accent" active />
           <Text variant="bodyStrong" flex={1}>
             {pendingCount === 1 ? '1 pedido de entrada aguardando' : `${pendingCount} pedidos de entrada aguardando`}
+          </Text>
+          <Icon name="chevronRight" color="textMuted" />
+        </Card>
+      ) : null}
+      {readyCount > 0 ? (
+        <Card
+          onPress={() => router.push('/prontos-para-graduar')}
+          accessibilityLabel={`${readyCount} ${readyCount === 1 ? 'aluno pronto' : 'alunos prontos'} para graduar. Abrir`}
+          flexDirection="row"
+          alignItems="center"
+          gap="s12"
+        >
+          <Icon name="belt" color="accent" active />
+          <Text variant="bodyStrong" flex={1}>
+            {readyCount === 1 ? '1 aluno pronto para graduar' : `${readyCount} alunos prontos para graduar`}
+          </Text>
+          <Icon name="chevronRight" color="textMuted" />
+        </Card>
+      ) : null}
+      {inactiveCount > 0 ? (
+        <Card
+          onPress={() => router.push('/sumidos')}
+          accessibilityLabel={`${inactiveCount} ${inactiveCount === 1 ? 'aluno sumido' : 'alunos sumidos'}. Abrir`}
+          flexDirection="row"
+          alignItems="center"
+          gap="s12"
+        >
+          <Icon name="inactive" color="accent" active />
+          <Text variant="bodyStrong" flex={1}>
+            {inactiveCount === 1 ? '1 aluno sumido' : `${inactiveCount} alunos sumidos`}
           </Text>
           <Icon name="chevronRight" color="textMuted" />
         </Card>

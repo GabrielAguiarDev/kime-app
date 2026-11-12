@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Alert } from 'react-native';
 
-import { Box, Card, EmptyState, HeaderButton, Icon, LoadError, Screen, StatusBadge, Text } from '@components';
+import { Box, Card, EmptyState, HeaderMenu, Icon, LoadError, Screen, StatusBadge, Text } from '@components';
 import {
   addDays,
   attendanceCounts,
@@ -18,8 +18,9 @@ import {
 import { formatLocalDate } from '@domain/Competition';
 import { eventsOn, goingCount, useEventRsvps, useEvents } from '@domain/Events';
 import { DietWeekPicker } from '@screens/diet/DietWeekPicker';
+import { openAnnouncements } from '@screens/announcements/AnnouncementCard';
 import { EventAgendaRow } from '@screens/events/EventAgendaRow';
-import { newEvent } from '@screens/events/parts';
+import { openEvents } from '@screens/events/parts';
 import { useActiveGym } from '@services/activeGym';
 
 import { ModalityFilter } from './ModalityFilter';
@@ -46,16 +47,8 @@ export function StaffClassesScreen() {
   const events = useEvents(academyId);
   const rsvps = useEventRsvps(academyId);
 
-  // "Novo evento" for owner and professors; the schedules (owner) next to it.
-  const headerRight = (
-    // Both icons share one glass pill on iOS: room between them and from its edges.
-    <Box flexDirection="row" alignItems="center" gap="s20" paddingHorizontal="s8">
-      <HeaderButton icon="newEvent" accessibilityLabel="Novo evento" onPress={newEvent} />
-      {isOwner ? (
-        <HeaderButton icon="settings" accessibilityLabel="Horários das aulas" onPress={() => router.push('/academy/schedules')} />
-      ) : null}
-    </Box>
-  );
+  // Header "⋯": events and notices (owner and professors), the schedules (owner).
+  const headerRight = <ClassesMenu isOwner={isOwner} />;
 
   // Always render the Screen (its ScrollView) on the first render: iOS only
   // places a scroll view under the large-title header when it is there as the
@@ -184,5 +177,38 @@ function ClassRow({
       </Box>
       <Icon name="chevronRight" color="textMuted" />
     </Card>
+  );
+}
+
+type ClassesMenuId = 'events' | 'announcements' | 'schedules';
+
+const openFromMenu: Record<ClassesMenuId, () => void> = {
+  events: openEvents,
+  announcements: openAnnouncements,
+  schedules: () => router.push('/academy/schedules'),
+};
+
+/** Aulas header "⋯": Eventos, Avisos and, for the owner, Horários (each list registers new ones). */
+function ClassesMenu({ isOwner }: { isOwner: boolean }) {
+  const options: { id: ClassesMenuId; title: string }[] = [
+    { id: 'events', title: 'Eventos' },
+    { id: 'announcements', title: 'Avisos' },
+    ...(isOwner ? [{ id: 'schedules' as const, title: 'Horários' }] : []),
+  ];
+  return (
+    <HeaderMenu
+      accessibilityLabel="Mais opções"
+      label={<Icon name="more" color="text" />}
+      options={options}
+      selectedId={null}
+      onSelect={(id) => openFromMenu[id as ClassesMenuId]()}
+      // Build without the native menu: the same options in an alert.
+      onFallbackPress={() =>
+        Alert.alert('Aulas', undefined, [
+          ...options.map((o) => ({ text: o.title, onPress: openFromMenu[o.id] })),
+          { text: 'Cancelar', style: 'cancel' as const },
+        ])
+      }
+    />
   );
 }

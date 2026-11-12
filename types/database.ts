@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          inactive_after_days: number
           logo_path: string | null
           name: string
           plan_tier: string | null
@@ -29,6 +30,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          inactive_after_days?: number
           logo_path?: string | null
           name: string
           plan_tier?: string | null
@@ -39,6 +41,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          inactive_after_days?: number
           logo_path?: string | null
           name?: string
           plan_tier?: string | null
@@ -52,6 +55,64 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_announcements: {
+        Row: {
+          academy_id: string
+          body: string
+          created_at: string
+          created_by: string | null
+          expires_on: string | null
+          id: string
+          modality_id: string | null
+          pinned: boolean
+          updated_at: string
+        }
+        Insert: {
+          academy_id: string
+          body: string
+          created_at?: string
+          created_by?: string | null
+          expires_on?: string | null
+          id?: string
+          modality_id?: string | null
+          pinned?: boolean
+          updated_at?: string
+        }
+        Update: {
+          academy_id?: string
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          expires_on?: string | null
+          id?: string
+          modality_id?: string | null
+          pinned?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_announcements_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_announcements_modality_id_academy_id_fkey"
+            columns: ["modality_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "academy_modalities"
+            referencedColumns: ["id", "academy_id"]
           },
         ]
       }
@@ -2416,6 +2477,22 @@ export type Database = {
       }
     }
     Functions: {
+      academy_announcements_feed: {
+        Args: { p_academy_id: string }
+        Returns: {
+          academy_id: string
+          author_avatar_path: string | null
+          author_name: string | null
+          body: string
+          created_at: string
+          created_by: string | null
+          expires_on: string | null
+          id: string
+          modality_id: string | null
+          pinned: boolean
+          updated_at: string
+        }[]
+      }
       academy_event_people: {
         Args: { p_event_id: string }
         Returns: {
@@ -2585,6 +2662,16 @@ export type Database = {
           reach_cm: number
           sex: string
           weight_kg: number
+        }[]
+      }
+      inactive_students: {
+        Args: { p_academy_id: string }
+        Returns: {
+          inactive_since: string
+          joined_on: string
+          last_class_date: string | null
+          membership_id: string
+          user_id: string
         }[]
       }
       invite_competitor: {

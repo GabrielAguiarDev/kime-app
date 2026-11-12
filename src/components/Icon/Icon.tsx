@@ -5,6 +5,9 @@ import { ArrowLeft } from 'phosphor-react-native/src/icons/ArrowLeft';
 import { ArrowUp } from 'phosphor-react-native/src/icons/ArrowUp';
 import { ArrowsDownUp } from 'phosphor-react-native/src/icons/ArrowsDownUp';
 import { Barbell } from 'phosphor-react-native/src/icons/Barbell';
+import { Hourglass } from 'phosphor-react-native/src/icons/Hourglass';
+import { Megaphone } from 'phosphor-react-native/src/icons/Megaphone';
+import { PushPin } from 'phosphor-react-native/src/icons/PushPin';
 import { Bug } from 'phosphor-react-native/src/icons/Bug';
 import { Camera } from 'phosphor-react-native/src/icons/Camera';
 import { CalendarBlank } from 'phosphor-react-native/src/icons/CalendarBlank';
@@ -137,6 +140,10 @@ const ICONS = {
   money: CurrencyCircleDollar,
   attended: UserCheck,
   newEvent: CalendarPlus,
+  // Academy notices; inactive students.
+  announcement: Megaphone,
+  pin: PushPin,
+  inactive: Hourglass,
 } as const;
 
 export type IconName = keyof typeof ICONS;

@@ -91,9 +91,9 @@ async function getSettings(gymId: string): Promise<GymSettings> {
 }
 
 /** The time zone is fixed (America/Sao_Paulo): only the name is editable here. */
-async function updateSettings(gymId: string, patch: { name?: string }): Promise<void> {
+async function updateSettings(gymId: string, patch: { name?: string; inactiveAfterDays?: number }): Promise<void> {
   try {
-    await gymApi.updateSettings(gymId, { ...patch, name: patch.name?.trim() });
+    await gymApi.updateSettings(gymId, { name: patch.name?.trim(), inactive_after_days: patch.inactiveAfterDays });
   } catch (e) {
     throw toAppError(e);
   }

@@ -23,7 +23,7 @@ function toInviteCodes(rows: InviteCodeRowApi[]): InviteCodes {
 }
 
 function toSettings(row: GymSettingsRowApi): GymSettings {
-  return { id: row.id, name: row.name, timezone: row.timezone, logoPath: row.logo_path, logoUrl: logoUrl(row.logo_path) };
+  return { id: row.id, name: row.name, timezone: row.timezone, logoPath: row.logo_path, logoUrl: logoUrl(row.logo_path), inactiveAfterDays: row.inactive_after_days };
 }
 
 export const gymAdapter = { toCodeLookup, toJoinResult, toInviteCodes, toSettings };

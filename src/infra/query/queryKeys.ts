@@ -42,6 +42,8 @@ export enum QueryKeys {
   AcademyEvents = 'AcademyEvents',
   EventRsvps = 'EventRsvps',
   EventPeople = 'EventPeople',
+  Announcements = 'Announcements',
+  InactiveStudents = 'InactiveStudents',
   FinanceSettings = 'FinanceSettings',
   FinancePlans = 'FinancePlans',
   FinanceBilling = 'FinanceBilling',

@@ -1,4 +1,12 @@
-import { activeMemberships, isOwnerRole, isStaffRole, resolveActiveMembership, splitMembers } from '../membershipRules';
+import {
+  activeMemberships,
+  inactiveDays,
+  inactiveLabel,
+  isOwnerRole,
+  isStaffRole,
+  resolveActiveMembership,
+  splitMembers,
+} from '../membershipRules';
 import type { Membership } from '../membershipTypes';
 
 const m = (gymId: string, status: Membership['status'], role: Membership['role'] = 'student'): Membership => ({
@@ -56,5 +64,22 @@ describe('roles', () => {
     const { staff, students } = splitMembers(list);
     expect(staff.map((m) => m.id)).toEqual(['3', '2']);
     expect(students.map((m) => m.id)).toEqual(['1', '4']);
+  });
+});
+
+describe('inactiveLabel', () => {
+  const s = (lastClassDate: string | null, joinedOn: string) => ({
+    membershipId: 'm',
+    userId: 'u',
+    lastClassDate,
+    joinedOn,
+    inactiveSince: lastClassDate ?? joinedOn,
+  });
+  it('counts from the last class', () => {
+    expect(inactiveDays(s('2026-10-25', '2026-01-01'), '2026-11-12')).toBe(18);
+    expect(inactiveLabel(s('2026-10-25', '2026-01-01'), '2026-11-12')).toBe('Último treino há 18 dias');
+  });
+  it('counts from the join day for who never trained', () => {
+    expect(inactiveLabel(s(null, '2026-10-23'), '2026-11-12')).toBe('Sem treino desde que entrou · há 20 dias');
   });
 });

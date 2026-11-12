@@ -12,13 +12,15 @@ import {
   Card,
   EditBadge,
   EmptyState,
+  Icon,
   Screen,
   SelectionCard,
   Text,
   TextButton,
   TextField,
+  WheelPicker,
 } from '@components';
-import { useGymSettings, useGymSettingsMutations } from '@domain/Gym';
+import { INACTIVE_DAYS_OPTIONS, useGymSettings, useGymSettingsMutations } from '@domain/Gym';
 import { useGymMembers, useTransferOwnership, type GymMember } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
@@ -31,7 +33,7 @@ import { SheetForm } from './shared';
 
 /**
  * Owner: academy settings, top to bottom — logo (required; tap to change),
- * name, invite codes and, set apart at the end, the sensitive actions
+ * name, the "sumido" threshold, invite codes and, set apart at the end, the sensitive actions
  * (transfer the academy). Modalities and belts have their own screen
  * (Perfil → Modalidades). The time zone is fixed
  * (America/Sao_Paulo) and not shown.
@@ -71,6 +73,7 @@ export function AcademySettingsScreen() {
             logoPath={settings.data.logoPath}
           />
           <NameSection key={settings.data.name} gymId={active.gymId} name={settings.data.name} />
+          <InactiveDaysSection gymId={active.gymId} value={settings.data.inactiveAfterDays} />
           <SensitiveSection gymId={active.gymId} gymName={active.gymName} />
         </Box>
       ) : null}
@@ -199,6 +202,74 @@ function NameSection({ gymId, name }: { gymId: string; name: string }) {
         </Text>
       ) : null}
     </Box>
+  );
+}
+
+// ----------------------------------------------------------- "sumidos" ---
+/** Days without a confirmed class for a student to show up in "Alunos sumidos" (wheel, saved on "Salvar"). */
+function InactiveDaysSection({ gymId, value }: { gymId: string; value: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Card
+        onPress={() => setOpen(true)}
+        accessibilityLabel={`Alunos sumidos: sem treinar há ${value} dias. Alterar`}
+        flexDirection="row"
+        alignItems="center"
+        gap="s12"
+      >
+        <Icon name="inactive" color="textMuted" />
+        <Box flex={1} gap="s4">
+          <Text variant="bodyStrong">Alunos sumidos</Text>
+          <Text variant="caption">Sem aula confirmada há esse tempo.</Text>
+        </Box>
+        <Text variant="bodyStrong">{value} dias</Text>
+        <Icon name="chevronRight" color="textMuted" />
+      </Card>
+      <BottomSheet visible={open} onRequestClose={() => setOpen(false)}>
+        {open ? <InactiveDaysSheet gymId={gymId} value={value} onDone={() => setOpen(false)} /> : null}
+      </BottomSheet>
+    </>
+  );
+}
+
+function InactiveDaysSheet({ gymId, value, onDone }: { gymId: string; value: number; onDone: () => void }) {
+  const { update } = useGymSettingsMutations(gymId);
+  const [days, setDays] = useState(value);
+  // An old value outside the list still shows on the wheel.
+  const options = INACTIVE_DAYS_OPTIONS.includes(value as (typeof INACTIVE_DAYS_OPTIONS)[number])
+    ? [...INACTIVE_DAYS_OPTIONS]
+    : [...INACTIVE_DAYS_OPTIONS, value].sort((a, b) => a - b);
+  return (
+    <SheetForm
+      title="Considerar sumido após"
+      actions={
+        <Button
+          title="Salvar"
+          loading={update.isPending}
+          onPress={() => {
+            if (days === value) return onDone();
+            update.mutate(
+              { inactiveAfterDays: days },
+              {
+                onSuccess: () => {
+                  haptics.success();
+                  onDone();
+                },
+                onError: (e) => Alert.alert('Alunos sumidos', errorMessage(e)),
+              },
+            );
+          }}
+        />
+      }
+    >
+      <WheelPicker
+        accessibilityLabel="Dias sem treinar"
+        options={options.map((d) => ({ value: d, label: `${d} dias` }))}
+        value={days}
+        onChange={setDays}
+      />
+    </SheetForm>
   );
 }
 

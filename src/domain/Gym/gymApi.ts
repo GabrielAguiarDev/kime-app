@@ -66,14 +66,14 @@ export function logoUrl(path: string | null | undefined): string | null {
 async function getSettings(gymId: string) {
   const { data, error } = await supabase
     .from('academies')
-    .select('id, name, timezone, logo_path')
+    .select('id, name, timezone, logo_path, inactive_after_days')
     .eq('id', gymId)
     .single();
   if (error) throw error;
   return data;
 }
 
-async function updateSettings(gymId: string, patch: { name?: string; logo_path?: string | null }) {
+async function updateSettings(gymId: string, patch: { name?: string; logo_path?: string | null; inactive_after_days?: number }) {
   const { data, error } = await supabase.from('academies').update(patch).eq('id', gymId).select('id');
   if (error) throw error;
   if (data.length === 0) throw new Error('forbidden');

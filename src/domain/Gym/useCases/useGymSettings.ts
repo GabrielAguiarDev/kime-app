@@ -19,10 +19,12 @@ export function useGymSettingsMutations(gymId: string) {
       queryClient.invalidateQueries({ queryKey: [QueryKeys.GymSettings, gymId] }),
       // Name shows in the memberships list (Home, Perfil).
       queryClient.invalidateQueries({ queryKey: [QueryKeys.MyMemberships] }),
+      // The "sumido" threshold.
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.InactiveStudents, gymId] }),
     ]);
   return {
     update: useMutation({
-      mutationFn: (patch: { name?: string }) => gymService.updateSettings(gymId, patch),
+      mutationFn: (patch: { name?: string; inactiveAfterDays?: number }) => gymService.updateSettings(gymId, patch),
       onSuccess,
     }),
     changeLogo: useMutation({

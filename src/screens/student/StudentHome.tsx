@@ -11,6 +11,7 @@ import { upcomingChampionships, useChampionships } from '@domain/Competition';
 import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { useDiscipline } from '@domain/Streaks';
 import { waterDayState } from '@domain/Water';
+import { StudentAnnouncementsSection } from '@screens/announcements/HomeAnnouncementsSection';
 import { CompetitorInviteCard } from '@screens/competition/CompetitorInviteCard';
 import { StudentEventsSection } from '@screens/events/HomeEventsSection';
 import { BlockedNotice, FinanceNotice, useMyFinance } from '@screens/finance/StudentFinance';
@@ -28,8 +29,8 @@ import { WeekCard } from './home/WeekCard';
 /**
  * Início of a student (competitor or not), for the modality picked in the
  * header. Never empty: every section has a useful state without data.
- * Own overdue fee notice · next class · championship · event · water · the week ·
- * ranking. A student blocked for an overdue fee sees the notice and water only. Rewards (belt, milestone, confirmed check-in) are handled by HomeScreen.
+ * Own overdue fee notice · academy notice · next class · championship · event · water · the week ·
+ * ranking. A student blocked for an overdue fee sees the fee notice, the academy notice and water only. Rewards (belt, milestone, confirmed check-in) are handled by HomeScreen.
  */
 export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   const { userId } = useSession();
@@ -54,6 +55,7 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
     return (
       <Box gap="s24" paddingTop="s16">
         <BlockedNotice compact />
+        {academyId && today.data ? <StudentAnnouncementsSection academyId={academyId} today={today.data} /> : null}
         <WaterCard />
       </Box>
     );
@@ -87,6 +89,8 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   return (
     <Box gap="s24" paddingTop="s16">
       <FinanceNotice />
+
+      <StudentAnnouncementsSection academyId={academyId} today={today.data} />
 
       {active
         ? modalities
