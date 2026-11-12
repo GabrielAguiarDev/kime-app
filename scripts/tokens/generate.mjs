@@ -9,6 +9,7 @@
  *   src/theme/tokens.ts                 React Native app
  *   targets/widgets/KimiTokens.swift                                     iOS widget extension (SwiftUI / WidgetKit)
  *   modules/kimi-widget/android/src/main/java/br/com/kimi/widget/KimiTokens.kt  Android widget (Jetpack Glance)
+ *   web/landing/tokens.css            Static landing page
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -159,6 +160,26 @@ function kotlin() {
   return lines.join('\n') + '\n';
 }
 
+// ---------- CSS (static landing) ----------
+function landingCss() {
+  const cssName = (key) => key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+  const lines = [`/* ${HEADER} */`, ':root {'];
+  for (const [key, value] of Object.entries(data.color.dark)) {
+    lines.push(`  --color-${cssName(key)}: ${value};`);
+  }
+  for (const [key, value] of Object.entries(data.color.on)) {
+    lines.push(`  --color-${cssName(key)}: ${value};`);
+  }
+  for (const [key, value] of Object.entries(data.space)) {
+    lines.push(`  --space-${cssName(key)}: ${value}px;`);
+  }
+  for (const [key, value] of Object.entries(data.radius)) {
+    lines.push(`  --radius-${cssName(key)}: ${value}px;`);
+  }
+  lines.push('}');
+  return lines.join('\n') + '\n';
+}
+
 // ---------- run ----------
 assertSchemes();
 assertIdentifiers(data, 'tokens');
@@ -167,6 +188,7 @@ const outputs = {
   'src/theme/tokens.ts': typescript(),
   'targets/widgets/KimiTokens.swift': swift(),
   'modules/kimi-widget/android/src/main/java/br/com/kimi/widget/KimiTokens.kt': kotlin(),
+  'web/landing/tokens.css': landingCss(),
 };
 
 const check = process.argv.includes('--check');

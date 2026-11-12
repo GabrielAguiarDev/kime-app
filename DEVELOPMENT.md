@@ -589,3 +589,7 @@ Abra a URL exibida pelo Vite na TV ou no notebook ligado por HDMI. No celular, a
 4. Configure Supabase Auth para permitir login anônimo e Realtime para a tabela da migration. O deploy e o domínio ficam com o responsável pelo produto.
 
 Pendências planejadas: limitar tentativas em `pair_tv`; configurar domínio próprio e Universal Link para substituir `kimi://` no QR; adicionar captcha ao login anônimo.
+
+## Landing page
+
+`web/landing` é a página de apresentação do Kimi. É HTML/CSS estático, sem JavaScript, dependências ou acesso ao Supabase. Hospede essa pasta separadamente de `web/tv`. Para ver localmente: `cd web/landing && python3 -m http.server 4173`. O CSS de cores e espaçamentos (`web/landing/tokens.css`) é gerado de `tokens.json` por `npm run tokens`. Os links de download serão adicionados quando o app estiver nas lojas.

@@ -1,0 +1,44 @@
+/* GENERATED FROM tokens.json BY scripts/tokens/generate.mjs. DO NOT EDIT. */
+:root {
+  --color-bg: #0F1012;
+  --color-surface: #17191C;
+  --color-surface-raised: #1F2226;
+  --color-border: #2B2F34;
+  --color-edge: #0A0B0C;
+  --color-text: #F2F1EE;
+  --color-text-muted: #9A9EA5;
+  --color-disabled: #4A4E54;
+  --color-accent: #F05A1E;
+  --color-accent-edge: #B8420F;
+  --color-water: #3D9BF0;
+  --color-water-edge: #2373C0;
+  --color-ice: #9AD8F2;
+  --color-success: #2FB86A;
+  --color-success-edge: #238A50;
+  --color-warning: #F5B32E;
+  --color-warning-edge: #B88622;
+  --color-danger: #EF4C66;
+  --color-danger-edge: #B3394C;
+  --color-on-accent: #FFFFFF;
+  --color-on-water: #FFFFFF;
+  --color-on-success: #FFFFFF;
+  --color-on-danger: #FFFFFF;
+  --color-on-warning: #15171A;
+  --color-shine: #FFFFFF;
+  --space-s4: 4px;
+  --space-s8: 8px;
+  --space-s12: 12px;
+  --space-s16: 16px;
+  --space-s20: 20px;
+  --space-s24: 24px;
+  --space-s32: 32px;
+  --space-s40: 40px;
+  --space-s48: 48px;
+  --space-screen-margin: 20px;
+  --space-card-gap: 12px;
+  --space-card-padding: 16px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-progress: 7px;
+}
