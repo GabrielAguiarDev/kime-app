@@ -69,6 +69,11 @@ export function TimerSetupScreen() {
   const running = useTimerSession();
   const confirm = useConfirm();
   const tv = useSyncExternalStore(subscribeTv, getTvConnection);
+  const tvAction = isStaff ? (
+    <HeaderButton accessibilityLabel="Transmitir na TV" onPress={() => router.push('/tv' as Href)}>
+      <Text variant="bodyStrong">TV</Text>
+    </HeaderButton>
+  ) : undefined;
 
   const presets = mine.presets;
   const loading = mine.isLoading;
@@ -130,6 +135,7 @@ export function TimerSetupScreen() {
       <Screen
         nativeHeader
         title="Timer"
+        headerRight={tvAction}
         bottomInset={false}
         footer={
           <Box alignItems="center">
@@ -167,7 +173,7 @@ export function TimerSetupScreen() {
     <Screen
       nativeHeader
       title="Timer"
-      headerRight={isStaff ? <HeaderButton icon="share" accessibilityLabel="Transmitir na TV" onPress={() => router.push('/tv' as Href)} /> : undefined}
+      headerRight={tvAction}
       bottomInset={false}
       footer={
         <Box alignItems="center">
