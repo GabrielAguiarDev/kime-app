@@ -4,13 +4,19 @@ create extension if not exists pgtap with schema extensions;
 select set_config('search_path', concat_ws(',',
   (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgtap'),
   'public', 'extensions'), true);
-select plan(12);
+select plan(19);
 create function pg_temp.login(p_uid uuid) returns void language plpgsql as $$
 begin
   perform set_config('role', 'authenticated', true);
   perform set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated')::text, true);
 end $$;
 grant execute on function pg_temp.login(uuid) to public;
+create function pg_temp.login_tv(p_uid uuid) returns void language plpgsql as $$
+begin
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', p_uid, 'role', 'authenticated', 'is_anonymous', true)::text, true);
+end $$;
+grant execute on function pg_temp.login_tv(uuid) to public;
 create temp table t_ids(key text primary key, val uuid) on commit drop;
 grant all on t_ids to authenticated;
 create temp table t_codes(key text primary key, val text) on commit drop;
@@ -69,5 +75,24 @@ select throws_ok($$ select public.pair_tv((select val from t_codes where key='d2
 select pg_temp.login(pg_temp.id('s'));
 select throws_ok($$ select public.update_tv_timer(pg_temp.id('d1'),' {"status":"idle"}'::jsonb,1) $$,
  '42501',null,'student cannot control');
+select throws_ok($$ select public.tv_disconnect_self() $$,
+ '42501',null,'student cannot disconnect a TV');
+select pg_temp.login(pg_temp.id('o1'));
+select throws_ok($$ select public.tv_disconnect_self() $$,
+ '42501',null,'staff cannot use the TV-only disconnect');
+select pg_temp.login_tv(pg_temp.id('tv2'));
+select lives_ok($$ select public.tv_disconnect_self() $$,
+ 'TV can disconnect its own display');
+set local role postgres;
+select is((select academy_id from public.tv_displays where id=pg_temp.id('d1')),
+ pg_temp.id('a1'),'disconnecting another TV leaves the paired TV untouched');
+select pg_temp.login_tv(pg_temp.id('tv1'));
+select lives_ok($$ select public.tv_disconnect_self() $$,
+ 'paired TV can disconnect itself');
+select ok((select academy_id is null and pairing_code is null and timer_state is null and state_version=2
+ from public.tv_displays where id=pg_temp.id('d1')),
+ 'disconnect clears academy, pairing and timer state');
+select ok((public.create_tv_pairing()).pairing_code is not null,
+ 'the disconnected TV receives a new pairing code');
 select * from finish();
 rollback;

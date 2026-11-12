@@ -127,7 +127,8 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="achievement" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
             {/* Also opened by the widget (kimi://agua, kimi://agua/configurar). */}
             <Stack.Screen name="agua/index" options={header} />
-            <Stack.Screen name="tv/index" options={header} />
+            {/* Only a bottom sheet over the timer (also kimi://tv?code=… from the TV's QR). */}
+            <Stack.Screen name="tv/index" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="agua/configurar" options={header} />
             <Stack.Screen name="conta/dados" options={header} />
             <Stack.Screen name="conta/academias" options={header} />

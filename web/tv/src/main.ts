@@ -31,17 +31,44 @@ const files = { roundStart: 'bell.wav', roundEnd: 'bell-triple.wav', warning: 'c
 let wakeLock: { release: () => Promise<void> } | null = null;
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]!);
 const brand = () => `<div class="brand"><img src="/kimi.png" alt=""><span>KIMI</span></div>`;
-const toolbar = () => `<div class="toolbar"><button id="fullscreen">Tela cheia</button></div>`;
+const toolbar = () => `<div class="toolbar">${display?.academy_id ? '<button id="disconnect" type="button">Desconectar</button>' : ''}<button id="fullscreen" type="button">Tela cheia</button></div>`;
 function bindControls() {
   document.querySelector<HTMLButtonElement>('#fullscreen')?.addEventListener('click', () => void document.documentElement.requestFullscreen?.());
+  document.querySelector<HTMLButtonElement>('#disconnect')?.addEventListener('click', showDisconnectConfirm);
   document.onkeydown = e => {
+    const dialog = document.querySelector('.disconnect-overlay');
+    if (e.key === 'Escape' && dialog) { document.querySelector<HTMLButtonElement>('#disconnect-cancel')?.click(); return; }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      const buttons = [...document.querySelectorAll<HTMLButtonElement>('button')];
+      const buttons = [...(dialog ?? document).querySelectorAll<HTMLButtonElement>('button')];
       const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
       buttons[(i + (e.key === 'ArrowRight' ? 1 : buttons.length - 1)) % buttons.length]?.focus();
     }
-    if (e.key === 'Enter' && document.activeElement === document.body) document.querySelector<HTMLButtonElement>('button')?.click();
+    if (e.key === 'Enter' && document.activeElement === document.body) (dialog ?? document).querySelector<HTMLButtonElement>('button')?.click();
   };
+}
+function showDisconnectConfirm() {
+  if (!display?.academy_id || document.querySelector('.disconnect-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'disconnect-overlay';
+  overlay.innerHTML = '<div class="disconnect-dialog" role="dialog" aria-modal="true" aria-labelledby="disconnect-title"><h2 id="disconnect-title">Desconectar esta TV?</h2><p>Ela deixará de receber o timer da academia e mostrará um novo código de pareamento.</p><div class="disconnect-actions"><button id="disconnect-cancel" type="button">Cancelar</button><button id="disconnect-confirm" type="button">Desconectar TV</button></div><p class="disconnect-error" role="alert" hidden></p></div>';
+  document.body.appendChild(overlay);
+  const cancel = overlay.querySelector<HTMLButtonElement>('#disconnect-cancel')!;
+  const confirm = overlay.querySelector<HTMLButtonElement>('#disconnect-confirm')!;
+  cancel.addEventListener('click', () => { overlay.remove(); document.querySelector<HTMLButtonElement>('#disconnect')?.focus(); });
+  confirm.addEventListener('click', async () => {
+    confirm.disabled = true;
+    try {
+      const { error } = await db.rpc('tv_disconnect_self');
+      if (error) throw error;
+      location.reload();
+    } catch {
+      const message = overlay.querySelector<HTMLElement>('.disconnect-error')!;
+      message.textContent = 'Não foi possível desconectar. Tente novamente.';
+      message.hidden = false;
+      confirm.disabled = false;
+    }
+  });
+  cancel.focus();
 }
 async function unlockSound() {
   audioContext = new AudioContext();

@@ -2,7 +2,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
-import { BottomSheet, Box, Button, Card, FeedbackSheet, Screen, Text, TextField } from '@components';
+import { BottomSheet, Box, Button, Card, FeedbackSheet, Text, TextField } from '@components';
 import { useActiveGym } from '@services/activeGym';
 import { alignTimerClock, getTimerSession } from '@services/timer';
 import { connectTv, disconnectTv, getTvConnection, listTvs, pairTv, unpairTv, type TvDisplay } from '@services/tv';
@@ -40,7 +40,8 @@ export function TvScreen() {
     const id = setInterval(() => setOnlineNow(Date.now()), 30000);
     return () => { clearTimeout(initial); clearInterval(id); };
   }, []);
-  const close = () => { setOpen(false); router.back(); };
+  // Only the sheet: the route is a transparent modal over the screen that opened it.
+  const close = () => { setOpen(false); if (router.canGoBack()) router.back(); else router.replace('/'); };
   const connect = async (row: TvDisplay) => {
     try {
       setBusy(true);
@@ -58,7 +59,7 @@ export function TvScreen() {
     } catch { setMessage('Código inválido ou expirado. Confira o código na TV.'); } finally { setBusy(false); }
   };
   return (
-    <Screen nativeHeader title="Transmitir na TV" onBack={close}>
+    <>
       <BottomSheet visible={open && isStaff} onRequestClose={close}>
         <ScrollView keyboardShouldPersistTaps="handled">
           <Box gap="s16" paddingBottom="s24">
@@ -93,6 +94,6 @@ export function TvScreen() {
       </BottomSheet>
       {!isStaff ? <FeedbackSheet tone="warning" icon="info" title="Acesso restrito" message="Só o dono e professores podem parear e controlar a TV." actionLabel="Voltar" onAction={close} /> : null}
       {message ? <FeedbackSheet tone="warning" icon="warning" title="TV não atualizada" message={message} actionLabel="Entendi" onAction={() => setMessage(null)} /> : null}
-    </Screen>
+    </>
   );
 }

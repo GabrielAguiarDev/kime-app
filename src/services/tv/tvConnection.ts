@@ -73,6 +73,9 @@ async function flush() {
         if (error.code === '40001') {
           const latest = await db.from('tv_displays').select('id,academy_id,name,last_seen_at,state_version,timer_state').eq('id', connected.id).single();
           if (latest.data?.academy_id === connected.academy_id) { connected = latest.data as TvDisplay; pending = pending ?? state; continue; }
+          // Network hiccup (e.g. back from the background): keep the TV and retry later.
+          // PGRST116 = no row visible anymore (unpaired): that one really disconnects.
+          if (latest.error && latest.error.code !== 'PGRST116') { pending = pending ?? state; failed = true; emit(); break; }
           disconnectTv(); break;
         }
         if (error.code === '42501') { disconnectTv(false); break; }
