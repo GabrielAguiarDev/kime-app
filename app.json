@@ -61,6 +61,14 @@
           "cameraPermission": "O Kimi usa a câmera para você tirar sua foto de perfil.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O Kimi usa a câmera para ler o QR code da TV.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
+        }
       ]
     ],
     "scheme": "kimi",

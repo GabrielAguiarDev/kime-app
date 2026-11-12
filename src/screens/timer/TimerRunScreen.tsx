@@ -1,7 +1,7 @@
 import { useKeepAwake } from 'expo-keep-awake';
-import { router, Stack } from 'expo-router';
+import { router, Stack, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Pressable, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,6 +16,7 @@ import {
   useTimerOrientation,
   useTimerSession,
 } from '@services/timer';
+import { getTvConnection, subscribeTv } from '@services/tv';
 import { useAppTheme, type ColorToken } from '@theme';
 import { haptics } from '@utils/haptics';
 
@@ -56,6 +57,7 @@ function phaseLabel(state: TimerState, paused: boolean): string {
 export function TimerRunScreen() {
   useKeepAwake();
   const session = useTimerSession();
+  const tv = useSyncExternalStore(subscribeTv, getTvConnection);
   const { colors } = useAppTheme();
   const orientation = useTimerOrientation();
   const { width, height } = useWindowDimensions();
@@ -141,6 +143,7 @@ export function TimerRunScreen() {
             <Text variant="bodyStrong" color={look.fg}>
               Round {state.round} de {state.rounds}
             </Text>
+            {tv.display ? <Pressable accessibilityRole="button" accessibilityLabel={`TV ${tv.display.name}. Abrir opções`} onPress={() => router.push('/tv' as Href)}><Text variant="caption" color={look.fg}>{tv.failed ? `TV não atualizada · ${tv.display.name}` : `TV: ${tv.display.name}`}</Text></Pressable> : null}
             <Pressable
               onPress={() => {
                 haptics.tap();

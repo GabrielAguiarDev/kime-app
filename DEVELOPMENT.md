@@ -558,3 +558,34 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 - O usuário usou o app e considera bom sem as animações restantes. Aplicadas agora (Reanimated, layout animations; respeitam "reduzir movimento"): toast com fade (Equipe → Convidar → copiar código), selo do check-in surgindo ao fazer o check-in e ao ser confirmado/recusado (`ClassCard`, sem animar na montagem do card), mascote + balão entrando (`MascotBalloon`, Início do aluno), título e cards subindo na tela de conquista (`AchievementScreen`).
 - Marcadores que já estavam feitos e viraram comentário: barra de faixa (`ProgressBar` animated), anel de água (`WaterRing`), folha da meta de água (`FeedbackSheet`).
 - Os demais `TODO(motion)` (34) ficam como estão: o app troca de estado sem transição e o usuário está satisfeito.
+
+## Timer na TV
+
+O timer puro está em `shared/timer.ts` (timeline, clock por timestamps, fases, eventos e formatação). `shared/tvTimer.ts` define o snapshot transmitido (`status`, título, configuração e `TimerClock`) e avalia o mesmo estado na TV. `shared/serverClock.ts` mede cinco amostras da RPC `public.server_now()`, usa a de menor RTT e expõe um `now()` corrigido. O celular usa esse relógio enquanto conectado à TV; o plano enviado à Live Activity continua em tempo local do dispositivo.
+
+A migration `20261112000200_tv_displays.sql` cria `tv_displays`, RLS, publicação Realtime e as RPCs `create_tv_pairing`, `pair_tv`, `unpair_tv`, `update_tv_timer`, `tv_heartbeat`, `server_now` e `tv_academy_brand`. A TV usa login anônimo do Supabase, que recebe o papel `authenticated` e só lê a própria linha. Staff lê e controla apenas TVs da academia ativa. `state_version` impede que gravações atrasadas sobrescrevam um estado mais novo. O app mantém a sessão local quando uma escrita falha e reenvia o snapshot mais recente a cada 5 segundos e ao voltar ao primeiro plano.
+
+A página estática fica em `web/tv`, com Vite, TypeScript e JavaScript alvo ES2017. Reaproveita `shared/`, os WAVs de `assets/sounds` e fontes Barlow Condensed/Inter. A TV busca a própria linha após reconexão ou retorno do segundo plano. O áudio precisa ser ativado pelo primeiro toque ou tecla OK. Wake Lock e tela cheia dependem do navegador da TV.
+
+### Variáveis de ambiente
+
+No app, manter `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` no `.env.local`. Na página, copiar `web/tv/.env.example` para `web/tv/.env.local` e definir `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` com a URL e a chave pública do mesmo projeto Supabase. Essas chaves são públicas; nunca use a service role key no navegador. Ative o login anônimo em Supabase Auth e aplique a migration antes de abrir a página.
+
+### Rodar localmente
+
+```sh
+cd web/tv
+npm ci
+npm run dev -- --host 0.0.0.0
+```
+
+Abra a URL exibida pelo Vite na TV ou no notebook ligado por HDMI. No celular, abra Timer → Transmitir na TV e escaneie o QR ou digite o código. Após instalar `expo-camera`, rode novamente o app nativo com `npx expo run:ios` (ou `npx expo run:android`); atualizar apenas o JavaScript não inclui o módulo de câmera.
+
+### Deploy da página
+
+1. Configure as duas variáveis `VITE_*` no provedor de hosting estático.
+2. Use `web/tv` como diretório do projeto, `npm ci && npm run build` como comando e `dist` como diretório publicado.
+3. Sirva por HTTPS para que Wake Lock, tela cheia e sessão persistente funcionem onde suportados. Teste o navegador real da TV, inclusive retorno do segundo plano, controle remoto e som.
+4. Configure Supabase Auth para permitir login anônimo e Realtime para a tabela da migration. O deploy e o domínio ficam com o responsável pelo produto.
+
+Pendências planejadas: limitar tentativas em `pair_tv`; configurar domínio próprio e Universal Link para substituir `kimi://` no QR; adicionar captcha ao login anônimo.

@@ -18,6 +18,7 @@ import {
 } from '@domain/Timer';
 import { requestNotificationPermission } from '@infra/notifications';
 import { roundTimerNative } from '@infra/widget';
+import { publishTvTimer, timerNow } from '@services/tv';
 
 /**
  * The running round timer (one at a time), outside React so it survives
@@ -69,16 +70,30 @@ export function getTimerSession(): TimerSession | null {
 }
 
 /** Hands the native engine everything still ahead (replaces the previous plan). */
+function broadcast() {
+  if (!session) { publishTvTimer(null); return; }
+  publishTvTimer({ status: session.state.phase === 'done' ? 'finished' : session.clock.pausedAt !== null ? 'paused' : 'running',
+    title: session.title, config: session.config, clock: session.clock });
+}
+
+/** Move an existing local clock onto the server epoch when a TV connects. */
+export function alignTimerClock(deltaMs: number) {
+  if (!session) return;
+  session = { ...session, clock: { ...session.clock, startedAt: session.clock.startedAt + deltaMs,
+    pausedAt: session.clock.pausedAt === null ? null : session.clock.pausedAt + deltaMs } };
+  tick(); syncNative(); broadcast();
+}
+
 function syncNative() {
   if (!session) return;
-  const now = Date.now();
+  const now = timerNow();
   const plan = nativePlan(
     session.title,
     session.config,
     session.segments,
     session.events,
     elapsed(session.clock, now),
-    now,
+    Date.now(),
     session.clock.pausedAt !== null,
   );
   void roundTimerNative.sync(plan).catch(() => undefined);
@@ -86,9 +101,9 @@ function syncNative() {
 
 function tick() {
   if (!session) return;
-  const t = elapsed(session.clock, Date.now());
+  const t = elapsed(session.clock, timerNow());
   session = { ...session, state: stateAt(session.config, session.segments, t) };
-  if (session.state.phase === 'done') stopTicker();
+  if (session.state.phase === 'done') { stopTicker(); broadcast(); }
   emit();
 }
 
@@ -113,7 +128,7 @@ export async function startTimer(title: string, config: TimerConfig): Promise<vo
     config,
     segments,
     events: events(config, segments),
-    clock: startClock(Date.now()),
+    clock: startClock(timerNow()),
     state: stateAt(config, segments, 0),
   };
   // Back from the background: redraw at once (JS timers may have been paused).
@@ -127,29 +142,32 @@ export async function startTimer(title: string, config: TimerConfig): Promise<vo
   });
   syncNative();
   tick();
+  broadcast();
   startTicker();
 }
 
 export function pauseTimer() {
   if (!session || session.state.phase === 'done') return;
-  session = { ...session, clock: pause(session.clock, Date.now()) };
+  session = { ...session, clock: pause(session.clock, timerNow()) };
   stopTicker();
   tick();
   syncNative();
+  broadcast();
 }
 
 export function resumeTimer() {
   if (!session || session.state.phase === 'done') return;
-  session = { ...session, clock: resume(session.clock, Date.now()) };
+  session = { ...session, clock: resume(session.clock, timerNow()) };
   tick();
   syncNative();
+  broadcast();
   startTicker();
 }
 
 /** Jumps to the next (+1) or previous (-1) phase start. */
 export function skipTimer(direction: 1 | -1) {
   if (!session) return;
-  const now = Date.now();
+  const now = timerNow();
   const index = session.state.segmentIndex < 0 ? session.segments.length - 1 : session.state.segmentIndex;
   const target = index + direction;
   if (target < 0) return;
@@ -162,6 +180,7 @@ export function skipTimer(direction: 1 | -1) {
   }
   tick();
   syncNative();
+  broadcast();
   if (session.clock.pausedAt === null && session.state.phase !== 'done' && !ticker) startTicker();
 }
 
@@ -173,6 +192,7 @@ export async function stopTimer(): Promise<void> {
   commandSub = null;
   const hadSession = !!session;
   session = null;
+  broadcast();
   emit();
   if (hadSession) await roundTimerNative.stop().catch(() => undefined);
 }

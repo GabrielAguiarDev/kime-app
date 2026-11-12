@@ -1,8 +1,8 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, useWindowDimensions } from 'react-native';
 
-import { BottomSheet, Box, Button, Card, Icon, NativeMenu, RoundButton, Screen, Text } from '@components';
+import { BottomSheet, Box, Button, Card, HeaderButton, Icon, NativeMenu, RoundButton, Screen, Text } from '@components';
 import { useModalities } from '@domain/Classes';
 import {
   BUILT_IN_PRESETS,
@@ -13,6 +13,7 @@ import {
   useMyTimerPresets,
   type TimerConfig,
   type TimerPreset,
+  startClock,
 } from '@domain/Timer';
 import { keyValueStorage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
@@ -20,6 +21,7 @@ import { useActiveModality } from '@services/activeModality';
 import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
 import { startTimer, timerSoundsAvailable, useTimerSession } from '@services/timer';
+import { getTvConnection, publishTvTimer, subscribeTv, timerNow } from '@services/tv';
 import { useAppTheme } from '@theme';
 
 import { AdjustSheet, PresetForm } from './TimerSheets';
@@ -66,6 +68,7 @@ export function TimerSetupScreen() {
   const mine = useMyTimerPresets(userId);
   const running = useTimerSession();
   const confirm = useConfirm();
+  const tv = useSyncExternalStore(subscribeTv, getTvConnection);
 
   const presets = mine.presets;
   const loading = mine.isLoading;
@@ -111,6 +114,15 @@ export function TimerSetupScreen() {
     setBase(toConfig(selected));
   }
 
+  const activeRun = !!running && running.state.phase !== 'done';
+  const tvId = tv.display?.id;
+  const selectedName = selected?.name;
+  useEffect(() => {
+    if (tvId && selectedName && config && !activeRun) {
+      publishTvTimer({ status: 'idle', title: selectedName, config, clock: startClock(timerNow()) });
+    }
+  }, [tvId, selectedName, config, activeRun]);
+
   if (!selected || !config) {
     // Same structure as the loaded screen (the footer with the play button, disabled):
     // nothing in the layout changes when the presets arrive.
@@ -155,6 +167,7 @@ export function TimerSetupScreen() {
     <Screen
       nativeHeader
       title="Timer"
+      headerRight={isStaff ? <HeaderButton icon="share" accessibilityLabel="Transmitir na TV" onPress={() => router.push('/tv' as Href)} /> : undefined}
       bottomInset={false}
       footer={
         <Box alignItems="center">
