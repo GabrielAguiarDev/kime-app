@@ -21,7 +21,7 @@ export function useLogBottle(onLogged?: (totalMl: number, bottleMl: number) => v
 
   const log = () => {
     if (!bottleMl) return;
-    // TODO(motion): water drop / ring filling on each log.
+    // The ring fills by itself on each log (WaterRing tweens the value).
     haptics.water();
     logWater.mutate(bottleMl, {
       onSuccess: () => {

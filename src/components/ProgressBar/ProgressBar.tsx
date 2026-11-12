@@ -50,7 +50,7 @@ export function ProgressBar({ value, max, unit, color = 'accent', beltColor, lab
         <Text variant="bodyStrong">{numbers}</Text>
       </Box>
       <Box height={size.progressBar} borderRadius="progress" backgroundColor="border" overflow="hidden">
-        {/* TODO(motion): belt/progress bar advancing to the new value (done only where `animated`). */}
+        {/* Advances to the new value with `animated` (useTweened; reduced motion: instant). */}
         {ratio > 0 ? (
           <Box
             height={size.progressBar}

@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { BELT_COLOR_TOKEN, Box, Button, KimiMascot, Screen, Text } from '@components';
 import {
@@ -19,6 +20,7 @@ type Params = { kind?: 'belt' | 'milestone'; beltPrimary?: string; beltTip?: str
 
 /** Full-screen achievement (11.4): new belt or class milestone. */
 export function AchievementScreen() {
+  const { spacing } = useAppTheme();
   const { kind, beltPrimary, beltTip, value } = useLocalSearchParams<Params>();
   const { userId } = useSession();
   const { active } = useActiveGym();
@@ -43,14 +45,16 @@ export function AchievementScreen() {
 
   return (
     <Screen scrollable={false} footer={<Button title="Continuar" onPress={() => router.back()} />}>
-      {/* TODO(motion): title and stat cards entrance. */}
       <Box flex={1} alignItems="center" justifyContent="center" gap="s24">
         {/* New belt: graduation peeking with one eye (twice, then still). */}
         <KimiMascot size="hero" pose={belt ? 'graduation' : 'guard'} animated />
-        <Text variant="title" textAlign="center" accessibilityRole="header">
-          {title}
-        </Text>
-        <Box flexDirection="row" gap="s12" alignSelf="stretch">
+        {/* The title, then the stat cards, rise in after the mascot. */}
+        <Animated.View entering={FadeInDown.delay(200).duration(320)}>
+          <Text variant="title" textAlign="center" accessibilityRole="header">
+            {title}
+          </Text>
+        </Animated.View>
+        <Animated.View entering={FadeInDown.delay(380).duration(320)} style={{ flexDirection: 'row', gap: spacing.s12, alignSelf: 'stretch' }}>
           <StatCard label="Aulas" value={String(total)} header="accent" text="onAccent" />
           <StatCard label="Semanas" value={String(streak)} header="success" text="onSuccess" />
           {belt ? (
@@ -62,7 +66,7 @@ export function AchievementScreen() {
               compact
             />
           ) : null}
-        </Box>
+        </Animated.View>
       </Box>
     </Screen>
   );

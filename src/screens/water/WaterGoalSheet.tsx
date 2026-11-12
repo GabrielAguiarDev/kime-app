@@ -13,7 +13,7 @@ export function WaterGoalSheet({
   onAction: () => void;
 }) {
   return (
-    // TODO(motion): feedback sheet entering and leaving.
+    // FeedbackSheet slides in and out by itself.
     <FeedbackSheet
       tone="water"
       title={isLimit ? 'Limite do dia cumprido.' : 'Meta do dia batida.'}

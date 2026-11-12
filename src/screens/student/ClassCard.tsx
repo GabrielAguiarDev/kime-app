@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { ActivityIndicator } from 'react-native';
+import Animated, { FadeIn, LayoutAnimationConfig, ZoomIn } from 'react-native-reanimated';
 
 import { Avatar, Box, Button, Card, StatusBadge, Text, TextButton } from '@components';
 import {
@@ -51,7 +52,6 @@ export function ClassCard({ academyId, userId, today, date, schedule, checkin, h
     });
     if (ok) cancel.mutate(checkin.id);
   };
-  // TODO(motion): check-in button turning into the pending badge.
   const doCheckIn = () => checkIn.mutate({ scheduleId: schedule.id, date: today });
 
   const checkinArea = !isToday ? null : !checkin ? (
@@ -94,8 +94,15 @@ export function ClassCard({ academyId, userId, today, date, schedule, checkin, h
               </Text>
             </Box>
           )}
-          {/* TODO(motion): badge changing from pending to confirmed. */}
-          {checkin ? <StatusBadge status={checkin.status} /> : null}
+          {/* Check-in made (pending) or decided (confirmed / refused): the badge pops in.
+              Not when the card first appears (LayoutAnimationConfig skips that). */}
+          <LayoutAnimationConfig skipEntering>
+            {checkin ? (
+              <Animated.View key={checkin.status} entering={checkin.status === 'pending' ? FadeIn.duration(200) : ZoomIn.duration(220)}>
+                <StatusBadge status={checkin.status} />
+              </Animated.View>
+            ) : null}
+          </LayoutAnimationConfig>
         </Box>
         {upcoming ? <AttendeesRow people={people} loading={attendees.isLoading} isToday={isToday} /> : null}
         {checkinArea}
