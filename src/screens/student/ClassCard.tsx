@@ -54,6 +54,18 @@ export function ClassCard({ academyId, userId, today, date, schedule, checkin, h
   };
   const doCheckIn = () => checkIn.mutate({ scheduleId: schedule.id, date: today });
 
+  // Check-in made (pending) or decided (confirmed / refused): the badge pops in.
+  // Not when the card first appears (LayoutAnimationConfig skips that).
+  const badge = (
+    <LayoutAnimationConfig skipEntering>
+      {checkin ? (
+        <Animated.View key={checkin.status} entering={checkin.status === 'pending' ? FadeIn.duration(200) : ZoomIn.duration(220)}>
+          <StatusBadge status={checkin.status} />
+        </Animated.View>
+      ) : null}
+    </LayoutAnimationConfig>
+  );
+
   const checkinArea = !isToday ? null : !checkin ? (
     <Button title="Fazer check-in" loading={checkIn.isPending} onPress={doCheckIn} />
   ) : checkin.status === 'pending' ? (
@@ -94,17 +106,21 @@ export function ClassCard({ academyId, userId, today, date, schedule, checkin, h
               </Text>
             </Box>
           )}
-          {/* Check-in made (pending) or decided (confirmed / refused): the badge pops in.
-              Not when the card first appears (LayoutAnimationConfig skips that). */}
-          <LayoutAnimationConfig skipEntering>
-            {checkin ? (
-              <Animated.View key={checkin.status} entering={checkin.status === 'pending' ? FadeIn.duration(200) : ZoomIn.duration(220)}>
-                <StatusBadge status={checkin.status} />
-              </Animated.View>
-            ) : null}
-          </LayoutAnimationConfig>
+          {/* Beside the time in the list; on the Início highlight the big time leaves no room. */}
+          {highlight ? null : badge}
         </Box>
-        {upcoming ? <AttendeesRow people={people} loading={attendees.isLoading} isToday={isToday} /> : null}
+        {highlight ? (
+          upcoming || checkin ? (
+            <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap="s12">
+              <Box flex={1}>
+                {upcoming ? <AttendeesRow people={people} loading={attendees.isLoading} isToday={isToday} /> : null}
+              </Box>
+              {badge}
+            </Box>
+          ) : null
+        ) : upcoming ? (
+          <AttendeesRow people={people} loading={attendees.isLoading} isToday={isToday} />
+        ) : null}
         {checkinArea}
         {error ? (
           <Text variant="caption" color="danger">
