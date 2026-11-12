@@ -1,6 +1,14 @@
 import { Stack } from "expo-router";
 import { HeaderHeightContext } from "expo-router/react-navigation";
-import { useContext, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { Platform, Pressable, ScrollView, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -251,10 +259,16 @@ function NativeHeaderScreen({
   bottomInset = true,
   onScroll,
 }: Omit<ScreenProps, "nativeHeader">) {
-  const { bottom } = useSafeAreaInsets();
+  const { bottom, top } = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   // Context, not useHeaderHeight(): that one throws outside a navigator with a header.
-  const headerHeight = useContext(HeaderHeightContext) ?? 0;
+  // On the first render it can still be the compact height (or 0); the floor keeps the
+  // end footer's min height from ever exceeding the visible area (see endFooter below).
+  const contextHeaderHeight = useContext(HeaderHeightContext) ?? 0;
+  const headerHeight = Math.max(
+    contextHeaderHeight,
+    Platform.OS === "ios" ? top + (largeTitle && !subtitle ? IOS_LARGE_HEADER : IOS_COMPACT_HEADER) : 0,
+  );
   const { spacing, colors } = useAppTheme();
   const [bottomHeight, setBottomHeight] = useState(0);
   const safeBottom = (bottomInset ? bottom : 0) + spacing.s16;
@@ -270,27 +284,37 @@ function NativeHeaderScreen({
     (topAction ? (
       <HeaderButton icon={topAction.icon} accessibilityLabel={topAction.accessibilityLabel} onPress={topAction.onPress} />
     ) : null);
+  const renderLeft = useHeaderSlot(left);
+  const renderRight = useHeaderSlot(right);
+
+  // Sent to the native header ONLY when something in it really changes. A new
+  // options object on every render made expo-router call setOptions each time,
+  // and every reconfiguration of the iOS large-title bar could leave the scroll
+  // view offset under a collapsed bar (screen "scrolled down" until the next
+  // layout). The header items change through their slots, without setOptions.
+  const options = useMemo(
+    () => ({
+      title: title ?? "",
+      headerLargeTitleEnabled: largeTitle && !subtitle,
+      headerTitle: subtitle
+        ? () => (
+            <Box alignItems={Platform.OS === "ios" ? "center" : "flex-start"}>
+              <Text variant="navTitle" numberOfLines={1}>{title}</Text>
+              <Text variant="caption" numberOfLines={1}>{subtitle}</Text>
+            </Box>
+          )
+        : undefined,
+      headerBackVisible: !renderLeft,
+      headerLeft: renderLeft,
+      headerRight: renderRight,
+    }),
+    [title, largeTitle, subtitle, renderLeft, renderRight],
+  );
 
   return (
     <>
       {/* Only text in `title`: the system shows it large at rest and small (centered) once collapsed. */}
-      <Stack.Screen
-        options={{
-          title: title ?? "",
-          headerLargeTitleEnabled: largeTitle && !subtitle,
-          headerTitle: subtitle
-            ? () => (
-                <Box alignItems={Platform.OS === "ios" ? "center" : "flex-start"}>
-                  <Text variant="navTitle" numberOfLines={1}>{title}</Text>
-                  <Text variant="caption" numberOfLines={1}>{subtitle}</Text>
-                </Box>
-              )
-            : undefined,
-          headerBackVisible: !left,
-          headerLeft: left ? () => left : undefined,
-          headerRight: right ? () => right : undefined,
-        }}
-      />
+      <Stack.Screen options={options} />
       {scrollable ? <ScrollView
         style={{ flex: 1, backgroundColor: colors.bg }}
         contentInsetAdjustmentBehavior="automatic"
@@ -351,4 +375,49 @@ function NativeHeaderScreen({
       ) : null}
     </>
   );
+}
+
+/** iOS navigation bar heights under the status bar: compact, and with the large title. */
+const IOS_COMPACT_HEADER = 44;
+const IOS_LARGE_HEADER = 96;
+
+interface SlotStore {
+  get: () => ReactNode;
+  set: (node: ReactNode) => void;
+  subscribe: (listener: () => void) => () => void;
+}
+
+function createSlotStore(initial: ReactNode): SlotStore {
+  let value = initial;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => value,
+    set: (node) => {
+      value = node;
+      listeners.forEach((l) => l());
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
+function HeaderSlot({ store }: { store: SlotStore }) {
+  const node = useSyncExternalStore(store.subscribe, store.get, store.get);
+  return <>{node}</>;
+}
+
+/**
+ * A header item (left / right) with a STABLE render function: the native
+ * header gets it once (or when the item appears / goes away) and the content
+ * follows each render through the store. Undefined when there is no item.
+ */
+function useHeaderSlot(node: ReactNode): (() => ReactNode) | undefined {
+  const [store] = useState(() => createSlotStore(node));
+  useLayoutEffect(() => {
+    store.set(node);
+  });
+  const render = useCallback(() => <HeaderSlot store={store} />, [store]);
+  return node == null || node === false ? undefined : render;
 }

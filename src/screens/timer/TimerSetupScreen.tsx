@@ -112,8 +112,19 @@ export function TimerSetupScreen() {
   }
 
   if (!selected || !config) {
+    // Same structure as the loaded screen (the footer with the play button, disabled):
+    // nothing in the layout changes when the presets arrive.
     return (
-      <Screen nativeHeader title="Timer" bottomInset={false}>
+      <Screen
+        nativeHeader
+        title="Timer"
+        bottomInset={false}
+        footer={
+          <Box alignItems="center">
+            <RoundButton icon="play" accessibilityLabel="Iniciar timer" disabled onPress={() => undefined} />
+          </Box>
+        }
+      >
         <ActivityIndicator accessibilityLabel="Carregando" />
       </Screen>
     );

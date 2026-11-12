@@ -546,3 +546,9 @@ Fase 2 (2026-11-04): `class_stats_and_belt_keys` (faixas gravadas como CHAVE da 
 - **Testes:** `academy_announcements.test.sql` (58) e `inactive_students.test.sql` (36); jest: `announcementsRules`, `graduationReady`, `inactiveLabel`.
 - **Remoto:** as duas migrations aplicadas em 2026-11-12 (`db push`); os dois arquivos pgTAP novos passam lá. `types/database.ts` foi editado à mão para elas: o `npm run db:types` do remoto hoje gera um arquivo com outras diferenças antigas (ex.: `discipline_streaks`, `set_instructor_belt`) e quebra o typecheck em `useInstructorProfile.ts`; revisar à parte.
 - **Build novo:** não (só JS + migrations). Ícones novos do phosphor (Megaphone, PushPin, Hourglass).
+
+## Header nativo: tela "rolada" ao abrir (2026-11-12, relato do usuário)
+
+- Sintoma (iOS, intermitente): ao abrir uma tela, a barra aparece compacta (com blur) e o conteúdo deslocado/rolado até o fim, mesmo sem scroll; depois volta sozinha.
+- Causa provável: o `Screen` (`nativeHeader`) passava um objeto `options` novo (e `headerLeft`/`headerRight` novos) a cada render ao `<Stack.Screen>`, e o expo-router chama `navigation.setOptions` sempre que o objeto muda. Cada render reconfigurava o header de título grande e o UIKit podia deixar o offset do scroll errado. Além disso, as opções chegam depois da montagem (efeito).
+- Correções: `options` memorizado (só muda com título, título grande, subtítulo ou presença de botões); botões do header por "slots" estáveis (`useHeaderSlot`: a função passada ao header não muda, o conteúdo segue cada render por um store) — **não voltar a passar `() => node` direto**. Títulos das abas declarados nos `_layout` das abas (header certo já na montagem). Timer carregando com o mesmo footer. Altura mínima do `endFooter` com piso de altura do header no iOS (44/96 pt + área segura), para nunca passar da área visível no primeiro render.
