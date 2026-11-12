@@ -13,6 +13,7 @@ import {
   EditBadge,
   EmptyState,
   Icon,
+  PhotoCropper,
   Screen,
   SelectionCard,
   Text,
@@ -103,6 +104,8 @@ function LogoSection({
   const [sheetOpen, setSheetOpen] = useState(false);
   // The picker opens after the sheet is gone (one modal at a time).
   const pendingSource = useRef<'camera' | 'library' | null>(null);
+  // The picked image waiting on the crop screen.
+  const [cropping, setCropping] = useState<string | null>(null);
 
   const pick = async (from: 'camera' | 'library') => {
     const options = squarePickerOptions(from);
@@ -117,7 +120,12 @@ function LogoSection({
       from === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
     const asset = result.canceled ? null : result.assets[0];
     if (!asset) return;
-    changeLogo.mutate({ uri: asset.uri, previousPath: logoPath }, { onSuccess: () => haptics.success() });
+    setCropping(asset.uri);
+  };
+
+  const cropped = (uri: string) => {
+    setCropping(null);
+    changeLogo.mutate({ uri, previousPath: logoPath }, { onSuccess: () => haptics.success() });
   };
 
   const choose = (from: 'camera' | 'library') => {
@@ -148,6 +156,8 @@ function LogoSection({
           {errorMessage(changeLogo.error)}
         </Text>
       ) : null}
+
+      <PhotoCropper source={cropping} shape="square" onCancel={() => setCropping(null)} onDone={cropped} />
 
       <BottomSheet
         visible={sheetOpen}

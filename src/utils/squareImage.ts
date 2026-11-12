@@ -1,6 +1,7 @@
 import { FlipType, ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { ImagePickerOptions } from 'expo-image-picker';
-import { Platform } from 'react-native';
+
+import type { CropRect } from './cropRect';
 
 /** Square images (academy logo, profile photo) are stored at this size: small enough for the 2 MB buckets. */
 export const SQUARE_IMAGE_SIZE = 512;
@@ -43,17 +44,35 @@ export async function prepareSquareImage(
 }
 
 /**
- * Picker options for a square image. On iOS `allowsEditing` swaps the fast
- * PHPicker for the legacy UIImagePickerController, which loads the whole
- * library before showing up (seconds on a real device): the library opens
- * without the crop screen there and `prepareSquareImage` center-crops. The
- * camera always uses the legacy controller, so it keeps the crop.
+ * Picker options for a square image: never the system crop. The app's own crop
+ * screen (PhotoCropper, move and pinch like WhatsApp) comes right after, on
+ * both platforms and for camera and library. Without `allowsEditing` iOS also
+ * keeps the fast PHPicker for the library.
  */
-export function squarePickerOptions(from: 'camera' | 'library'): ImagePickerOptions {
+export function squarePickerOptions(_from: 'camera' | 'library'): ImagePickerOptions {
   return {
     mediaTypes: 'images',
-    allowsEditing: from === 'camera' || Platform.OS !== 'ios',
-    aspect: [1, 1],
+    allowsEditing: false,
     quality: 1,
   };
+}
+
+/** Side of the image the crop screen hands back (the uploads resize it again). */
+const CROPPED_SIZE = 1024;
+
+
+/** Pixel size of an image as the manipulator sees it (orientation applied). */
+export async function imagePixelSize(uri: string): Promise<{ width: number; height: number }> {
+  const image = await ImageManipulator.manipulate(uri).renderAsync();
+  return { width: image.width, height: image.height };
+}
+
+/** Crops the region chosen on the crop screen and returns a local JPEG (at most 1024×1024). */
+export async function cropSquareImage(uri: string, rect: CropRect): Promise<string> {
+  const context = ImageManipulator.manipulate(uri);
+  context.crop(rect);
+  if (rect.width > CROPPED_SIZE) context.resize({ width: CROPPED_SIZE, height: CROPPED_SIZE });
+  const image = await context.renderAsync();
+  const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.92 });
+  return result.uri;
 }

@@ -87,7 +87,7 @@ export function ColleagueScreen() {
     >
       <Box gap="s24">
         <Box alignItems="center" gap="s12">
-          <Avatar name={member.fullName} path={member.avatarPath} size="large" competitor={competes} />
+          <Avatar name={member.fullName} path={member.avatarPath} size="large" competitor={competes} expandable />
           <Text variant="title" textAlign="center" accessibilityRole="header">
             {member.userId === userId ? `${member.fullName} (você)` : member.fullName}
           </Text>

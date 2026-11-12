@@ -1,8 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Alert, Pressable } from 'react-native';
 
-import { AcademyLogo, Box, Button, Card, ChoiceRow, Icon, Text, TextField } from '@components';
+import { AcademyLogo, Box, Button, Card, ChoiceRow, Icon, PhotoCropper, Text, TextField } from '@components';
 import {
   ACADEMY_NAME_MAX,
   annualDiscountLabel,
@@ -118,6 +118,8 @@ export function NameStep({ name, onName, onSubmit }: { name: string; onName: (n:
 // ----------------------------------------------------------------- logo ---
 /** Same crop as Configurações (square); the upload happens once the academy exists. */
 export function LogoStep({ name, logoUri, onLogo }: { name: string; logoUri: string | null; onLogo: (uri: string) => void }) {
+  // The picked image waiting on the crop screen.
+  const [cropping, setCropping] = useState<string | null>(null);
   const pick = async (from: 'camera' | 'library') => {
     const options = squarePickerOptions(from);
     if (from === 'camera') {
@@ -131,8 +133,13 @@ export function LogoStep({ name, logoUri, onLogo }: { name: string; logoUri: str
       from === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
     const asset = result.canceled ? null : result.assets[0];
     if (!asset) return;
+    setCropping(asset.uri);
+  };
+
+  const cropped = (uri: string) => {
+    setCropping(null);
     haptics.success();
-    onLogo(asset.uri);
+    onLogo(uri);
   };
 
   return (
@@ -145,6 +152,7 @@ export function LogoStep({ name, logoUri, onLogo }: { name: string; logoUri: str
         <Button title={logoUri ? 'Trocar pela galeria' : 'Escolher da galeria'} variant="secondary" icon="image" onPress={() => void pick('library')} />
         <Button title="Tirar foto" variant="secondary" icon="camera" onPress={() => void pick('camera')} />
       </Box>
+      <PhotoCropper source={cropping} shape="square" onCancel={() => setCropping(null)} onDone={cropped} />
     </Box>
   );
 }
