@@ -1,0 +1,9 @@
+{
+  "name": "kimi-tv",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "tsc --noEmit && vite build", "preview": "vite preview" },
+  "dependencies": { "@supabase/supabase-js": "2.118.0", "qrcode": "1.5.4" },
+  "devDependencies": { "@types/qrcode": "1.5.6", "typescript": "6.0.3", "vite": "7.1.12" }
+}

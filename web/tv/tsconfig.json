@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "ES2017", "lib": ["ES2017", "DOM"], "module": "ESNext",
+    "moduleResolution": "Bundler", "strict": true, "skipLibCheck": true,
+    "noEmit": true, "resolveJsonModule": true, "types": ["vite/client"]
+  },
+  "include": ["src", "../../shared/timer.ts", "../../shared/tvTimer.ts", "../../shared/serverClock.ts"]
+}
