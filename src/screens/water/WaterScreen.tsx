@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
-import { ActivityIndicator, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
-import { Box, Button, Card, EmptyState, Icon, Screen, Text, TextButton, WaterRing } from '@components';
+import { Box, Button, Card, EmptyState, Icon, Screen, Text, TextButton, WaterRing, Spinner } from '@components';
 import { waterDayState, useLogWater, useUndoWater, useWaterDay, useWaterHistory } from '@domain/Water';
 import { errorMessage } from '@infra';
 import { useWaterGoalFeedback, useWaterSettings } from '@services/water';
@@ -47,7 +47,7 @@ export function WaterScreen() {
   if (isLoading || (!!bottleMl && day.isLoading)) {
     return (
       <Screen nativeHeader title="Água" onBack={back} topAction={settingsAction}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

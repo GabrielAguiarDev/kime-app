@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
-import { BeltChip, BigCounter, Box, Card, EmptyState, LoadError, PersonRow, Screen, Text } from '@components';
+import { BeltChip, BigCounter, Box, Card, EmptyState, LoadError, PersonRow, Screen, Text, Spinner } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import { daysBetween, formatLocalDate, useChampionships } from '@domain/Competition';
 import { useChampionshipCompetitors } from '@domain/Team';
@@ -33,7 +32,7 @@ export function StudentChampionshipScreen() {
   if (championships.isLoading || today.isLoading || !academyId) {
     return (
       <Screen nativeHeader title=" " onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -89,7 +88,7 @@ export function StudentChampionshipScreen() {
 
         <Box gap="s8">
           <Text variant="captionCaps">{held ? 'Resultados' : 'Quem vai lutar'}</Text>
-          {competitors.isLoading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
+          {competitors.isLoading ? <Spinner accessibilityLabel="Carregando" /> : null}
           {competitors.isError ? (
             <LoadError title="Não foi possível carregar os inscritos" onRetry={() => void competitors.refetch()} />
           ) : null}

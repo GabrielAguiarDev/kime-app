@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, FlatList } from 'react-native';
+import { FlatList } from 'react-native';
 
-import { BeltChip, Box, Button, EmptyState, LoadError, PersonRow, Screen, StatusBadge, Text, TextButton } from '@components';
+import { BeltChip, Box, Button, EmptyState, LoadError, PersonRow, Screen, StatusBadge, Text, TextButton, Spinner } from '@components';
 import { useAcademyToday, useSchedules, useMyCheckins, useClassAttendees, useCheckIn, useCancelCheckin, type BeltColorKey } from '@domain/Classes';
 import { formatLocalDate } from '@domain/Competition';
 import { errorMessage } from '@infra';
@@ -38,7 +38,7 @@ export function ClassDetailsScreen() {
 
   return (
     <Screen nativeHeader title="Aula" onBack={back} scrollable={false}>
-      {loading ? <ActivityIndicator accessibilityLabel="Carregando aula" /> : failed ? (
+      {loading ? <Spinner accessibilityLabel="Carregando aula" /> : failed ? (
         <LoadError title="Não foi possível carregar a aula" onRetry={() => { void today.refetch(); void schedules.refetch(); void checkins.refetch(); }} />
       ) : !schedule || !date ? <EmptyState title="Aula não encontrada." /> : (
         <FlatList
@@ -88,7 +88,7 @@ export function ClassDetailsScreen() {
           }}
           ListEmptyComponent={
             <Box justifyContent="center" alignItems="center" paddingVertical="s32">
-              {attendees.isLoading ? <ActivityIndicator accessibilityLabel="Carregando alunos" /> : attendees.isError ? (
+              {attendees.isLoading ? <Spinner accessibilityLabel="Carregando alunos" /> : attendees.isError ? (
                 <LoadError title="Não foi possível carregar os alunos" onRetry={() => void attendees.refetch()} />
               ) : (
                 <EmptyState

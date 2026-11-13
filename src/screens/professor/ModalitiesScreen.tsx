@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 
-import { BottomSheet, Box, Button, Card, EmptyState, Icon, Screen, SelectionCard, Text, TextField } from '@components';
+import { BottomSheet, Box, Button, Card, EmptyState, Icon, Screen, SelectionCard, Text, TextField, Spinner } from '@components';
 import { beltsOf, sameModality, useBelts, useModalities, useModalityMutations, type Modality } from '@domain/Classes';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
@@ -25,7 +25,7 @@ export function ModalitiesScreen() {
   if (!active) {
     return (
       <Screen nativeHeader title="Modalidades" onBack={() => router.back()}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -79,7 +79,7 @@ function ModalitiesList({ gymId }: { gymId: string }) {
         <Text variant="body" color="textMuted">
           As modalidades que a academia ensina.
         </Text>
-        {modalities.isLoading ? <ActivityIndicator /> : null}
+        {modalities.isLoading ? <Spinner /> : null}
         {modalities.isError ? (
           <EmptyState
             visual="icon"

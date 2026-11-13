@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable } from 'react-native';
+import { Alert, Platform, Pressable } from 'react-native';
 
 import {
   AcademyLogo,
@@ -17,6 +17,7 @@ import {
   Screen,
   Text,
   TextButton,
+  Spinner,
 } from '@components';
 import { useSignOut } from '@domain/Auth';
 import { activeMemberships, membershipLabel } from '@domain/Membership';
@@ -236,7 +237,7 @@ function ProfileHeader({
           inset={spacing.s16}
         />
       </Box>
-      {busy ? <ActivityIndicator accessibilityLabel="Salvando foto" /> : null}
+      {busy ? <Spinner accessibilityLabel="Salvando foto" /> : null}
       <Text variant="title" textAlign="center" accessibilityRole="header">
         {fullName}
       </Text>

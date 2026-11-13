@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Modal, StyleSheet, useWindowDimensions, View } from 'react-native';
 import {
   GestureDetector,
   GestureHandlerRootView,
@@ -18,6 +18,7 @@ import { cropSquareImage, imagePixelSize } from '@utils/squareImage';
 import { Box } from '../Box/Box';
 import { Button } from '../Button/Button';
 import { Text } from '../Text/Text';
+import { Spinner } from '../Spinner/Spinner';
 
 export type CropShape = 'circle' | 'square';
 
@@ -207,7 +208,7 @@ function Cropper({
 
       {!size && !failed ? (
         <View style={[StyleSheet.absoluteFill, styles.center]} pointerEvents="none">
-          <ActivityIndicator accessibilityLabel="Carregando foto" />
+          <Spinner accessibilityLabel="Carregando foto" />
         </View>
       ) : null}
 

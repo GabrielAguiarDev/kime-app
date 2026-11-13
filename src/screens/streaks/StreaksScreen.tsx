@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 
-import { BottomSheet, Box, Card, Icon, LoadError, Screen, Text } from '@components';
+import { BottomSheet, Box, Card, Icon, LoadError, Screen, Text, Spinner } from '@components';
 import { addDays } from '@domain/Classes';
 import {
   DISCIPLINE_RULE,
@@ -65,7 +65,7 @@ export function StreaksScreen() {
       ) : discipline.isError ? (
         <LoadError title="Não foi possível carregar a disciplina" onRetry={() => void discipline.refetch()} />
       ) : (
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       )}
       <BottomSheet visible={info} onRequestClose={() => setInfo(false)} dismissLabel="Fechar">
         <RuleDetails />

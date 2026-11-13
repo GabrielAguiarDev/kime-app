@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Pressable } from 'react-native';
+import { Alert, Pressable } from 'react-native';
 
-import { BottomSheet, Box, Card, HeaderMenu, Icon, LoadError, Screen, Text } from '@components';
+import { BottomSheet, Box, Card, HeaderMenu, Icon, LoadError, Screen, Text, Spinner } from '@components';
 import type { Modality } from '@domain/Classes';
 import {
   fightDetails,
@@ -233,7 +233,7 @@ export function FightRecordSection({
   return (
     <Box gap="s12">
       {title ? <Text variant="captionCaps">{title}</Text> : null}
-      {cartel.isLoading ? <ActivityIndicator accessibilityLabel="Carregando cartel" /> : null}
+      {cartel.isLoading ? <Spinner accessibilityLabel="Carregando cartel" /> : null}
       {cartel.isError ? <LoadError title="Não foi possível carregar o cartel" onRetry={cartel.refetch} /> : null}
       {records.map((record) => (
         <FightRecordCard
@@ -271,7 +271,7 @@ export function MyFightRecordCard() {
     : undefined;
   return (
     <Box alignSelf="stretch" marginTop="s8">
-      {cartel.isLoading ? <ActivityIndicator accessibilityLabel="Carregando cartel" /> : null}
+      {cartel.isLoading ? <Spinner accessibilityLabel="Carregando cartel" /> : null}
       {cartel.isError ? <LoadError title="Não foi possível carregar o cartel" onRetry={cartel.refetch} /> : null}
       {record ? (
         <Card
@@ -451,7 +451,7 @@ export function CartelScreen({
         ) : undefined
       }
     >
-      {cartel.isLoading ? <ActivityIndicator accessibilityLabel="Carregando cartel" /> : null}
+      {cartel.isLoading ? <Spinner accessibilityLabel="Carregando cartel" /> : null}
       {cartel.isError ? <LoadError title="Não foi possível carregar o cartel" onRetry={cartel.refetch} /> : null}
       {record ? (
         <Box gap="s32" paddingTop="s16">

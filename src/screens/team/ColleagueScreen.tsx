@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
-import { Avatar, BeltChip, Box, Card, EmptyState, LoadError, Screen, Text } from '@components';
+import { Avatar, BeltChip, Box, Card, EmptyState, LoadError, Screen, Text, Spinner } from '@components';
 import { useFightSummary } from '@domain/Competition';
 import { useAcademyToday } from '@domain/Classes';
 import { rankingPeriod, useRanking } from '@domain/Ranking';
@@ -46,7 +45,7 @@ export function ColleagueScreen() {
   if (classmates.isLoading || !active) {
     return (
       <Screen nativeHeader title="Membro" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -97,7 +96,7 @@ export function ColleagueScreen() {
         {competes ? (
           <Box gap="s8">
             <Text variant="captionCaps">{`Cartel · ${selected!.name}`}</Text>
-            {record.isLoading ? <ActivityIndicator accessibilityLabel="Carregando cartel" /> : null}
+            {record.isLoading ? <Spinner accessibilityLabel="Carregando cartel" /> : null}
             {cartel ? <FightRecordCard record={cartel} /> : null}
           </Box>
         ) : null}

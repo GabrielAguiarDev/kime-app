@@ -1,6 +1,5 @@
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, EmptyState, Icon, Screen, Text } from '@components';
+import { Box, Button, Card, EmptyState, Icon, Screen, Text, Spinner } from '@components';
 import { addDays, weekdayOf, WEEKDAY_LABELS } from '@domain/Classes';
 import {
   formatShortDate,
@@ -43,7 +42,7 @@ export function AthleteProgressScreen() {
   if (isLoading || queries.some((q) => q.isLoading)) {
     return (
       <Screen nativeHeader title={title} onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

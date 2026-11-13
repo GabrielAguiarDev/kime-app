@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { BottomSheet, Box, Card, EmptyState, LoadError, PersonList, PersonRow, Screen, Text } from '@components';
+import { BottomSheet, Box, Card, EmptyState, LoadError, PersonList, PersonRow, Screen, Text, Spinner } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import {
   formatMoney,
@@ -30,7 +29,7 @@ export function OpenChargesScreen() {
   if (!academyId || charges.isLoading || today.isLoading) {
     return (
       <Screen nativeHeader title="Mensalidades" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

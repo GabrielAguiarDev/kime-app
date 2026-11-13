@@ -46,7 +46,8 @@ function ShortcutButton({ icon, label, accessibilityLabel, onPress, disabled = f
         return (
           <Box alignItems="center" gap="s8">
             <Box style={{ paddingTop: theme.border.edgeWidth - edge }}>
-              <Box backgroundColor={edge > 0 ? 'edge' : 'transparent'} style={{ borderRadius: d / 2, paddingBottom: edge }}>
+              {/* Constant edge color (covered by the face when hidden): toggling to 'transparent' drops the radius on Android. */}
+              <Box backgroundColor="edge" style={{ borderRadius: d / 2, paddingBottom: edge }}>
                 <Box
                   backgroundColor={disabled ? 'disabled' : 'surface'}
                   borderColor={disabled ? 'disabled' : 'border'}

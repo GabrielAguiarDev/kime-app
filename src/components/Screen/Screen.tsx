@@ -272,13 +272,26 @@ function NativeHeaderScreen({
   const { spacing, colors } = useAppTheme();
   const [bottomHeight, setBottomHeight] = useState(0);
   const safeBottom = (bottomInset ? bottom : 0) + spacing.s16;
+  // Android: the compact header has no large title to space the content from it.
+  const contentTop = Platform.OS === "android" ? spacing.s16 : 0;
   const bottomContent = !feedback && footer ? (
     <Box paddingHorizontal="screenMargin" paddingTop="s12" style={{ paddingBottom: safeBottom }} gap="s12">
       {footer}
     </Box>
   ) : null;
 
-  const left = headerLeft ?? (onBack ? <HeaderButton icon="back" accessibilityLabel="Voltar" onPress={onBack} /> : null);
+  // Android: chevron (no stem) and room before the title, which the native header puts right after it.
+  const left =
+    headerLeft ??
+    (onBack ? (
+      Platform.OS === "android" ? (
+        <Box marginRight="s12">
+          <HeaderButton icon="chevronLeft" accessibilityLabel="Voltar" onPress={onBack} />
+        </Box>
+      ) : (
+        <HeaderButton icon="back" accessibilityLabel="Voltar" onPress={onBack} />
+      )
+    ) : null);
   const right =
     headerRight ??
     (topAction ? (
@@ -330,6 +343,7 @@ function NativeHeaderScreen({
         // visible area by the insets, so short/empty screens would scroll.
         contentContainerStyle={{
           paddingHorizontal: spacing.screenMargin,
+          paddingTop: contentTop,
           paddingBottom: bottomContent ? bottomHeight + spacing.s16 : safeBottom,
         }}
       >
@@ -342,7 +356,7 @@ function NativeHeaderScreen({
             style={{
               minHeight: Math.max(
                 0,
-                windowHeight - headerHeight - (bottomInset ? bottom : 0) -
+                windowHeight - headerHeight - contentTop - (bottomInset ? bottom : 0) -
                   (bottomContent ? bottomHeight + spacing.s16 : safeBottom),
               ),
             }}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
-import { BottomSheet, Box, Button, EmptyState, Screen, Text, TextButton } from '@components';
+import { BottomSheet, Box, Button, EmptyState, Screen, Text, TextButton, Spinner } from '@components';
 import { addDays, useAcademyToday, weekStart, type LocalDate } from '@domain/Classes';
 import { formatLocalDate } from '@domain/Competition';
 import { daysWithMeals, mealsOn, useDietMeals, useDietMutations, type DietMeal } from '@domain/Diet';
@@ -25,7 +25,7 @@ export function AthleteDietScreen() {
   if (isLoading || today.isLoading) {
     return (
       <Screen nativeHeader title="Dieta" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -127,7 +127,7 @@ function DietEditor({
 
         <Box gap="s12">
           <Text variant="captionCaps">{formatLocalDate(selected)}</Text>
-          {meals.isLoading ? <ActivityIndicator /> : null}
+          {meals.isLoading ? <Spinner /> : null}
           {meals.isError ? (
             <EmptyState
               visual="icon"

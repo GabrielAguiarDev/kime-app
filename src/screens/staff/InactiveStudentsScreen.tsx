@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Card, EmptyState, LoadError, PersonRow, Screen, Text } from '@components';
+import { Box, Card, EmptyState, LoadError, PersonRow, Screen, Text, Spinner } from '@components';
 import { useAcademyToday, useModalities } from '@domain/Classes';
 import { useGymSettings } from '@domain/Gym';
 import { inactiveLabel } from '@domain/Membership';
@@ -31,7 +30,7 @@ export function InactiveStudentsScreen() {
   if (!academyId || isLoading || today.isLoading || modalities.isLoading) {
     return (
       <Screen nativeHeader title="Alunos sumidos" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 import Animated, { FadeIn, LayoutAnimationConfig, ZoomIn } from 'react-native-reanimated';
 
-import { Avatar, Box, Button, Card, StatusBadge, Text, TextButton } from '@components';
+import { Avatar, Box, Button, Card, StatusBadge, Text, TextButton, Spinner } from '@components';
 import {
   useCancelCheckin,
   useCheckIn,
@@ -70,7 +69,7 @@ export function ClassCard({ academyId, userId, today, date, schedule, checkin, h
     <Button title="Fazer check-in" loading={checkIn.isPending} onPress={doCheckIn} />
   ) : checkin.status === 'pending' ? (
     cancel.isPending ? (
-      <ActivityIndicator accessibilityLabel="Cancelando" />
+      <Spinner accessibilityLabel="Cancelando" />
     ) : (
       <TextButton title="Cancelar check-in" color="danger" onPress={askCancel} />
     )

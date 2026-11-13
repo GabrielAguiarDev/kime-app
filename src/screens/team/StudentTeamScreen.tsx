@@ -1,9 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Platform, useWindowDimensions, type View as RNView } from 'react-native';
+import { Platform, useWindowDimensions, type View as RNView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BeltChip, Box, Card, EmptyState, FilterChips, LoadError, PersonRow, Screen, Text, TextField } from '@components';
+import { BeltChip, Box, Card, EmptyState, FilterChips, LoadError, PersonRow, Screen, Text, TextField, Spinner } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import { roleLabel, splitMembers } from '@domain/Membership';
 import { rankingPeriod, useRanking } from '@domain/Ranking';
@@ -82,7 +82,7 @@ export function StudentTeamScreen() {
           ]}
         />
         {!academyId ? (
-          <ActivityIndicator accessibilityLabel="Carregando" />
+          <Spinner accessibilityLabel="Carregando" />
         ) : view === 'members' ? (
           <Members academyId={academyId} />
         ) : (
@@ -105,7 +105,7 @@ function Members({ academyId }: { academyId: string }) {
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
 
-  if (classmates.isLoading) return <ActivityIndicator accessibilityLabel="Carregando" />;
+  if (classmates.isLoading) return <Spinner accessibilityLabel="Carregando" />;
   if (classmates.isError || !classmates.data) {
     return <LoadError title="Não foi possível carregar a equipe" onRetry={() => void classmates.refetch()} />;
   }

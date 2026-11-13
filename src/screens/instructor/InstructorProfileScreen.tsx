@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
 import {
   Avatar,
@@ -15,6 +15,7 @@ import {
   Screen,
   Text,
   TextButton,
+  Spinner,
 } from '@components';
 import {
   beltName,
@@ -68,7 +69,7 @@ export function InstructorProfileScreen({ academyId, userId, onBack }: { academy
   if (profile.isLoading) {
     return (
       <Screen nativeHeader title="" largeTitle={false} onBack={onBack}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

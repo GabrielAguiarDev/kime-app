@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams, usePathname } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, BackHandler } from 'react-native';
+import { BackHandler } from 'react-native';
 
-import { Box, Button, CodeField, FeedbackSheet, Screen, Text, TextButton } from '@components';
+import { Box, Button, CodeField, FeedbackSheet, Screen, Text, TextButton, Spinner } from '@components';
 import { canCreateAcademy, CODE_LENGTH, normalizeCode, useCodeLookup, useJoinWithCode } from '@domain/Gym';
 import { errorMessage } from '@infra';
 import { backToSignIn } from '@screens/auth/backToSignIn';
@@ -199,7 +199,7 @@ export function EnterCode({ initialCode, home }: { initialCode?: string; home?: 
         ) : undefined
       }
     >
-      {loading ? <ActivityIndicator accessibilityLabel="Buscando academia" /> : null}
+      {loading ? <Spinner accessibilityLabel="Buscando academia" /> : null}
       {academy ? (
         // TODO(motion): academy card entering once the code is recognized.
         <Box gap="s16">

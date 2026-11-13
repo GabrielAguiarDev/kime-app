@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, Text, TextButton, WaterRing } from '@components';
+import { Box, Button, Card, Text, TextButton, WaterRing, Spinner } from '@components';
 import { waterDayState } from '@domain/Water';
 import { keyValueStorage } from '@infra';
 import { formatMl } from '@screens/water/format';
@@ -41,7 +40,7 @@ export function WaterCard() {
     return (
       <Card gap="s12">
         <Text variant="captionCaps">Água de hoje</Text>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Card>
     );
   }

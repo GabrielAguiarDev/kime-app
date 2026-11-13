@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
 import {
   Avatar,
@@ -18,6 +18,7 @@ import {
   StatusBadge,
   Text,
   TextField,
+  Spinner,
 } from '@components';
 import {
   useAcademyCheckins,
@@ -75,7 +76,7 @@ export function AttendanceScreen() {
   if (!academyId || !scheduleId || !date) {
     return (
       <Screen nativeHeader title="Presença" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -98,7 +99,7 @@ export function AttendanceScreen() {
         {schedules.data && !schedule ? (
           <EmptyState title="Aula não encontrada." description="O horário pode ter sido removido." />
         ) : (
-          <ActivityIndicator accessibilityLabel="Carregando" />
+          <Spinner accessibilityLabel="Carregando" />
         )}
       </Screen>
     );

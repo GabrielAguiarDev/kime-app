@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState, type ComponentRef, type Ref } from 'react';
-import { ActivityIndicator, Alert, View, type LayoutChangeEvent } from 'react-native';
+import { Alert, View, type LayoutChangeEvent } from 'react-native';
 
 import {
   BottomSheet,
@@ -15,6 +15,7 @@ import {
   Screen,
   SelectionCard,
   Text,
+  Spinner,
 } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import { errorMessage } from '@infra';
@@ -99,7 +100,7 @@ export function RankingView({
       />
     );
   }
-  if (today.isLoading || modalities.isLoading) return <ActivityIndicator accessibilityLabel="Carregando modalidades" />;
+  if (today.isLoading || modalities.isLoading) return <Spinner accessibilityLabel="Carregando modalidades" />;
   if (!selected) {
     return (
       <EmptyState
@@ -174,7 +175,7 @@ export function RankingView({
         </Card>
       ) : null}
 
-      {ranking.isLoading ? <ActivityIndicator accessibilityLabel="Carregando ranking" /> : null}
+      {ranking.isLoading ? <Spinner accessibilityLabel="Carregando ranking" /> : null}
       {ranking.isError ? <LoadError title="Não foi possível carregar o ranking" onRetry={() => void ranking.refetch()} /> : null}
       {ranking.data?.length === 0 ? <EmptyState visual="icon" icon="trophy" title="Nenhum aluno no ranking." /> : null}
 

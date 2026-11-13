@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, EmptyState, LoadError, Screen, SelectionCard, Text, TextButton, TextField } from '@components';
+import { Box, Button, EmptyState, LoadError, Screen, SelectionCard, Text, TextButton, TextField, Spinner } from '@components';
 import {
   ANNOUNCEMENT_BODY_MAX,
   ANNOUNCEMENT_BODY_MIN,
@@ -39,7 +38,7 @@ export function AnnouncementFormScreen() {
   if (!academyId || modalities.isLoading || today.isLoading || (id && announcements.isLoading)) {
     return (
       <Screen nativeHeader title={title} onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

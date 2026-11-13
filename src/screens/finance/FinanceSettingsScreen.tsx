@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Switch } from 'react-native';
+import { Alert, Pressable, Switch } from 'react-native';
 
 import {
   BottomSheet,
@@ -16,6 +16,7 @@ import {
   TextField,
   WheelPicker,
   type IconName,
+  Spinner,
 } from '@components';
 import {
   DUE_DAYS,
@@ -49,7 +50,7 @@ export function FinanceSettingsScreen() {
   if (!academyId || settings.isLoading) {
     return (
       <Screen nativeHeader title="Financeiro" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -167,7 +168,7 @@ function PlansSection({ academyId }: { academyId: string }) {
       title="Planos de mensalidade"
       action={<TextButton title="Novo plano" icon="plus" fullWidth={false} onPress={() => setEditing(null)} />}
     >
-      {plans.isLoading ? <ActivityIndicator /> : null}
+      {plans.isLoading ? <Spinner /> : null}
       {plans.isError ? <LoadError title="Não foi possível carregar os planos" onRetry={() => void plans.refetch()} /> : null}
       {plans.data && current.length === 0 ? (
         <Text variant="body" color="textMuted">

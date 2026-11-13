@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable } from 'react-native';
+import { Alert, Pressable } from 'react-native';
 
 import {
   AcademyLogo,
@@ -20,6 +20,7 @@ import {
   TextButton,
   TextField,
   WheelPicker,
+  Spinner,
 } from '@components';
 import { INACTIVE_DAYS_OPTIONS, useGymSettings, useGymSettingsMutations } from '@domain/Gym';
 import { useGymMembers, useTransferOwnership, type GymMember } from '@domain/Membership';
@@ -49,14 +50,14 @@ export function AcademySettingsScreen() {
   if (!active) {
     return (
       <Screen nativeHeader title="Configurações da academia" onBack={() => router.back()}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
 
   return (
     <Screen nativeHeader title="Configurações da academia" onBack={() => router.back()}>
-      {settings.isLoading ? <ActivityIndicator /> : null}
+      {settings.isLoading ? <Spinner /> : null}
       {settings.isError ? (
         <EmptyState
           visual="icon"
@@ -145,7 +146,7 @@ function LogoSection({
         <AcademyLogo name={name} url={logoUrl} size="hero" />
         <EditBadge />
       </Pressable>
-      {changeLogo.isPending ? <ActivityIndicator accessibilityLabel="Enviando logo" /> : null}
+      {changeLogo.isPending ? <Spinner accessibilityLabel="Enviando logo" /> : null}
       <Text variant="caption" textAlign="center">
         {logoUrl
           ? 'Aparece no topo do app e para quem entra com um código da academia.'

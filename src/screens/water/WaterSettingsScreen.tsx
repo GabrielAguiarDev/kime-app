@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, Screen, SelectionGrid, Text, TextButton, TextField } from '@components';
+import { Box, Button, Card, Screen, SelectionGrid, Text, TextButton, TextField, Spinner } from '@components';
 import { formatBodyNumber, useMyProfile, useUpdateBodyAndBottle, type Profile } from '@domain/Profile';
 import {
   autoDailyGoalMl,
@@ -43,7 +42,7 @@ export function WaterSettingsScreen() {
             {errorMessage(profile.error)}
           </Text>
         ) : (
-          <ActivityIndicator accessibilityLabel="Carregando" />
+          <Spinner accessibilityLabel="Carregando" />
         )}
       </Screen>
     );
@@ -124,7 +123,7 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
 
         <Box gap="s12">
           <Text variant="captionCaps">Meta diária</Text>
-          {planned.isLoading ? <ActivityIndicator accessibilityLabel="Carregando meta" /> : planned.isError ? (
+          {planned.isLoading ? <Spinner accessibilityLabel="Carregando meta" /> : planned.isError ? (
             <Text variant="caption" color="danger">Não foi possível verificar o plano do professor. Tente novamente.</Text>
           ) : planned.isLocked ? (
             <Text variant="body" color="textMuted">

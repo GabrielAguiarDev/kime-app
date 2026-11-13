@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, EmptyState, HeaderButton, LoadError, Screen, Text } from '@components';
+import { Box, EmptyState, HeaderButton, LoadError, Screen, Text, Spinner } from '@components';
 import { splitAnnouncements, useAnnouncements, type Announcement } from '@domain/Announcements';
 import { useAcademyToday, useModalities, type LocalDate, type Modality } from '@domain/Classes';
 import { useActiveGym } from '@services/activeGym';
@@ -32,7 +31,7 @@ export function AnnouncementsScreen() {
   if (!academyId || announcements.isLoading || today.isLoading) {
     return (
       <Screen nativeHeader title="Avisos" onBack={back} headerRight={headerRight}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

@@ -93,6 +93,7 @@ const ICONS = {
   timer: Timer,
   freeze: Snowflake,
   missed: X,
+  close: X,
   open: Circle,
   locked: Lock,
   plus: Plus,

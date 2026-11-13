@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, EmptyState, Screen, Text } from '@components';
+import { Box, Button, EmptyState, Screen, Text, Spinner } from '@components';
 import { addDays, weekStart, type LocalDate } from '@domain/Classes';
 import { formatLocalDate } from '@domain/Competition';
 import { daysWithMeals, mealsOn, useDietMeals } from '@domain/Diet';
@@ -22,7 +21,7 @@ export function MyDietScreen() {
   if (profile.isLoading) {
     return (
       <Screen nativeHeader title="Dieta" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -63,7 +62,7 @@ function DietWeek({ userId, today, onBack }: { userId: string; today: LocalDate;
         />
         <Box gap="s12">
           <Text variant="captionCaps">{formatLocalDate(selected)}</Text>
-          {meals.isLoading ? <ActivityIndicator /> : null}
+          {meals.isLoading ? <Spinner /> : null}
           {meals.isError ? (
             <EmptyState
               visual="icon"

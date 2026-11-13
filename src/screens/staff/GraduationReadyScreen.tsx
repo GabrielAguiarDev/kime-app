@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { BeltChip, Box, Card, EmptyState, LoadError, PersonRow, Screen, Text } from '@components';
+import { BeltChip, Box, Card, EmptyState, LoadError, PersonRow, Screen, Text, Spinner } from '@components';
 import { useModalities } from '@domain/Classes';
 import { useActiveGym } from '@services/activeGym';
 
@@ -27,7 +26,7 @@ export function GraduationReadyScreen() {
   if (!academyId || isLoading || modalities.isLoading) {
     return (
       <Screen nativeHeader title="Prontos para graduar" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

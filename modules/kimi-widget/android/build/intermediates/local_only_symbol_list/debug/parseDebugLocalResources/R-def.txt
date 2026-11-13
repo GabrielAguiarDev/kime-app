@@ -1,0 +1,15 @@
+R_DEF: Internal format may change without notice
+local
+drawable kimi_ic_bottle
+drawable kimi_ic_timer
+drawable kimi_ic_trophy
+drawable kimi_thirsty
+raw kimi_bell
+raw kimi_bell_triple
+raw kimi_clapper
+string kimi_countdown_widget_description
+string kimi_countdown_widget_name
+string kimi_water_widget_description
+string kimi_water_widget_name
+xml kimi_countdown_widget_info
+xml kimi_water_widget_info

@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
-import { Avatar, BigCounter, Box, Button, Card, EmptyState, Icon, LoadError, StatusBadge, Text } from '@components';
+import { Avatar, BigCounter, Box, Button, Card, EmptyState, Icon, LoadError, StatusBadge, Text, Spinner } from '@components';
 import {
   attendanceCounts,
   nextClass,
@@ -44,7 +43,7 @@ export function StaffHome() {
   const schedules = useSchedules(academyId);
   const checkins = useAcademyCheckins(academyId, today.data);
 
-  if (today.isLoading || schedules.isLoading) return <ActivityIndicator accessibilityLabel="Carregando" />;
+  if (today.isLoading || schedules.isLoading) return <Spinner accessibilityLabel="Carregando" />;
   if (today.isError || schedules.isError || !today.data || !academyId) {
     return (
       <LoadError
@@ -250,7 +249,7 @@ function WeekSummary({ academyId, today }: { academyId: string; today: string })
       </Box>
       <Card gap="s12" onPress={() => router.push('/ranking')} accessibilityLabel="Ranking por modalidade. Abrir o ranking">
         <Text variant="captionCaps">{modality ? `Ranking · ${modality.name}` : 'Ranking por modalidade'}</Text>
-        {modalities.isLoading || ranking.isLoading ? <ActivityIndicator /> : null}
+        {modalities.isLoading || ranking.isLoading ? <Spinner /> : null}
         {ranking.data && top.length === 0 ? (
           <Text variant="body" color="textMuted">
             Nenhum aluno classificado ainda.

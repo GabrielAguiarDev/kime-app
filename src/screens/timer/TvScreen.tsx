@@ -1,11 +1,13 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView } from 'react-native';
+import { Platform, ScrollView } from 'react-native';
 import { BottomSheet, Box, Button, Card, FeedbackSheet, Text, TextField } from '@components';
 import { useActiveGym } from '@services/activeGym';
 import { alignTimerClock, getTimerSession } from '@services/timer';
 import { connectTv, disconnectTv, getTvConnection, listTvs, pairTv, unpairTv, type TvDisplay } from '@services/tv';
+
+import { TvQrScanner } from './TvQrScanner';
 
 const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
 function extractCode(input: string) {
@@ -18,7 +20,10 @@ export function TvScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [code, setCode] = useState(() => extractCode(linkCode ?? ''));
   const [name, setName] = useState('TV do tatame');
-  const [scanning, setScanning] = useState(false);
+  // Full-screen scanner instead of the sheet. The two native modals take turns:
+  // each opens only after the other one finished closing ('toScanner' / 'toSheet').
+  const [phase, setPhase] = useState<'sheet' | 'toScanner' | 'scanner' | 'toSheet'>('sheet');
+  const [cameraDenied, setCameraDenied] = useState(false);
   const [rows, setRows] = useState<TvDisplay[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -50,6 +55,19 @@ export function TvScreen() {
       close();
     } catch { setMessage('Não foi possível conectar à TV.'); } finally { setBusy(false); }
   };
+  const openScanner = async () => {
+    const granted = permission?.granted || (await requestPermission()).granted;
+    setCameraDenied(!granted);
+    if (granted) setPhase('toScanner');
+  };
+  const closeScanner = () => setPhase(Platform.OS === 'ios' ? 'toSheet' : 'sheet'); // Modal onDismiss is iOS-only
+  const onScanned = (data: string) => {
+    const found = extractCode(data);
+    if (!CODE.test(found)) return false;
+    setCode(found);
+    closeScanner();
+    return true;
+  };
   const pair = async () => {
     if (!gymId || !CODE.test(code) || !name.trim()) return;
     try {
@@ -60,20 +78,16 @@ export function TvScreen() {
   };
   return (
     <>
-      <BottomSheet visible={open && isStaff} onRequestClose={close}>
+      <BottomSheet
+        visible={open && isStaff && phase === 'sheet'}
+        onRequestClose={close}
+        onClosed={() => { if (phase === 'toScanner') setPhase('scanner'); }}
+      >
         <ScrollView keyboardShouldPersistTaps="handled">
           <Box gap="s16" paddingBottom="s24">
             <Text variant="heading">Parear uma TV</Text>
-            {scanning && permission?.granted ? (
-              <CameraView style={{ height: 260, borderRadius: 10, overflow: 'hidden' }} barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                onBarcodeScanned={({ data }) => { const found = extractCode(data); if (CODE.test(found)) { setCode(found); setScanning(false); } }} />
-            ) : null}
-            {scanning && !permission?.granted ? <Text variant="body">Permita o acesso à câmera para escanear o QR.</Text> : null}
-            <Button title={scanning ? 'Fechar câmera' : 'Escanear QR'} variant="secondary" onPress={() => {
-              if (scanning) { setScanning(false); return; }
-              if (permission?.granted) setScanning(true);
-              else void requestPermission().then(result => setScanning(result.granted));
-            }} />
+            {cameraDenied ? <Text variant="body">Permita o acesso à câmera para escanear o QR.</Text> : null}
+            <Button title="Escanear QR" variant="secondary" onPress={() => void openScanner()} />
             <TextField label="Código da TV" value={code} onChangeText={v => setCode(extractCode(v) || v.toUpperCase().slice(0,6))} autoCapitalize="characters" maxLength={6} />
             <TextField label="Nome da TV" value={name} onChangeText={setName} maxLength={80} />
             <Button title="Parear e conectar" disabled={busy || !CODE.test(code) || !name.trim()} onPress={() => void pair()} />
@@ -92,6 +106,12 @@ export function TvScreen() {
           </Box>
         </ScrollView>
       </BottomSheet>
+      <TvQrScanner
+        visible={phase === 'scanner'}
+        onScanned={onScanned}
+        onCancel={closeScanner}
+        onDismissed={() => setPhase('sheet')}
+      />
       {!isStaff ? <FeedbackSheet tone="warning" icon="info" title="Acesso restrito" message="Só o dono e professores podem parear e controlar a TV." actionLabel="Voltar" onAction={close} /> : null}
       {message ? <FeedbackSheet tone="warning" icon="warning" title="TV não atualizada" message={message} actionLabel="Entendi" onAction={() => setMessage(null)} /> : null}
     </>

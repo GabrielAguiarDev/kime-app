@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Card, EmptyState, Icon, LoadError, Screen, Text } from '@components';
+import { Box, Card, EmptyState, Icon, LoadError, Screen, Text, Spinner } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import { countdownLabel, daysBetween, formatLocalDate, upcomingChampionships, useChampionships } from '@domain/Competition';
 import { openChampionship } from '@screens/student/home/ChampionshipCard';
@@ -25,7 +24,7 @@ export function StudentChampionshipsScreen() {
 
   return (
     <Screen nativeHeader title="Campeonatos" onBack={back}>
-      {loading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
+      {loading ? <Spinner accessibilityLabel="Carregando" /> : null}
       {championships.isError || today.isError ? (
         <LoadError title="Não foi possível carregar os campeonatos" onRetry={() => void championships.refetch()} />
       ) : null}

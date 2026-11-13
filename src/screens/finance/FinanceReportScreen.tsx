@@ -2,9 +2,9 @@ import { File, Paths } from 'expo-file-system';
 import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
-import { Box, Button, Card, LoadError, PersonList, PersonRow, Screen, Text } from '@components';
+import { Box, Button, Card, LoadError, PersonList, PersonRow, Screen, Text, Spinner } from '@components';
 import { useAcademyToday, type LocalDate } from '@domain/Classes';
 import {
   categoryLabel,
@@ -44,7 +44,7 @@ export function FinanceReportScreen() {
         {today.isError ? (
           <LoadError title="Não foi possível carregar o relatório" onRetry={() => void today.refetch()} />
         ) : (
-          <ActivityIndicator accessibilityLabel="Carregando" />
+          <Spinner accessibilityLabel="Carregando" />
         )}
       </Screen>
     );
@@ -99,7 +99,7 @@ function Report({
     >
       <Box gap="s32">
         <MonthSwitcher month={month} max={current} onChange={onMonth} />
-        {report.isLoading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
+        {report.isLoading ? <Spinner accessibilityLabel="Carregando" /> : null}
         {report.isError ? (
           <LoadError title="Não foi possível carregar o relatório" onRetry={() => void report.refetch()} />
         ) : null}

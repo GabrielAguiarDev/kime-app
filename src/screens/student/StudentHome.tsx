@@ -1,6 +1,5 @@
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, EmptyState } from '@components';
+import { Box, Button, EmptyState, Spinner } from '@components';
 import {
   useAcademyToday,
   useModalityStats,
@@ -63,7 +62,7 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
 
   const queries = [today, schedules, checkins, modalityStats];
   if (queries.some((q) => q.isLoading)) {
-    return <ActivityIndicator accessibilityLabel="Carregando" />;
+    return <Spinner accessibilityLabel="Carregando" />;
   }
   if (queries.some((q) => q.isError) || !today.data || !academyId || !userId) {
     return (

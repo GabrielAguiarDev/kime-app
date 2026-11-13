@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 
-import { BottomSheet, Box, Button, Card, HeaderButton, Icon, NativeMenu, RoundButton, Screen, Text } from '@components';
+import { BottomSheet, Box, Button, Card, HeaderButton, Icon, NativeMenu, RoundButton, Screen, Text, Spinner } from '@components';
 import { useModalities } from '@domain/Classes';
 import {
   BUILT_IN_PRESETS,
@@ -143,7 +143,7 @@ export function TimerSetupScreen() {
           </Box>
         }
       >
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

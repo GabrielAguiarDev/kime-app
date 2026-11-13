@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Switch } from 'react-native';
+import { Pressable, Switch } from 'react-native';
 
 import {
   BELT_COLOR_TOKEN,
@@ -17,6 +17,7 @@ import {
   Text,
   TextField,
   type IconName,
+  Spinner,
 } from '@components';
 import {
   BELT_COLOR_LABEL,
@@ -63,7 +64,7 @@ export function BeltGoalsScreen() {
   if (!active) {
     return (
       <Screen nativeHeader title="Faixas" onBack={() => router.back()}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -93,7 +94,7 @@ export function BeltGoalsScreen() {
       }
       footer={modality ? <Button title="Adicionar faixa" icon="plus" onPress={() => open({ mode: 'new' })} /> : undefined}
     >
-      {loading ? <ActivityIndicator /> : null}
+      {loading ? <Spinner /> : null}
       {failed ? (
         <EmptyState
           visual="icon"

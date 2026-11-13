@@ -1,6 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
 import {
   Avatar,
@@ -19,6 +18,7 @@ import {
   Screen,
   SelectionCard,
   Text,
+  Spinner,
 } from '@components';
 import {
   beltName,
@@ -68,7 +68,7 @@ export function MemberDetailScreen() {
   if (!active || !membershipId) {
     return (
       <Screen nativeHeader title="Membro" onBack={() => router.back()}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -94,7 +94,7 @@ export function MemberDetailScreen() {
   if (!member) {
     return (
       <Screen nativeHeader title=" " onBack={() => router.back()}>
-        <ActivityIndicator />
+        <Spinner />
       </Screen>
     );
   }
@@ -153,7 +153,7 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
           />
         ) : null}
         <BodyDataCard userId={member.userId} />
-        {loading ? <ActivityIndicator /> : null}
+        {loading ? <Spinner /> : null}
         {failed.length > 0 ? (
           <LoadError title="Não foi possível carregar as aulas" onRetry={() => failed.forEach((q) => void q.refetch())} />
         ) : null}
@@ -191,7 +191,7 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
       <BottomSheet visible={historyOpen && !!selected} onRequestClose={() => setHistoryOpen(false)}>
         {selected ? (
           <SheetForm title={`Histórico de faixas · ${selected.name}`}>
-            {history.isLoading ? <ActivityIndicator /> : null}
+            {history.isLoading ? <Spinner /> : null}
             {history.isError ? <LoadError title="Não foi possível carregar o histórico" onRetry={() => void history.refetch()} /> : null}
             {history.data && !history.data.some((a) => a.modalityId === selected.id) ? (
               <Text variant="body" color="textMuted">

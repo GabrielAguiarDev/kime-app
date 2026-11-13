@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, useWindowDimensions } from 'react-native';
 
-import { BottomSheet, Box, Button, Card, EmptyState, Icon, Screen, SelectionCard, Text, TextButton, TextField } from '@components';
+import { BottomSheet, Box, Button, Card, EmptyState, Icon, Screen, SelectionCard, Text, TextButton, TextField, Spinner } from '@components';
 import { useDeleteAccount } from '@domain/Auth';
 import {
   formatBirthDate,
@@ -49,7 +49,7 @@ export function MyDataScreen() {
 
   return (
     <Screen nativeHeader title="Meus dados" onBack={back}>
-      {profile.isLoading ? <ActivityIndicator /> : null}
+      {profile.isLoading ? <Spinner /> : null}
       {profile.isError ? (
         <EmptyState
           visual="icon"

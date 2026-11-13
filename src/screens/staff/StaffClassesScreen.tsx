@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
-import { Box, Card, EmptyState, HeaderMenu, Icon, LoadError, Screen, StatusBadge, Text } from '@components';
+import { Box, Card, EmptyState, HeaderMenu, Icon, LoadError, Screen, StatusBadge, Text, Spinner } from '@components';
 import {
   addDays,
   attendanceCounts,
@@ -56,7 +56,7 @@ export function StaffClassesScreen() {
   if (!academyId) {
     return (
       <Screen nativeHeader title="Aulas" bottomInset={false}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -76,7 +76,7 @@ export function StaffClassesScreen() {
   if (!date || !week || !today.data || !schedules.data) {
     return (
       <Screen nativeHeader title="Aulas" bottomInset={false} headerRight={headerRight}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -124,7 +124,7 @@ export function StaffClassesScreen() {
               {modality ? 'Nenhuma aula desta modalidade neste dia.' : 'Nenhuma aula neste dia.'}
             </Text>
           ) : null}
-          {checkins.isLoading ? <ActivityIndicator /> : null}
+          {checkins.isLoading ? <Spinner /> : null}
           {classes.map((c) => (
             <ClassRow
               key={c.id}

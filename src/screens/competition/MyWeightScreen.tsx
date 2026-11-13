@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { BottomSheet, Box, Button, EmptyState, LoadError, Screen, Text } from '@components';
+import { BottomSheet, Box, Button, EmptyState, LoadError, Screen, Text, Spinner } from '@components';
 import { sortWeights, useWeightLogs, type WeightLog } from '@domain/Competition';
 import { useMyProfile } from '@domain/Profile';
 import { localDate } from '@domain/Water';
@@ -25,7 +24,7 @@ export function MyWeightScreen() {
   return (
     <Screen nativeHeader title="Meu peso" onBack={back}
       footer={ready ? <Button title="Registrar peso" icon="plus" onPress={() => setSheet({})} /> : undefined}>
-      {profile.isLoading || weights.isLoading ? <ActivityIndicator accessibilityLabel="Carregando pesagens" /> : null}
+      {profile.isLoading || weights.isLoading ? <Spinner accessibilityLabel="Carregando pesagens" /> : null}
       {profile.isError || weights.isError ? (
         <LoadError title="Não foi possível carregar as pesagens" onRetry={() => { void profile.refetch(); void weights.refetch(); }} />
       ) : ready ? (

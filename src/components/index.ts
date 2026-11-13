@@ -1,6 +1,7 @@
 export { Box, type BoxProps } from './Box/Box';
 export { Text, type TextProps } from './Text/Text';
 export { Icon, type IconName } from './Icon/Icon';
+export { Spinner } from './Spinner/Spinner';
 export {
   Button,
   type ButtonProps,

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
-import { AcademyLogo, Box, Card, KimiMascot, Screen, StatusBadge, Text, TextButton } from '@components';
+import { AcademyLogo, Box, Card, KimiMascot, Screen, StatusBadge, Text, TextButton, Spinner } from '@components';
 import { useLeaveGym } from '@domain/Membership';
 import { errorMessage } from '@infra';
 import { useActiveGym } from '@services/activeGym';
@@ -40,7 +40,7 @@ export function WaitingScreen() {
     return (
       <Screen scrollable={false}>
         <Box flex={1} alignItems="center" justifyContent="center">
-          <ActivityIndicator accessibilityLabel="Carregando" />
+          <Spinner accessibilityLabel="Carregando" />
         </Box>
       </Screen>
     );

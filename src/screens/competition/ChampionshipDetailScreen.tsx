@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { Avatar, BigCounter, BottomSheet, Box, Button, Card, EmptyState, LoadError, PersonRow, Screen, SelectionCard, Text, TextField, type PersonAction } from '@components';
+import { Avatar, BigCounter, BottomSheet, Box, Button, Card, EmptyState, LoadError, PersonRow, Screen, SelectionCard, Text, TextField, type PersonAction, Spinner } from '@components';
 import { useAcademyToday, useModalities } from '@domain/Classes';
 import {
   canRecordResults,
@@ -47,7 +46,7 @@ export function ChampionshipDetailScreen() {
   if (!academyId || !id) {
     return (
       <Screen nativeHeader title=" " onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -56,7 +55,7 @@ export function ChampionshipDetailScreen() {
   if (championships.isLoading) {
     return (
       <Screen nativeHeader title=" " onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -198,7 +197,7 @@ function ChampionshipDetail({
               setAdding(true);
             }}
           />
-          {members.isLoading || entries.isLoading ? <ActivityIndicator /> : null}
+          {members.isLoading || entries.isLoading ? <Spinner /> : null}
           {members.isError || entries.isError ? (
             <LoadError
               title="Não foi possível carregar os atletas"

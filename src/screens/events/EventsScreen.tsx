@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, EmptyState, HeaderButton, LoadError, Screen, Text } from '@components';
+import { Box, EmptyState, HeaderButton, LoadError, Screen, Text, Spinner } from '@components';
 import { useAcademyToday } from '@domain/Classes';
 import { goingCount, myStatus, pastOrCancelledEvents, upcomingEvents, useEventRsvps, useEvents } from '@domain/Events';
 import { errorMessage } from '@infra';
@@ -34,7 +33,7 @@ export function EventsScreen() {
   if (!academyId || events.isLoading || today.isLoading) {
     return (
       <Screen nativeHeader title="Eventos" onBack={back} headerRight={headerRight}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

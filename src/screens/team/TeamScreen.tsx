@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
 import {
   BeltChip,
@@ -15,6 +14,7 @@ import {
   Screen,
   Text,
   TextField,
+  Spinner,
 } from '@components';
 import {
   latestBelt,
@@ -62,7 +62,7 @@ export function TeamScreen() {
   if (!active || !academyId) {
     return (
       <Screen nativeHeader title="Equipe" bottomInset={false}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -118,7 +118,7 @@ export function TeamScreen() {
           </Card>
         ) : null}
 
-        {members.isLoading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
+        {members.isLoading ? <Spinner accessibilityLabel="Carregando" /> : null}
         {members.isError ? (
           <LoadError title="Não foi possível carregar os membros" onRetry={() => void members.refetch()} />
         ) : null}
