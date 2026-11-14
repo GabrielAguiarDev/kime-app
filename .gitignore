@@ -43,3 +43,7 @@ yarn-error.*
 
 # npm is the package manager (package-lock.json); expo lint may create this one.
 yarn.lock
+
+# local native module build output
+modules/*/android/build/
+modules/*/android/.cxx/
