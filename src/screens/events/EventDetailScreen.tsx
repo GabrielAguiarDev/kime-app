@@ -1,5 +1,4 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
 import {
   BeltChip,
@@ -16,6 +15,7 @@ import {
   TextButton,
   type IconName,
   type PersonAction,
+  Spinner,
 } from '@components';
 import { formatLocalDate } from '@domain/Competition';
 import { useAcademyToday, useModalities, WEEKDAY_LABELS, weekdayOf, type LocalDate } from '@domain/Classes';
@@ -75,7 +75,7 @@ export function EventDetailScreen() {
   if (!academyId || !id || events.isLoading || today.isLoading) {
     return (
       <Screen nativeHeader title=" " onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -201,7 +201,7 @@ function EventDetail({ academyId, event, today }: { academyId: string; event: Ac
 
         {event.description ? <Text variant="body">{event.description}</Text> : null}
 
-        {people.isLoading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
+        {people.isLoading ? <Spinner accessibilityLabel="Carregando" /> : null}
         {people.isError ? <LoadError title="Não foi possível carregar a lista" onRetry={() => void people.refetch()} /> : null}
 
         {people.data ? (

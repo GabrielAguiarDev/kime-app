@@ -44,7 +44,9 @@ export function RoundButton({
         return (
           <Box style={{ paddingTop: theme.border.edgeWidth - edge }}>
             <Box
-              backgroundColor={edge > 0 ? 'accentEdge' : 'transparent'}
+              // Constant color (the face covers it when the edge is hidden): toggling to 'transparent'
+              // and back makes Android drop the border radius, showing a square.
+              backgroundColor="accentEdge"
               style={{ borderRadius: d / 2, paddingBottom: edge }}
             >
               <Box

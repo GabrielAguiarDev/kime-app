@@ -81,7 +81,8 @@ function StepButton({ icon, label, disabled, onPress }: { icon: IconName; label:
         const edge = disabled || pressed ? 0 : border.edgeWidth;
         return (
           <Box style={{ paddingTop: border.edgeWidth - edge }}>
-            <Box backgroundColor={edge > 0 ? 'edge' : 'transparent'} borderRadius="md" style={{ paddingBottom: edge }}>
+            {/* Constant edge color (covered by the face when hidden): toggling to 'transparent' drops the radius on Android. */}
+            <Box backgroundColor="edge" borderRadius="md" style={{ paddingBottom: edge }}>
               <Box
                 width={size.button}
                 height={size.button}

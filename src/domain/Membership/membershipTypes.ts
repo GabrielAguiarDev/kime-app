@@ -54,6 +54,21 @@ export interface GymMember {
   modalities: StudentModality[];
 }
 
+/**
+ * An active student with no confirmed class for the academy's threshold
+ * (academies.inactive_after_days). Dates in the academy calendar.
+ */
+export interface InactiveStudent {
+  membershipId: string;
+  userId: string;
+  /** Last confirmed class since joining; null = none since then. */
+  lastClassDate: string | null;
+  /** Day the membership was approved. */
+  joinedOn: string;
+  /** The last class, or the join day for who never trained. */
+  inactiveSince: string;
+}
+
 /** A pending join request, as seen by a professor of the gym. */
 export interface PendingRequest {
   avatarPath: string | null;

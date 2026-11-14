@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 
-import { BottomSheet, Box, Button, Icon, LoadError, ReorderList, Screen, Text, TextButton, type IconName } from '@components';
+import { BottomSheet, Box, Button, Icon, LoadError, ReorderList, Screen, Text, TextButton, type IconName, Spinner } from '@components';
 import {
   BUILT_IN_PRESETS,
   orderPresets,
@@ -91,7 +91,7 @@ export function TimerPresetsScreen() {
 
   return (
     <Screen nativeHeader title="Predefinições" onBack={() => router.back()}>
-      {mine.isLoading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
+      {mine.isLoading ? <Spinner accessibilityLabel="Carregando" /> : null}
       {mine.isError ? <LoadError title="Não foi possível carregar as predefinições" onRetry={mine.refetch} /> : null}
       {!mine.isLoading && !mine.isError ? (
         <Box gap="s16">

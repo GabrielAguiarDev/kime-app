@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, EmptyState, FeedbackSheet, Icon, KimiMascot, Screen, Text, type IconName } from '@components';
+import { Box, Button, Card, EmptyState, FeedbackSheet, Icon, KimiMascot, Screen, Text, type IconName, Spinner } from '@components';
 import { canCreateAcademy } from '@domain/Gym';
 import { useActiveGym } from '@services/activeGym';
 import { useIsConsumingCode } from '@services/entry';
@@ -36,7 +35,7 @@ export function NoAcademyScreen() {
     return (
       <Screen scrollable={false}>
         <Box flex={1} alignItems="center" justifyContent="center">
-          <ActivityIndicator accessibilityLabel="Carregando" />
+          <Spinner accessibilityLabel="Carregando" />
         </Box>
       </Screen>
     );

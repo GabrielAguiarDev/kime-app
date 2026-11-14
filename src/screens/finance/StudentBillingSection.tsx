@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Switch } from 'react-native';
+import { Pressable, Switch } from 'react-native';
 
 import {
   BottomSheet,
@@ -13,6 +13,7 @@ import {
   Text,
   TextField,
   WheelPicker,
+  Spinner,
 } from '@components';
 import { useAcademyToday, type LocalDate } from '@domain/Classes';
 import { formatShortDate, toBrDate } from '@domain/Competition';
@@ -70,7 +71,7 @@ function BillingContent({ academyId, member, defaultDueDay }: { academyId: strin
 
   return (
     <Section title="Mensalidade">
-      {billing.isLoading || plans.isLoading ? <ActivityIndicator /> : null}
+      {billing.isLoading || plans.isLoading ? <Spinner /> : null}
       {billing.isError || plans.isError ? (
         <LoadError
           title="Não foi possível carregar a mensalidade"
@@ -255,7 +256,7 @@ function ChargeHistory({ academyId, userId, name }: { academyId: string; userId:
   const confirm = useConfirm();
   const [paying, setPaying] = useState<Charge | null>(null);
 
-  if (charges.isLoading || today.isLoading) return <ActivityIndicator />;
+  if (charges.isLoading || today.isLoading) return <Spinner />;
   if (charges.isError || today.isError || !today.data) {
     return (
       <LoadError

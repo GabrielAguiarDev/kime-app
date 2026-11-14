@@ -68,6 +68,8 @@ final class RoundTimerEngine {
   private var title = ""
   private var rounds = 0
   private var sessionEnd: Date?
+  /// True while the silent loop must keep the app alive (from `sync` until `releaseAudio`).
+  private var keepAlive = false
 
   // MARK: - Public
 
@@ -80,6 +82,7 @@ final class RoundTimerEngine {
     loadPlayers()
     activate(duck: false)
     silence?.play()
+    keepAlive = true
 
     let now = Date().timeIntervalSince1970 * 1000
     sessionEnd = plan.phases.last.map { date($0.endAtMs) }
@@ -189,6 +192,7 @@ final class RoundTimerEngine {
   }
 
   private func releaseAudio() {
+    keepAlive = false
     silence?.stop()
     try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
   }
@@ -200,13 +204,15 @@ final class RoundTimerEngine {
     duckUntil = max(duckUntil, Date().addingTimeInterval(length))
     player.currentTime = 0
     player.play()
-    let current = generation
     queue.asyncAfter(wallDeadline: .now() + length + 0.1) { [weak self] in
       guard let self, Date() >= self.duckUntil else { return }
       // Music back up: ducking ends when the session is deactivated; the loop restarts right after.
       self.silence?.pause()
       try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-      guard self.generation == current, self.sessionEnd.map({ Date() < $0 }) ?? true else { return }
+      // Restart the loop whenever the session is still on, even if a newer plan (pause, skip from
+      // the Live Activity) arrived meanwhile: without it iOS suspends the app, and the Live
+      // Activity buttons and the TV updates stop until the app is opened again.
+      guard self.keepAlive, self.sessionEnd.map({ Date() < $0 }) ?? true else { return }
       self.activate(duck: false)
       self.silence?.play()
     }

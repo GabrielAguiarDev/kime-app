@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, type GestureResponderEvent, type PressableProps } from 'react-native';
+import { Pressable, type GestureResponderEvent, type PressableProps } from 'react-native';
 
 import { useAppTheme, type ColorToken } from '@theme';
 import { haptics } from '@utils/haptics';
@@ -6,6 +6,7 @@ import { haptics } from '@utils/haptics';
 import { Box } from '../Box/Box';
 import { Icon, type IconName } from '../Icon/Icon';
 import { Text } from '../Text/Text';
+import { Spinner } from '../Spinner/Spinner';
 
 export type ButtonVariant = 'primary' | 'water' | 'secondary' | 'danger' | 'ghost';
 
@@ -105,7 +106,9 @@ export function Button({
         return (
           <Box style={{ paddingTop: offset }}>
             <Box
-              backgroundColor={v.edge && edgeHeight > 0 ? v.edge : 'transparent'}
+              // Constant color (the face covers it when the edge is hidden): toggling to 'transparent'
+              // and back makes Android drop the border radius, showing square corners.
+              backgroundColor={v.edge ?? 'transparent'}
               borderRadius="md"
               style={{ paddingBottom: edgeHeight }}
             >
@@ -122,7 +125,7 @@ export function Button({
                 gap="s8"
               >
                 {state === 'loading' ? (
-                  <ActivityIndicator color={theme.colors[v.text]} />
+                  <Spinner color={theme.colors[v.text]} />
                 ) : (
                   <>
                     {icon ? <Icon name={icon} color={textColor} /> : null}

@@ -27,7 +27,7 @@ describe('homeMessage', () => {
   it('late water only from 17:00 and under 60 % of the goal', () => {
     const late = { ...base, water: { totalMl: 1000, goalMl: 2500, isLimit: false } };
     expect(homeMessage({ ...late, nowTime: '16:59' })).toBe(TIPS[3]);
-    expect(homeMessage({ ...late, nowTime: '17:00' })).toBe('Faltam 1.500 ml para a sua meta de hoje.');
+    expect(homeMessage({ ...late, nowTime: '17:00' })).toBe('Faltam 1,5 L para a sua meta de hoje.');
     expect(homeMessage({ ...late, nowTime: '18:00', water: { totalMl: 1600, goalMl: 2500, isLimit: false } })).toBe(TIPS[3]);
   });
 

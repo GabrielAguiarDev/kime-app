@@ -1,6 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
 import {
   Avatar,
@@ -19,12 +18,12 @@ import {
   Screen,
   SelectionCard,
   Text,
+  Spinner,
 } from '@components';
 import {
   beltName,
   beltProgress,
   beltsOf,
-  trainedModalities,
   useAwardBelt,
   useBeltHistory,
   useBelts,
@@ -40,6 +39,7 @@ import { CompetitorSection } from '@screens/competition/CompetitorSection';
 import { FightRecordSection } from '@screens/competition/FightRecord';
 import { StudentBillingSection } from '@screens/finance/StudentBillingSection';
 import { InstructorProfileScreen } from '@screens/instructor/InstructorProfileScreen';
+import { ReadyBadge } from '@screens/staff/ReadyBadge';
 import { useActiveGym } from '@services/activeGym';
 import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
@@ -67,7 +67,7 @@ export function MemberDetailScreen() {
   if (!active || !membershipId) {
     return (
       <Screen nativeHeader title="Membro" onBack={() => router.back()}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -93,7 +93,7 @@ export function MemberDetailScreen() {
   if (!member) {
     return (
       <Screen nativeHeader title=" " onBack={() => router.back()}>
-        <ActivityIndicator />
+        <Spinner />
       </Screen>
     );
   }
@@ -128,7 +128,12 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
   const failed = [modalityStats, modalities, belts].filter((q) => q.isError);
   const own = (modalityStats.data ?? []).filter((s) => s.membershipId === member.id);
   const allModalities = modalities.data ?? [];
-  const trained = trainedModalities(allModalities, own);
+  // Only the student's modalities here: active links, or past training (classes or a belt).
+  // Never every modality of the academy (a student with no class yet saw them all).
+  const linkedIds = new Set(member.modalities.map((l) => l.modalityId));
+  const trained = allModalities.filter(
+    (m) => linkedIds.has(m.id) || own.some((st) => st.modalityId === m.id && (st.confirmedTotal > 0 || !!st.beltId)),
+  );
   const selected = trained.find((m) => m.id === selectedId) ?? trained[0] ?? null;
   const withBelts = allModalities.filter((m) => m.usesBelts);
 
@@ -152,7 +157,7 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
           />
         ) : null}
         <BodyDataCard userId={member.userId} />
-        {loading ? <ActivityIndicator /> : null}
+        {loading ? <Spinner /> : null}
         {failed.length > 0 ? (
           <LoadError title="Não foi possível carregar as aulas" onRetry={() => failed.forEach((q) => void q.refetch())} />
         ) : null}
@@ -171,6 +176,7 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
             onSelect={setSelectedId}
             belts={beltsOf(belts.data ?? [], selected.id)}
             stats={own.find((s) => s.modalityId === selected.id)}
+            linked={member.modalities.some((l) => l.modalityId === selected.id)}
             onPress={selected.usesBelts ? () => setHistoryOpen(true) : undefined}
           />
         ) : null}
@@ -189,7 +195,7 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
       <BottomSheet visible={historyOpen && !!selected} onRequestClose={() => setHistoryOpen(false)}>
         {selected ? (
           <SheetForm title={`Histórico de faixas · ${selected.name}`}>
-            {history.isLoading ? <ActivityIndicator /> : null}
+            {history.isLoading ? <Spinner /> : null}
             {history.isError ? <LoadError title="Não foi possível carregar o histórico" onRetry={() => void history.refetch()} /> : null}
             {history.data && !history.data.some((a) => a.modalityId === selected.id) ? (
               <Text variant="body" color="textMuted">
@@ -271,6 +277,7 @@ function ModalityCard({
   onSelect,
   belts,
   stats,
+  linked,
   onPress,
 }: {
   modality: Modality;
@@ -278,6 +285,8 @@ function ModalityCard({
   onSelect: (id: string) => void;
   belts: ModalityBelt[];
   stats: ModalityStats | undefined;
+  /** Active link to the modality: the "Pronto para graduar" seal follows the same rule as the list (readyToGraduate). */
+  linked: boolean;
   /** Opens the belt history of the modality. */
   onPress?: () => void;
 }) {
@@ -302,6 +311,7 @@ function ModalityCard({
         {onPress ? <Icon name="chevronRight" color="textMuted" size={20} /> : null}
       </Box>
       {current ? <BeltChip belt={current} /> : <Text variant="caption">Sem faixa</Text>}
+      {linked && progress.next && progress.required > 0 && (stats?.confirmedSinceBelt ?? 0) >= progress.required ? <ReadyBadge /> : null}
       {progress.next && progress.required > 0 ? (
         <ProgressBar
           value={progress.done}

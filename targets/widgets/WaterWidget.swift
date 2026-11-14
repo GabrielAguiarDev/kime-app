@@ -81,6 +81,22 @@ private func formatMl(_ ml: Int) -> String {
   mlFormatter.string(from: NSNumber(value: ml)) ?? "\(ml)"
 }
 
+private let literFormatter: NumberFormatter = {
+  let formatter = NumberFormatter()
+  formatter.locale = Locale(identifier: "pt_BR")
+  formatter.numberStyle = .decimal
+  formatter.maximumFractionDigits = 1
+  return formatter
+}()
+
+/// Totals and goals (same rule as formatVolume in the app): "4,5 L" from 1 liter on, "500 ml" below.
+/// Bottle sizes stay in ml.
+private func formatVolume(_ ml: Int) -> String {
+  if ml < 1_000 { return "\(formatMl(ml)) ml" }
+  let liters = (Double(ml) / 100).rounded() / 10
+  return "\(literFormatter.string(from: NSNumber(value: liters)) ?? "\(liters)") L"
+}
+
 struct WaterWidgetView: View {
   @Environment(\.widgetFamily) private var family
   let entry: WaterEntry
@@ -147,7 +163,7 @@ private struct SmallLayout: View {
       HStack(spacing: KimiTokens.Space.s8) {
         WaterRingView(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit, diameter: KimiTokens.Size.widgetRing)
         VStack(alignment: .leading, spacing: 0) {
-          Text(formatMl(totalMl))
+          Text(formatVolume(totalMl))
             .font(KimiTokens.Typography.displayLg)
             .minimumScaleFactor(0.5)
             .lineLimit(1)
@@ -172,7 +188,7 @@ private struct MediumLayout: View {
     HStack(spacing: KimiTokens.Space.s16) {
       WaterRingView(totalMl: totalMl, goalMl: goalMl, isLimit: isLimit, diameter: KimiTokens.Size.widgetRingMedium)
       VStack(alignment: .leading, spacing: KimiTokens.Space.s4) {
-        Text("\(formatMl(totalMl)) ml")
+        Text(formatVolume(totalMl))
           .font(KimiTokens.Typography.displayLg)
           .minimumScaleFactor(0.5)
           .lineLimit(1)
@@ -193,7 +209,7 @@ private struct GoalCaption: View {
   var body: some View {
     let over = isLimit && goalMl.map { totalMl > $0 } == true
     let reached = goalMl.map { isLimit ? totalMl * 10 >= $0 * 9 && totalMl <= $0 : totalMl >= $0 } ?? false
-    Text(goalMl.map { over ? "Você passou do limite de hoje" : reached ? (isLimit ? "Limite do dia cumprido" : "Meta do dia batida") : "\(isLimit ? "Limite" : "Meta") de hoje: \(formatMl($0)) ml" } ?? "Informe seu peso no app")
+    Text(goalMl.map { over ? "Você passou do limite de hoje" : reached ? (isLimit ? "Limite do dia cumprido" : "Meta do dia batida") : "\(isLimit ? "Limite" : "Meta") de hoje: \(formatVolume($0))" } ?? "Informe seu peso no app")
       .font(KimiTokens.Typography.caption)
       .lineLimit(1)
       .minimumScaleFactor(0.8)
@@ -302,6 +318,6 @@ private struct WaterRingView: View {
     .padding(KimiTokens.Size.widgetRingStroke / 2)
     .frame(width: diameter, height: diameter)
     .accessibilityElement()
-    .accessibilityLabel(goalMl.map { "\(formatMl(totalMl)) de \(formatMl($0)) ml" } ?? "\(formatMl(totalMl)) ml")
+    .accessibilityLabel(goalMl.map { "\(formatVolume(totalMl)) de \(formatVolume($0))" } ?? formatVolume(totalMl))
   }
 }

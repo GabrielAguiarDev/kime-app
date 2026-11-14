@@ -23,3 +23,6 @@ export function isCodeComplete(code: string): boolean {
 export function canCreateAcademy(): boolean {
   return true;
 }
+
+/** Choices for "considerar sumido após" (days; the database accepts 7–90). */
+export const INACTIVE_DAYS_OPTIONS = [7, 10, 14, 21, 30, 45, 60, 90] as const;

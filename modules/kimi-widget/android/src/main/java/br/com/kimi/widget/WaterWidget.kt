@@ -6,6 +6,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.Typeface
+import androidx.core.content.res.ResourcesCompat
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -87,12 +89,16 @@ private fun loadState(context: Context): Pair<WaterState, WaterStore.Config?> {
  * Small: ring + total on top, "+{garrafa} ML" at the bottom. Medium: ring on the left; total,
  * goal and the button on the right. The button logs a bottle without opening the app.
  */
-/** Layout breakpoints (Glance picks the closest size). */
-private val SMALL = DpSize(110.dp, 110.dp)
+/** Inner padding of the widget (iOS uses the system content margins, ~16). */
+private val WIDGET_PADDING = KimiTokens.Space.s12
+
+/** Medium layout from this width on. */
 private val MEDIUM = DpSize(250.dp, 110.dp)
 
 class WaterWidget : GlanceAppWidget() {
-  override val sizeMode = SizeMode.Responsive(setOf(SMALL, MEDIUM))
+  // Exact: LocalSize is the widget's real size (the total is fitted to the room left next to
+  // the ring); Responsive would only report the 110/250 dp breakpoints.
+  override val sizeMode = SizeMode.Exact
 
   override suspend fun provideGlance(context: Context, id: GlanceId) {
     val config = WaterStore.config(context)
@@ -125,6 +131,14 @@ private fun openApp(context: Context, uri: String): Action =
 
 private fun formatMl(ml: Int): String = NumberFormat.getIntegerInstance(Locale("pt", "BR")).format(ml)
 
+/** Totals and goals (same rule as formatVolume in the app): "4,5 L" from 1 liter on, "500 ml" below. */
+private fun formatVolume(ml: Int): String {
+  if (ml < 1000) return "${formatMl(ml)} ml"
+  val liters = Math.round(ml / 100.0) / 10.0
+  val format = NumberFormat.getNumberInstance(Locale("pt", "BR")).apply { maximumFractionDigits = 1 }
+  return "${format.format(liters)} L"
+}
+
 @Composable
 private fun WidgetContent(state: WaterState) {
   val context = LocalContext.current
@@ -140,7 +154,7 @@ private fun WidgetContent(state: WaterState) {
       .appWidgetBackground()
       .cornerRadius(android.R.dimen.system_app_widget_background_radius)
       .background(KimiTokens.Colors.surface)
-      .padding(KimiTokens.Space.s12)
+      .padding(WIDGET_PADDING)
       .clickable(openApp(context, target)),
     contentAlignment = Alignment.Center,
   ) {
@@ -181,22 +195,15 @@ private fun EmptyMessage(text: String, showBottle: Boolean = false) {
 
 @Composable
 private fun SmallLayout(state: WaterState.Ready) {
+  // Room for the total next to the ring (widget minus padding, ring and gap).
+  val textWidth = LocalSize.current.width - WIDGET_PADDING * 2 - KimiTokens.Size.widgetRing - KimiTokens.Space.s8
   Column(modifier = GlanceModifier.fillMaxSize()) {
     Row(verticalAlignment = Alignment.CenterVertically) {
       Ring(state, KimiTokens.Size.widgetRing)
       Spacer(GlanceModifier.width(KimiTokens.Space.s8))
       Column {
-        // Barlow Condensed is not available to RemoteViews: system font, same weight and size steps.
-        Text(
-          text = formatMl(state.totalMl),
-          maxLines = 1,
-          style = TextStyle(
-            color = KimiTokens.Colors.text,
-            fontSize = KimiTokens.Typography.title,
-            fontWeight = FontWeight.Bold,
-          ),
-        )
-        GoalCaption(state)
+        DisplayNumber(formatVolume(state.totalMl), textWidth)
+        GoalCaption(state, maxLines = 2)
       }
     }
     Spacer(GlanceModifier.defaultWeight())
@@ -210,16 +217,9 @@ private fun MediumLayout(state: WaterState.Ready) {
     Ring(state, KimiTokens.Size.widgetRingMedium)
     Spacer(GlanceModifier.width(KimiTokens.Space.s16))
     Column(modifier = GlanceModifier.defaultWeight()) {
-      // `title` instead of display-lg: display-lg plus caption and button do not fit
-      // a 2-row widget (110 dp) on Android.
-      Text(
-        text = "${formatMl(state.totalMl)} ml",
-        maxLines = 1,
-        style = TextStyle(
-          color = KimiTokens.Colors.text,
-          fontSize = KimiTokens.Typography.title,
-          fontWeight = FontWeight.Bold,
-        ),
+      DisplayNumber(
+        formatVolume(state.totalMl),
+        LocalSize.current.width - WIDGET_PADDING * 2 - KimiTokens.Size.widgetRingMedium - KimiTokens.Space.s16,
       )
       GoalCaption(state)
       Spacer(GlanceModifier.height(KimiTokens.Space.s8))
@@ -229,7 +229,7 @@ private fun MediumLayout(state: WaterState.Ready) {
 }
 
 @Composable
-private fun GoalCaption(state: WaterState.Ready) {
+private fun GoalCaption(state: WaterState.Ready, maxLines: Int = 1) {
   val goal = state.goalMl
   val over = state.isLimit && goal != null && state.totalMl > goal
   val reached = goal != null && if (state.isLimit) state.totalMl * 10 >= goal * 9 && state.totalMl <= goal else state.totalMl >= goal
@@ -238,9 +238,9 @@ private fun GoalCaption(state: WaterState.Ready) {
       goal == null -> "Informe seu peso no app"
       over -> "Você passou do limite de hoje"
       reached -> if (state.isLimit) "Limite do dia cumprido" else "Meta do dia batida"
-      else -> "${if (state.isLimit) "Limite" else "Meta"} de hoje: ${formatMl(goal)} ml"
+      else -> "${if (state.isLimit) "Limite" else "Meta"} de hoje: ${formatVolume(goal)}"
     },
-    maxLines = 1,
+    maxLines = maxLines,
     style = TextStyle(
       color = if (over) KimiTokens.Colors.warning else if (reached) KimiTokens.Colors.success else KimiTokens.Colors.textMuted,
       fontSize = KimiTokens.Typography.caption,
@@ -375,5 +375,41 @@ private fun ringBitmap(
   canvas.drawArc(rect, 0f, 360f, false, paint(track))
   // TODO(motion): ring filling up after a log.
   if (ratio > 0f) canvas.drawArc(rect, -90f, 360f * ratio, false, paint(fill))
+  return bitmap
+}
+
+/**
+ * The total in Barlow Condensed ExtraBold (display-lg), like iOS. RemoteViews cannot use app
+ * fonts, so it is drawn to a bitmap; it shrinks to fit [maxWidth] (down to half, like iOS's
+ * minimumScaleFactor 0.5).
+ */
+@Composable
+private fun DisplayNumber(text: String, maxWidth: Dp) {
+  val context = LocalContext.current
+  val bitmap = displayBitmap(context, text, maxWidth, KimiTokens.Colors.text)
+  val density = context.resources.displayMetrics.density
+  Image(
+    provider = ImageProvider(bitmap),
+    contentDescription = text,
+    modifier = GlanceModifier.width((bitmap.width / density).dp).height((bitmap.height / density).dp),
+  )
+}
+
+private fun displayBitmap(context: Context, text: String, maxWidth: Dp, color: ColorProvider): Bitmap {
+  val metrics = context.resources.displayMetrics
+  val typeface = ResourcesCompat.getFont(context, R.font.kimi_barlow_condensed_extrabold) ?: Typeface.DEFAULT_BOLD
+  val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    this.typeface = typeface
+    this.color = color.getColor(context).toArgb()
+    textSize = KimiTokens.Typography.displayLg.value * metrics.scaledDensity
+  }
+  val limit = (maxWidth.value * metrics.density).coerceAtLeast(1f)
+  val width = paint.measureText(text)
+  if (width > limit) paint.textSize = paint.textSize * (limit / width).coerceAtLeast(0.5f)
+  val fm = paint.fontMetrics
+  val w = paint.measureText(text).toInt().coerceAtLeast(1) + 2
+  val h = (fm.descent - fm.ascent).toInt().coerceAtLeast(1)
+  val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+  Canvas(bitmap).drawText(text, 0f, -fm.ascent, paint)
   return bitmap
 }

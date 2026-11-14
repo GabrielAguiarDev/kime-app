@@ -1,7 +1,7 @@
 import type { BeltLook, Modality } from '@domain/Classes/classesTypes';
 import type { TeachingGroup } from '@domain/Instructor/instructorRules';
 
-/** What the screen draws, from the profile (or the DEV demo). */
+/** What the screen draws, from the profile. */
 export interface ProfileView {
   bio: string | null;
   belts: { modality: Modality; belt: BeltLook }[];

@@ -1,6 +1,5 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
 import {
   BottomSheet,
@@ -14,6 +13,7 @@ import {
   Text,
   TextButton,
   TextField,
+  Spinner,
 } from '@components';
 import {
   groupDisplayDays,
@@ -63,7 +63,7 @@ export function SchedulesScreen() {
   if (!active) {
     return (
       <Screen nativeHeader title="Horários das aulas" onBack={() => router.back()}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -123,7 +123,7 @@ export function SchedulesScreen() {
       onBack={() => router.back()}
       footer={<Button title="Adicionar horário" icon="plus" onPress={() => open({ mode: 'new' })} />}
     >
-      {schedules.isLoading ? <ActivityIndicator /> : null}
+      {schedules.isLoading ? <Spinner /> : null}
       {schedules.isError ? (
         <EmptyState
           visual="icon"

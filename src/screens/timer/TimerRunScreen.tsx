@@ -1,12 +1,13 @@
 import { useKeepAwake } from 'expo-keep-awake';
-import { router, Stack } from 'expo-router';
+import { router, Stack, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Pressable, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigCounter, Box, Button, ConfirmSheet, Icon, KimiMascot, Text, type IconName } from '@components';
 import { formatClock, roundsDone, type TimerState } from '@domain/Timer';
+import { useActiveGym } from '@services/activeGym';
 import {
   pauseTimer,
   resumeTimer,
@@ -16,6 +17,7 @@ import {
   useTimerOrientation,
   useTimerSession,
 } from '@services/timer';
+import { getTvConnection, subscribeTv } from '@services/tv';
 import { useAppTheme, type ColorToken } from '@theme';
 import { haptics } from '@utils/haptics';
 
@@ -56,7 +58,9 @@ function phaseLabel(state: TimerState, paused: boolean): string {
 export function TimerRunScreen() {
   useKeepAwake();
   const session = useTimerSession();
-  const { colors } = useAppTheme();
+  const tv = useSyncExternalStore(subscribeTv, getTvConnection);
+  const { isStaff } = useActiveGym();
+  const { colors, border, size } = useAppTheme();
   const orientation = useTimerOrientation();
   const { width, height } = useWindowDimensions();
   // The window's shape (not the choice): right during the rotation, too.
@@ -152,7 +156,30 @@ export function TimerRunScreen() {
             >
               <Icon name="rotate" color={look.fg} />
             </Pressable>
+            {isStaff ? (
+              <Pressable
+                onPress={() => router.push('/tv' as Href)}
+                accessibilityRole="button"
+                accessibilityLabel={tv.display ? `TV: ${tv.display.name}. Abrir opções` : 'Transmitir na TV'}
+                style={{
+                  minWidth: size.touchTarget,
+                  minHeight: size.touchTarget,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: border.width,
+                  borderColor: colors[look.fg],
+                  borderRadius: size.touchTarget / 2,
+                }}
+              >
+                <Text variant="bodyStrong" color={look.fg}>TV</Text>
+              </Pressable>
+            ) : null}
           </Box>
+          {tv.display ? (
+            <Text variant="caption" color={look.fg} numberOfLines={1}>
+              {tv.failed ? `TV não atualizada · ${tv.display.name}` : `TV: ${tv.display.name}`}
+            </Text>
+          ) : null}
 
           <Box flex={1} alignItems="center" justifyContent="center" gap={landscape ? 's8' : 's16'}>
             {/* TODO(motion): state label switching (ROUND / DESCANSO). */}

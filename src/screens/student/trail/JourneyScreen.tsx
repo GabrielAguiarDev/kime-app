@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Box, Button, EmptyState, HeaderButton, Screen, Text } from '@components';
+import { Box, Button, EmptyState, HeaderButton, Screen, Text, Spinner } from '@components';
 import { beltsOf, graduationTrail, useBelts, useModalityStats } from '@domain/Classes';
 import { useActiveGym } from '@services/activeGym';
 import { useActiveModality } from '@services/activeModality';
@@ -72,7 +72,7 @@ export function JourneyScreen() {
       }
     />
   ) : loading ? (
-    <ActivityIndicator accessibilityLabel="Carregando" />
+    <Spinner accessibilityLabel="Carregando" />
   ) : selected && !selected.usesBelts ? (
     <EmptyState
       visual="icon"

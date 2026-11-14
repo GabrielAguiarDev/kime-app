@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Switch } from 'react-native';
+import { Switch } from 'react-native';
 
 import {
   Box,
@@ -14,6 +14,7 @@ import {
   Screen,
   Text,
   TextField,
+  Spinner,
 } from '@components';
 import { useAcademyToday, type LocalDate } from '@domain/Classes';
 import { parseBrDate, toBrDate } from '@domain/Competition';
@@ -52,7 +53,7 @@ export function ExpenseFormScreen() {
   if (!academyId || today.isLoading || (id && expenses.isLoading)) {
     return (
       <Screen nativeHeader title={title} onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

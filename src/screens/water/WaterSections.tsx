@@ -4,11 +4,10 @@ import { Box, Card, Icon, Text, TextButton } from '@components';
 import { addDays, WEEKDAY_LABELS, weekdayOf, type LocalDate } from '@domain/Classes';
 import { planInForce, useWaterPlans } from '@domain/Competition';
 import { useMyProfile } from '@domain/Profile';
-import { autoDailyGoalMl, waterDayState, type WaterDayTotal } from '@domain/Water';
+import { autoDailyGoalMl, formatVolume, waterDayState, type WaterDayTotal } from '@domain/Water';
 import { WaterPlanWeek } from '@screens/competition/shared';
 import { useAppTheme } from '@theme';
 
-import { formatMl } from './format';
 
 /** Height of the tallest bar (a day at 100 % of its goal or more). */
 const BAR_MAX = 96;
@@ -36,7 +35,7 @@ export function LastDaysBars({ days, today }: { days: WaterDayTotal[]; today: Lo
               alignItems="center"
               gap="s4"
               accessible
-              accessibilityLabel={`${WEEKDAY_LABELS[weekdayOf(d)].long}: ${formatMl(total)} ml${done ? ', meta cumprida' : ''}`}
+              accessibilityLabel={`${WEEKDAY_LABELS[weekdayOf(d)].long}: ${formatVolume(total)}${done ? ', meta cumprida' : ''}`}
             >
               <Box height={BAR_MAX} justifyContent="flex-end" width="100%" alignItems="center">
                 <Box

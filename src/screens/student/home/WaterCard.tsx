@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, Text, TextButton, WaterRing } from '@components';
-import { waterDayState } from '@domain/Water';
+import { Box, Button, Card, Text, TextButton, WaterRing, Spinner } from '@components';
+import { formatVolume, waterDayState } from '@domain/Water';
 import { keyValueStorage } from '@infra';
 import { formatMl } from '@screens/water/format';
 import { useLogBottle } from '@screens/water/useLogBottle';
@@ -41,7 +40,7 @@ export function WaterCard() {
     return (
       <Card gap="s12">
         <Text variant="captionCaps">Água de hoje</Text>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Card>
     );
   }
@@ -60,7 +59,7 @@ export function WaterCard() {
   const goalLine =
     water.goalMl === null
       ? 'Informe seu peso para calcular a meta.'
-      : `${water.isLimit ? 'Limite' : 'Meta'}: ${formatMl(water.goalMl)} ml`;
+      : `${water.isLimit ? 'Limite' : 'Meta'}: ${formatVolume(water.goalMl)}`;
   const leftLine =
     state === 'over'
       ? 'Você passou do limite de hoje.'
@@ -69,18 +68,18 @@ export function WaterCard() {
           ? 'Limite do dia cumprido.'
           : 'Meta do dia batida.'
         : left !== null
-          ? `Faltam ${formatMl(left)} ml`
+          ? `Faltam ${formatVolume(left)}`
           : null;
 
   return (
-    <Card gap="s16" onPress={() => router.push('/agua')} accessibilityLabel={`Água de hoje: ${formatMl(water.totalMl)} ml. Abrir`}>
+    <Card gap="s16" onPress={() => router.push('/agua')} accessibilityLabel={`Água de hoje: ${formatVolume(water.totalMl)}. Abrir`}>
       <Text variant="captionCaps">Água de hoje</Text>
       <Box flexDirection="row" alignItems="center" gap="s16">
         <Box flexShrink={0}>
           <WaterRing consumedMl={water.totalMl} goalMl={water.goalMl} isLimit={water.isLimit} size={72} hideLabel />
         </Box>
         <Box flex={1} minWidth={0} gap="s4">
-          <Text variant="heading" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatMl(water.totalMl)} ml</Text>
+          <Text variant="heading" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatVolume(water.totalMl)}</Text>
           <Text variant="caption">{goalLine}</Text>
           {leftLine ? (
             <Text variant="bodyStrong" color={state === 'over' ? 'warning' : state === 'done' ? 'water' : 'text'}>

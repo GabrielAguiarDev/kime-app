@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useAppTheme } from '@theme';
 
@@ -7,19 +8,23 @@ import { Box, type BoxProps } from '../Box/Box';
 import { Icon, type IconName } from '../Icon/Icon';
 import { Text } from '../Text/Text';
 
+const AnimatedBox = Animated.createAnimatedComponent(Box);
+const TOAST_FADE_MS = 160;
+
 /** How long a toast stays on screen. */
 export const TOAST_MS = 2_000;
 
 /**
  * Small confirmation popup ("Código copiado…"): raised surface, 2px border,
  * radius md, icon + caption. Place it where the action happened (it renders
- * inline; wrap it in an absolute Box to float it). Shows and hides instantly.
+ * inline; wrap it in an absolute Box to float it). Fades in and out (reduced motion: instant).
  */
 export function Toast({ message, icon = 'check', ...boxProps }: { message: string; icon?: IconName } & BoxProps) {
   const { border, size } = useAppTheme();
   return (
-    // TODO(motion): toast fading in and out.
-    <Box
+    <AnimatedBox
+      entering={FadeIn.duration(TOAST_FADE_MS)}
+      exiting={FadeOut.duration(TOAST_FADE_MS)}
       flexDirection="row"
       alignItems="center"
       gap="s8"
@@ -36,7 +41,7 @@ export function Toast({ message, icon = 'check', ...boxProps }: { message: strin
       <Text variant="caption" color="text">
         {message}
       </Text>
-    </Box>
+    </AnimatedBox>
   );
 }
 

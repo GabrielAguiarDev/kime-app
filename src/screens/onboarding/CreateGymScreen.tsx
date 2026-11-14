@@ -1,8 +1,8 @@
 import { router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Share } from 'react-native';
+import { BackHandler, Share } from 'react-native';
 
-import { BigCounter, Box, Button, Card, KimiMascot, ProgressBar, Screen, Text, TextButton } from '@components';
+import { BigCounter, Box, Button, Card, KimiMascot, ProgressBar, Screen, Text, TextButton, Spinner } from '@components';
 import {
   DEFAULT_PLAN,
   isValidAcademyName,
@@ -205,7 +205,7 @@ function Done({ gymId, name, logoSaved }: { gymId: string; name: string; logoSav
           Sua academia está pronta
         </Text>
         <Card alignSelf="stretch" alignItems="center" gap="s8">
-          {code.isLoading ? <ActivityIndicator accessibilityLabel="Carregando código" /> : null}
+          {code.isLoading ? <Spinner accessibilityLabel="Carregando código" /> : null}
           {code.data ? <BigCounter value={code.data} label="Código de aluno" /> : null}
           {code.isError ? (
             <>

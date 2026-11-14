@@ -5,6 +5,9 @@ import { ArrowLeft } from 'phosphor-react-native/src/icons/ArrowLeft';
 import { ArrowUp } from 'phosphor-react-native/src/icons/ArrowUp';
 import { ArrowsDownUp } from 'phosphor-react-native/src/icons/ArrowsDownUp';
 import { Barbell } from 'phosphor-react-native/src/icons/Barbell';
+import { Hourglass } from 'phosphor-react-native/src/icons/Hourglass';
+import { Megaphone } from 'phosphor-react-native/src/icons/Megaphone';
+import { PushPin } from 'phosphor-react-native/src/icons/PushPin';
 import { Bug } from 'phosphor-react-native/src/icons/Bug';
 import { Camera } from 'phosphor-react-native/src/icons/Camera';
 import { CalendarBlank } from 'phosphor-react-native/src/icons/CalendarBlank';
@@ -25,6 +28,7 @@ import { DeviceRotate } from 'phosphor-react-native/src/icons/DeviceRotate';
 import { DotsSixVertical } from 'phosphor-react-native/src/icons/DotsSixVertical';
 import { Drop } from 'phosphor-react-native/src/icons/Drop';
 import { Fire } from 'phosphor-react-native/src/icons/Fire';
+import { GoogleLogo } from 'phosphor-react-native/src/icons/GoogleLogo';
 import { ForkKnife } from 'phosphor-react-native/src/icons/ForkKnife';
 import { GearSix } from 'phosphor-react-native/src/icons/GearSix';
 import { GraduationCap } from 'phosphor-react-native/src/icons/GraduationCap';
@@ -90,6 +94,7 @@ const ICONS = {
   timer: Timer,
   freeze: Snowflake,
   missed: X,
+  close: X,
   open: Circle,
   locked: Lock,
   plus: Plus,
@@ -98,6 +103,7 @@ const ICONS = {
   deactivate: Prohibit,
   trash: Trash,
   apple: AppleLogo,
+  google: GoogleLogo,
   back: ArrowLeft,
   barbell: Barbell,
   bug: Bug,
@@ -137,6 +143,10 @@ const ICONS = {
   money: CurrencyCircleDollar,
   attended: UserCheck,
   newEvent: CalendarPlus,
+  // Academy notices; inactive students.
+  announcement: Megaphone,
+  pin: PushPin,
+  inactive: Hourglass,
 } as const;
 
 export type IconName = keyof typeof ICONS;

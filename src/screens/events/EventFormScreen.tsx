@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable } from 'react-native';
+import { Alert, Pressable } from 'react-native';
 
 import {
   BottomSheet,
@@ -17,6 +17,7 @@ import {
   Text,
   TextButton,
   TextField,
+  Spinner,
 } from '@components';
 import { useAcademyToday, useModalities, type LocalDate, type Modality } from '@domain/Classes';
 import { parseBrDate, toBrDate } from '@domain/Competition';
@@ -60,7 +61,7 @@ export function EventFormScreen() {
   if (!academyId || modalities.isLoading || today.isLoading || (id && events.isLoading)) {
     return (
       <Screen nativeHeader title={title} onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

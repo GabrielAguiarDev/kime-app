@@ -2,6 +2,7 @@ import { Box, Button, Text, TextButton } from '@components';
 import type { LocalDate } from '@domain/Classes';
 import { goingCount, myStatus, upcomingEvents, useEventRsvps, useEvents } from '@domain/Events';
 import { errorMessage } from '@infra';
+import { useAppTheme } from '@theme';
 
 import { EventCard } from './EventCard';
 import { newEvent, openEvents } from './parts';
@@ -52,28 +53,30 @@ const STAFF_HOME_EVENTS = 2;
 
 /**
  * Início, "Eventos" (owner / professor): the next events with who is going,
- * "Ver todos" and "Novo evento".
+ * "Ver todos" and "Novo evento". Nothing without an upcoming event (events are
+ * rare): they are created from /eventos (confetti icon in the Aulas header).
  */
 export function StaffEventsSection({ academyId, today }: { academyId: string; today: LocalDate }) {
+  const theme = useAppTheme();
   const events = useEvents(academyId);
   const rsvps = useEventRsvps(academyId);
   const upcoming = upcomingEvents(events.data ?? [], today);
   const answers = rsvps.data ?? [];
+  // "Ver todos" keeps its 52 pt touch target; the row takes the caption's height
+  // in the layout, so the space around "Eventos" matches the other sections.
+  const showAll = (events.data ?? []).length > 0;
+  const headerPull = showAll ? -(theme.size.button - theme.textVariants.captionCaps.lineHeight) / 2 : 0;
+  if (upcoming.length === 0) return null;
 
   return (
     <Box gap="s12">
-      <Box flexDirection="row" alignItems="center" justifyContent="space-between">
+      <Box flexDirection="row" alignItems="center" justifyContent="space-between" style={{ marginVertical: headerPull }}>
         <Text variant="captionCaps">Eventos</Text>
-        {(events.data ?? []).length > 0 ? <TextButton title="Ver todos" fullWidth={false} onPress={openEvents} /> : null}
+        {showAll ? <TextButton title="Ver todos" fullWidth={false} onPress={openEvents} /> : null}
       </Box>
       {upcoming.slice(0, STAFF_HOME_EVENTS).map((e) => (
         <EventCard key={e.id} event={e} today={today} going={goingCount(answers, e.id)} faces />
       ))}
-      {events.data && upcoming.length === 0 ? (
-        <Text variant="body" color="textMuted">
-          Nenhum evento marcado.
-        </Text>
-      ) : null}
       <Button title="Novo evento" icon="newEvent" variant="secondary" onPress={newEvent} />
     </Box>
   );

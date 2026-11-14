@@ -70,7 +70,15 @@ async function setStudentModalities(membershipId: string, modalityIds: string[])
   if (error) throw error;
 }
 
+/** Staff: active students with no confirmed class for the academy's "sumido" threshold (RPC). */
+async function listInactive(gymId: string) {
+  const { data, error } = await supabase.rpc('inactive_students', { p_academy_id: gymId });
+  if (error) throw error;
+  return data;
+}
+
 export const membershipApi = {
+  listInactive,
   listMine,
   listByGym,
   listPending,

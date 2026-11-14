@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
 import {
   Avatar,
@@ -15,6 +15,7 @@ import {
   Screen,
   Text,
   TextButton,
+  Spinner,
 } from '@components';
 import {
   beltName,
@@ -47,7 +48,6 @@ import { useConfirm } from '@services/confirm';
 import { useSession } from '@services/session';
 import { haptics } from '@utils/haptics';
 
-import { demoView } from './instructorDemo';
 import type { ProfileView } from './profileView';
 import { InstructorBeltSheet } from './InstructorBeltSheet';
 
@@ -64,13 +64,12 @@ export function InstructorProfileScreen({ academyId, userId, onBack }: { academy
   const belts = useBelts(academyId);
   const today = useAcademyToday(academyId);
   const { userId: me } = useSession();
-  const [demo, setDemo] = useState(false);
   const own = userId === me;
 
   if (profile.isLoading) {
     return (
       <Screen nativeHeader title="" largeTitle={false} onBack={onBack}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -91,10 +90,7 @@ export function InstructorProfileScreen({ academyId, userId, onBack }: { academy
 
   const data = profile.data;
   const allModalities = modalities.data ?? [];
-  const real = buildView(academyId, data, allModalities, belts.data ?? [], today.data);
-  // DEV ONLY: sample bio, belts and classes (instructorDemo). Never in production builds.
-  const showDemo = __DEV__ && demo;
-  const view = showDemo ? demoView(data) : real;
+  const view = buildView(academyId, data, allModalities, belts.data ?? [], today.data);
 
   return (
     <Screen
@@ -109,16 +105,7 @@ export function InstructorProfileScreen({ academyId, userId, onBack }: { academy
         </Text>
       }
       headerRight={
-        <Box flexDirection="row" alignItems="center" gap="s16">
-          {__DEV__ ? (
-            <HeaderButton accessibilityLabel={demo ? 'Usar dados reais' : 'Usar dados de exemplo'} onPress={() => setDemo((d) => !d)}>
-              <Text variant="caption" color="textMuted">
-                {demo ? 'Real' : 'Demo'}
-              </Text>
-            </HeaderButton>
-          ) : null}
-          {own ? <HeaderButton icon="edit" accessibilityLabel="Editar perfil" onPress={() => router.push('/editar-perfil')} /> : null}
-        </Box>
+        own ? <HeaderButton icon="edit" accessibilityLabel="Editar perfil" onPress={() => router.push('/editar-perfil')} /> : undefined
       }
     >
       <Box gap="s32">

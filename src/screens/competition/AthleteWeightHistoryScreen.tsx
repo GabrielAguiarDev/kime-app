@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { BottomSheet, Box, Button, EmptyState, FilterChips, Screen, SelectionCard, Text } from '@components';
+import { BottomSheet, Box, Button, EmptyState, FilterChips, Screen, SelectionCard, Text, Spinner } from '@components';
 import {
   filterWeights,
   formatKg,
@@ -33,7 +32,7 @@ export function AthleteWeightHistoryScreen() {
   if (isLoading || weights.isLoading) {
     return (
       <Screen nativeHeader title={title} subtitle={subtitle} onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

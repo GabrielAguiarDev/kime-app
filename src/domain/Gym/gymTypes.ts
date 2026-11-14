@@ -34,4 +34,6 @@ export interface GymSettings {
   timezone: string;
   logoPath: string | null;
   logoUrl: string | null;
+  /** Days without a confirmed class for a student to count as "sumido" (owner sets, 7–90). */
+  inactiveAfterDays: number;
 }

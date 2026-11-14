@@ -38,6 +38,8 @@ const DISMISS_RATIO = 0.25;
 const DISMISS_VELOCITY = 900;
 /** Landscape: the sheet is centered at this width, clear of the notch side. */
 const LANDSCAPE_SHEET_WIDTH = 480;
+/** Tallest the sheet gets: longer content scrolls inside it (a ScrollView child shrinks to fit). */
+const MAX_HEIGHT_RATIO = 0.85;
 
 interface BottomSheetProps {
   visible: boolean;
@@ -175,6 +177,8 @@ export function BottomSheet({
       transparent
       animationType="none"
       statusBarTranslucent
+      // Android: draw under the navigation bar so the safe-area inset below reports it (as FeedbackSheet).
+      navigationBarTranslucent
       supportedOrientations={
         allowLandscape ? ["portrait", "landscape"] : ["portrait"]
       }
@@ -255,6 +259,15 @@ export function BottomSheet({
 function SheetSurface({ children }: { children: ReactNode }) {
   const theme = useAppTheme();
   const { bottom } = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  // Android: the gesture/navigation bar inset alone leaves the last line touching the bar,
+  // so add breathing room above it. iOS keeps the home-indicator area as the margin.
+  const paddingBottom =
+    Platform.OS === "android"
+      ? bottom + theme.spacing.s48
+      : bottom > 0
+        ? bottom
+        : theme.spacing.s16;
   return (
     <Box
       backgroundColor="surface"
@@ -265,7 +278,7 @@ function SheetSurface({ children }: { children: ReactNode }) {
       borderTopLeftRadius="lg"
       borderTopRightRadius="lg"
       paddingHorizontal="screenMargin"
-      style={{ paddingBottom: bottom > 0 ? bottom : theme.spacing.s16 }}
+      style={{ paddingBottom, maxHeight: windowHeight * MAX_HEIGHT_RATIO }}
     >
       {children}
     </Box>

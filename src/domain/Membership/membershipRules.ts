@@ -1,4 +1,6 @@
-import type { GymMember, Membership, MembershipRole } from './membershipTypes';
+import { daysBetween } from '@domain/Competition/competitionRules';
+
+import type { GymMember, InactiveStudent, Membership, MembershipRole } from './membershipTypes';
 
 export const roleLabel: Record<MembershipRole, string> = {
   owner: 'Proprietário',
@@ -43,4 +45,16 @@ export function resolveActiveMembership(
 ): Membership | null {
   const active = activeMemberships(memberships);
   return active.find((m) => m.gymId === storedGymId) ?? active[0] ?? null;
+}
+
+/** Days since the last confirmed class (or since joining, for who never trained). */
+export function inactiveDays(student: InactiveStudent, today: string): number {
+  return daysBetween(student.inactiveSince, today);
+}
+
+/** "Último treino há 18 dias" / "Sem treino desde que entrou · há 20 dias" (classes before rejoining do not count). */
+export function inactiveLabel(student: InactiveStudent, today: string): string {
+  const days = inactiveDays(student, today);
+  const ago = days === 1 ? 'há 1 dia' : `há ${days} dias`;
+  return student.lastClassDate ? `Último treino ${ago}` : `Sem treino desde que entrou · ${ago}`;
 }

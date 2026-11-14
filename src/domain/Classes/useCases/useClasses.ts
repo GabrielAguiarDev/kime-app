@@ -175,6 +175,8 @@ function useInvalidateDecisions(academyId: string) {
   const queryClient = useQueryClient();
   return () =>
     Promise.all([
+      // A confirmed class takes the student out of "Alunos sumidos".
+      queryClient.invalidateQueries({ queryKey: [QueryKeys.InactiveStudents, academyId] }),
       queryClient.invalidateQueries({ queryKey: [QueryKeys.AcademyCheckins, academyId] }),
       queryClient.invalidateQueries({ queryKey: [QueryKeys.MemberStats, academyId] }),
       queryClient.invalidateQueries({ queryKey: [QueryKeys.ModalityStats, academyId] }),

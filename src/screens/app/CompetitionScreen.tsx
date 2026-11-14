@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert } from 'react-native';
+import { Alert } from 'react-native';
 
-import { BigCounter, BottomSheet, Box, Button, Card, EmptyState, Icon, Screen, Text, TextButton } from '@components';
+import { BigCounter, BottomSheet, Box, Button, Card, EmptyState, Icon, Screen, Text, TextButton, Spinner } from '@components';
 import {
   countdownLabel,
   daysBetween,
@@ -56,7 +56,7 @@ export function CompetitionScreen() {
   if (queries.some((q) => q.isLoading)) {
     return (
       <Screen nativeHeader title="Competição" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -163,7 +163,7 @@ export function TodayDiet({ userId, today }: { userId: string; today: string }) 
   const ofDay = mealsOn(meals.data ?? [], today);
   return (
     <Section title="Dieta de hoje">
-      {meals.isLoading ? <ActivityIndicator /> : null}
+      {meals.isLoading ? <Spinner /> : null}
       {meals.data && ofDay.length === 0 ? (
         <Text variant="body" color="textMuted">
           Nenhuma refeição para hoje.

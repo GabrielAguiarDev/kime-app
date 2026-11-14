@@ -46,13 +46,14 @@ function grown(scope: string, d: Discipline): number | null {
  */
 export function useStreakNotices() {
   const { userId } = useSession();
-  const { isStaff } = useActiveGym();
-  const discipline = useDiscipline(isStaff ? undefined : userId);
+  const { isStaff, active } = useActiveGym();
+  const discipline = useDiscipline(isStaff ? undefined : userId, active?.gymId);
   const [, rerender] = useState(0);
 
   const d = discipline.data;
-  if (!userId || isStaff || !d) return { notice: null, dismiss: () => undefined };
-  const scope = `${userId}.discipline`;
+  if (!userId || isStaff || !d || !active) return { notice: null, dismiss: () => undefined };
+  // One streak per academy: each keeps its own baselines.
+  const scope = `${userId}.${active.gymId}.discipline`;
 
   // Both run every time: each one keeps its own baseline.
   const record = newRecord(scope, d);

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
+import Animated, { FadeIn, LayoutAnimationConfig, ZoomIn } from 'react-native-reanimated';
 
-import { Avatar, Box, Button, Card, StatusBadge, Text, TextButton } from '@components';
+import { Avatar, Box, Button, Card, StatusBadge, Text, TextButton, Spinner } from '@components';
 import {
   useCancelCheckin,
   useCheckIn,
@@ -51,14 +51,25 @@ export function ClassCard({ academyId, userId, today, date, schedule, checkin, h
     });
     if (ok) cancel.mutate(checkin.id);
   };
-  // TODO(motion): check-in button turning into the pending badge.
   const doCheckIn = () => checkIn.mutate({ scheduleId: schedule.id, date: today });
+
+  // Check-in made (pending) or decided (confirmed / refused): the badge pops in.
+  // Not when the card first appears (LayoutAnimationConfig skips that).
+  const badge = (
+    <LayoutAnimationConfig skipEntering>
+      {checkin ? (
+        <Animated.View key={checkin.status} entering={checkin.status === 'pending' ? FadeIn.duration(200) : ZoomIn.duration(220)}>
+          <StatusBadge status={checkin.status} />
+        </Animated.View>
+      ) : null}
+    </LayoutAnimationConfig>
+  );
 
   const checkinArea = !isToday ? null : !checkin ? (
     <Button title="Fazer check-in" loading={checkIn.isPending} onPress={doCheckIn} />
   ) : checkin.status === 'pending' ? (
     cancel.isPending ? (
-      <ActivityIndicator accessibilityLabel="Cancelando" />
+      <Spinner accessibilityLabel="Cancelando" />
     ) : (
       <TextButton title="Cancelar check-in" color="danger" onPress={askCancel} />
     )
@@ -94,10 +105,21 @@ export function ClassCard({ academyId, userId, today, date, schedule, checkin, h
               </Text>
             </Box>
           )}
-          {/* TODO(motion): badge changing from pending to confirmed. */}
-          {checkin ? <StatusBadge status={checkin.status} /> : null}
+          {/* Beside the time in the list; on the Início highlight the big time leaves no room. */}
+          {highlight ? null : badge}
         </Box>
-        {upcoming ? <AttendeesRow people={people} loading={attendees.isLoading} isToday={isToday} /> : null}
+        {highlight ? (
+          upcoming || checkin ? (
+            <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap="s12">
+              <Box flex={1}>
+                {upcoming ? <AttendeesRow people={people} loading={attendees.isLoading} isToday={isToday} /> : null}
+              </Box>
+              {badge}
+            </Box>
+          ) : null
+        ) : upcoming ? (
+          <AttendeesRow people={people} loading={attendees.isLoading} isToday={isToday} />
+        ) : null}
         {checkinArea}
         {error ? (
           <Text variant="caption" color="danger">

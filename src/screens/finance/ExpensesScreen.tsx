@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 
-import { Box, Card, EmptyState, HeaderButton, Icon, LoadError, PersonList, Screen, Text } from '@components';
+import { Box, Card, EmptyState, HeaderButton, Icon, LoadError, PersonList, Screen, Text, Spinner } from '@components';
 import { useAcademyToday, type LocalDate } from '@domain/Classes';
 import { formatShortDate } from '@domain/Competition';
 import { addMonths, categoryLabel, formatMoney, monthOf, useExpenses, type Expense } from '@domain/Finance';
@@ -34,7 +34,7 @@ export function ExpensesScreen() {
         {today.isError ? (
           <LoadError title="Não foi possível carregar as despesas" onRetry={() => void today.refetch()} />
         ) : (
-          <ActivityIndicator accessibilityLabel="Carregando" />
+          <Spinner accessibilityLabel="Carregando" />
         )}
       </Screen>
     );
@@ -52,7 +52,7 @@ export function ExpensesScreen() {
 
 function MonthExpenses({ academyId, month }: { academyId: string; month: LocalDate }) {
   const expenses = useExpenses(academyId, month);
-  if (expenses.isLoading) return <ActivityIndicator accessibilityLabel="Carregando" />;
+  if (expenses.isLoading) return <Spinner accessibilityLabel="Carregando" />;
   if (expenses.isError) {
     return <LoadError title="Não foi possível carregar as despesas" onRetry={() => void expenses.refetch()} />;
   }

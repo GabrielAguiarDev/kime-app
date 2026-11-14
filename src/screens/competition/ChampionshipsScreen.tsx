@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { BottomSheet, Box, Button, Card, EmptyState, Icon, LoadError, Screen, Text } from '@components';
+import { BottomSheet, Box, Button, Card, EmptyState, Icon, LoadError, Screen, Text, Spinner } from '@components';
 import { useAcademyToday, useModalities, type Modality } from '@domain/Classes';
 import {
   countdownLabel,
@@ -34,7 +33,7 @@ export function ChampionshipsScreen() {
   if (!active) {
     return (
       <Screen nativeHeader title="Campeonatos" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -71,7 +70,7 @@ export function ChampionshipsView({ academyId }: { academyId: string }) {
   return (
     <Box gap="s24">
       <ModalityFilter modalities={mods} value={modality} onChange={setModality} />
-      {loading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
+      {loading ? <Spinner accessibilityLabel="Carregando" /> : null}
       {championships.isError || today.isError ? (
         <LoadError
           title="Não foi possível carregar os campeonatos"

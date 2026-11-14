@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, EmptyState, HeaderButton, Screen, Text } from '@components';
+import { Box, Button, EmptyState, HeaderButton, Screen, Text, Spinner } from '@components';
 import {
   addDays,
   classesOn,
@@ -59,7 +58,7 @@ export function ClassesScreen() {
             action={<Button title="Tentar de novo" variant="secondary" onPress={() => queries.forEach((q) => q.refetch())} />}
           />
         ) : (
-          <ActivityIndicator accessibilityLabel="Carregando" />
+          <Spinner accessibilityLabel="Carregando" />
         )}
       </Screen>
     );

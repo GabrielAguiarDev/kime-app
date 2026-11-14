@@ -1,14 +1,14 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, Screen, SelectionGrid, Text, TextButton, TextField } from '@components';
+import { Box, Button, Card, Screen, SelectionGrid, Text, TextButton, TextField, Spinner } from '@components';
 import { formatBodyNumber, useMyProfile, useUpdateBodyAndBottle, type Profile } from '@domain/Profile';
 import {
   autoDailyGoalMl,
   BOTTLE_MAX_ML,
   BOTTLE_MIN_ML,
   BOTTLE_PRESETS,
+  formatVolume,
   isValidBottle,
   ML_PER_KG,
 } from '@domain/Water';
@@ -43,7 +43,7 @@ export function WaterSettingsScreen() {
             {errorMessage(profile.error)}
           </Text>
         ) : (
-          <ActivityIndicator accessibilityLabel="Carregando" />
+          <Spinner accessibilityLabel="Carregando" />
         )}
       </Screen>
     );
@@ -124,11 +124,11 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
 
         <Box gap="s12">
           <Text variant="captionCaps">Meta diária</Text>
-          {planned.isLoading ? <ActivityIndicator accessibilityLabel="Carregando meta" /> : planned.isError ? (
+          {planned.isLoading ? <Spinner accessibilityLabel="Carregando meta" /> : planned.isError ? (
             <Text variant="caption" color="danger">Não foi possível verificar o plano do professor. Tente novamente.</Text>
           ) : planned.isLocked ? (
             <Text variant="body" color="textMuted">
-              {planned.plannedToday ? `Meta de hoje: ${formatMl(planned.plannedToday)} ml. ` : ''}
+              {planned.plannedToday ? `Meta de hoje: ${formatVolume(planned.plannedToday)}. ` : ''}
               Seu professor definiu um plano de água. A edição da sua meta fica bloqueada até o plano ser finalizado pelo professor.
             </Text>
           ) : (
@@ -139,7 +139,7 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
                   {goal && profile.weightKg ? (
                     <>
                       <Text variant="caption">Meta do dia</Text>
-                      <Text variant="heading">{`${formatMl(goal)} ml`}</Text>
+                      <Text variant="heading">{formatVolume(goal)}</Text>
                       <Text variant="caption">
                         {`${formatBodyNumber(profile.weightKg)} kg × ${ML_PER_KG} ml por kg`}
                       </Text>

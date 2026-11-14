@@ -1,6 +1,5 @@
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, Card, EmptyState, Icon, Screen, Text } from '@components';
+import { Box, Button, Card, EmptyState, Icon, Screen, Text, Spinner } from '@components';
 import { addDays, weekdayOf, WEEKDAY_LABELS } from '@domain/Classes';
 import {
   formatShortDate,
@@ -12,8 +11,7 @@ import {
   useWeightLogs,
 } from '@domain/Competition';
 import { useMyProfile } from '@domain/Profile';
-import { dailyGoal, localDate, waterDayState } from '@domain/Water';
-import { formatMl } from '@screens/water/format';
+import { dailyGoal, formatVolume, localDate, waterDayState } from '@domain/Water';
 
 import { openWeightHistory } from './AthleteWeightHistoryScreen';
 import { Section, WeightRow, WeightSummary } from './shared';
@@ -43,7 +41,7 @@ export function AthleteProgressScreen() {
   if (isLoading || queries.some((q) => q.isLoading)) {
     return (
       <Screen nativeHeader title={title} onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -100,18 +98,18 @@ export function AthleteProgressScreen() {
                   alignItems="center"
                   gap="s12"
                   accessible
-                  accessibilityLabel={`${label}: ${formatMl(total)} ml${
+                  accessibilityLabel={`${label}: ${formatVolume(total)}${
                     goal.goalMl
-                      ? ` de ${formatMl(goal.goalMl)}${isLimit ? ' (limite)' : ''}${state === 'over' ? ', você passou do limite de hoje' : reached ? (isLimit ? ', dentro do limite' : ', meta batida') : ''}`
+                      ? ` de ${formatVolume(goal.goalMl)}${isLimit ? ' (limite)' : ''}${state === 'over' ? ', você passou do limite de hoje' : reached ? (isLimit ? ', dentro do limite' : ', meta batida') : ''}`
                       : ''
                   }`}
                 >
                   <Text variant="body" flex={1}>
                     {label}
                   </Text>
-                  <Text variant="bodyStrong">{formatMl(total)} ml</Text>
+                  <Text variant="bodyStrong">{formatVolume(total)}</Text>
                   <Text variant="caption">
-                    {goal.goalMl ? `/ ${formatMl(goal.goalMl)}${isLimit ? ' limite' : ''}` : ''}
+                    {goal.goalMl ? `/ ${formatVolume(goal.goalMl)}${isLimit ? ' limite' : ''}` : ''}
                   </Text>
                   {reached ? <Icon name="check" color="success" /> : state === 'over' ? <Text variant="caption" color="warning">Você passou do limite de hoje</Text> : null}
                 </Box>

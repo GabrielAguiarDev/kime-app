@@ -11,7 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, Rect } from 'react-native-svg';
 
-import { MASCOT_EYES, type EyesPose, type MascotEye } from './eyeShapes';
+import { MASCOT_EYES, type EyesPose, type MascotEye, type MascotEyesShape } from './eyeShapes';
 import { motionFor, type MascotMotion, type Range } from './motion';
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
@@ -31,8 +31,15 @@ export interface MascotEyesHandle {
   angry: () => void;
 }
 
-interface MascotEyesProps {
-  pose: EyesPose;
+/**
+ * A mascot pose (its eyes from eyeShapes.ts), or eyes of another illustration (`shape`, same
+ * model) drawn over it 1:1, e.g. the sign-in art. `lookOffset` overrides the glance distance.
+ */
+type EyesSource =
+  | { pose: EyesPose; shape?: never; lookOffset?: never }
+  | { pose?: never; shape: MascotEyesShape; lookOffset?: number };
+
+type MascotEyesProps = EyesSource & {
   /** Runs the idle loop (blinks and glances). Off: eyes open and still. */
   idle: boolean;
   /**
@@ -41,7 +48,7 @@ interface MascotEyesProps {
    */
   startAfterMs?: number;
   ref?: Ref<MascotEyesHandle>;
-}
+};
 
 function blinkTo(lid: SharedValue<number>, double: boolean, BLINK: MascotMotion['blink']) {
   const down = () => withTiming(1, { duration: BLINK.halfMs });
@@ -58,9 +65,11 @@ function blinkTo(lid: SharedValue<number>, double: boolean, BLINK: MascotMotion[
  * {pose}-no-eyes.png, same size. Eyelids, pupils and brows move with Reanimated, with the
  * pose's motion (motion.ts).
  */
-export function MascotEyes({ pose, idle, startAfterMs, ref }: MascotEyesProps) {
-  const shape = MASCOT_EYES[pose];
-  const { blink: BLINK, look: LOOK, anger: ANGER } = motionFor(pose);
+export function MascotEyes({ pose, shape: customShape, lookOffset, idle, startAfterMs, ref }: MascotEyesProps) {
+  const shape = customShape ?? MASCOT_EYES[pose!];
+  // Another illustration: the default motion (guard has no override).
+  const { blink: BLINK, look: BASE_LOOK, anger: ANGER } = motionFor(pose ?? 'guard');
+  const LOOK = lookOffset != null ? { ...BASE_LOOK, offset: lookOffset } : BASE_LOOK;
   // 0 open → 1 closed.
   const lid = useSharedValue(0);
   // -1 left … 1 right.
@@ -177,7 +186,7 @@ export function MascotEyes({ pose, idle, startAfterMs, ref }: MascotEyesProps) {
 
   return (
     <Svg width="100%" height="100%" viewBox={shape.viewBox} style={{ position: 'absolute' }} pointerEvents="none">
-      <G transform={shape.rootTransform}>
+      <G transform={shape.rootTransform || undefined}>
         <Defs>
           <ClipPath id="kimi-clip-eye-left">
             <Path d={shape.left.clip} />

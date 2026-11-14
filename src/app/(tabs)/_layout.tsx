@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@components';
@@ -24,6 +24,8 @@ function tabIcon(name: IconName) {
 export default function TabsLayout() {
   const { colors, size, border } = useAppTheme();
   const { bottom } = useSafeAreaInsets();
+  // Android: extra gap between the icons and the system navigation bar / home indicator.
+  const bottomGap = Platform.OS === 'android' ? 10 : 0;
 
   return (
     <Tabs
@@ -33,11 +35,12 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          height: size.tabBar + bottom,
+          height: size.tabBar + bottom + bottomGap,
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: border.width,
           paddingTop: 0,
+          paddingBottom: bottom + bottomGap,
         },
         // The default item pins the icon to the top (it expects a label below). Icon-only:
         // center it in the 64pt area above the safe area.

@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { BeltSwatch, Box, Button, Card, EmptyState, FilterChips, Icon, LoadError, ProgressBar, Screen, Text } from '@components';
+import { BeltSwatch, Box, Button, Card, EmptyState, FilterChips, Icon, LoadError, ProgressBar, Screen, Text, Spinner } from '@components';
 import {
   beltName,
   beltsOf,
@@ -78,7 +77,7 @@ export function TrainingReportScreen() {
   return (
     <Screen nativeHeader title="Relatório de treinos" onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile'))}>
       {loading ? (
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       ) : failed.length > 0 ? (
         <LoadError title="Não foi possível carregar o relatório" onRetry={() => failed.forEach((q) => void q.refetch())} />
       ) : !data ? (

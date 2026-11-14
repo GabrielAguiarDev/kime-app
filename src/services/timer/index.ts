@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 import { getTimerSession, subscribeTimer } from './timerSession';
 
 export {
+  alignTimerClock,
   pauseTimer,
   resumeTimer,
   skipTimer,
@@ -17,3 +18,5 @@ export { setTimerOrientation, useTimerOrientation, type TimerOrientation } from 
 export function useTimerSession() {
   return useSyncExternalStore(subscribeTimer, getTimerSession);
 }
+
+export { getTimerSession } from './timerSession';

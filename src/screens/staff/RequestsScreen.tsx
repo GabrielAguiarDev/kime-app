@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
-import { ActivityIndicator } from 'react-native';
 
-import { Card, EmptyState, LoadError, Screen } from '@components';
+import { Card, EmptyState, LoadError, Screen, Spinner } from '@components';
 import { usePendingRequests } from '@domain/Membership';
 import { useActiveGym } from '@services/activeGym';
 
@@ -15,7 +14,7 @@ export function RequestsScreen() {
 
   return (
     <Screen nativeHeader title="Pedidos de entrada" onBack={back}>
-      {requests.isLoading ? <ActivityIndicator accessibilityLabel="Carregando" /> : null}
+      {requests.isLoading ? <Spinner accessibilityLabel="Carregando" /> : null}
       {requests.isError ? (
         <LoadError title="Não foi possível carregar os pedidos" onRetry={() => void requests.refetch()} />
       ) : null}

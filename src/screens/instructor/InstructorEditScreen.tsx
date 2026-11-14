@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { BeltChip, Box, Button, Card, Icon, LoadError, Screen, Text, TextField } from '@components';
+import { BeltChip, Box, Button, Card, Icon, LoadError, Screen, Text, TextField, Spinner } from '@components';
 import { beltsOf, useBelts, useModalities } from '@domain/Classes';
 import {
   BIO_MAX,
@@ -34,7 +33,7 @@ export function InstructorEditScreen() {
   if (!active || profile.isLoading) {
     return (
       <Screen nativeHeader title="Editar perfil" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }
@@ -108,7 +107,7 @@ function BeltsSection({ academyId, profile }: { academyId: string; profile: Inst
   const belts = useBelts(academyId);
   const [sheet, setSheet] = useState<string | null>(null);
   const withBelts = (modalities.data ?? []).filter((m) => m.usesBelts);
-  if (modalities.isLoading || belts.isLoading) return <ActivityIndicator />;
+  if (modalities.isLoading || belts.isLoading) return <Spinner />;
   if (withBelts.length === 0) return null;
   const all = belts.data ?? [];
 

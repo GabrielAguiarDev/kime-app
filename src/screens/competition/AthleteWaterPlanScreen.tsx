@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
-import { Box, Button, EmptyState, FilterChips, Screen, Text, TextField } from '@components';
+import { Box, Button, EmptyState, FilterChips, Screen, Text, TextField, Spinner } from '@components';
 import { WEEK_ORDER, WEEKDAY_LABELS, useAcademyToday, type Weekday } from '@domain/Classes';
 import {
   emptyWeekLimits,
@@ -36,7 +35,7 @@ export function AthleteWaterPlanScreen() {
   if (isLoading || plans.isLoading || today.isLoading) {
     return (
       <Screen nativeHeader title="Plano de água" onBack={back}>
-        <ActivityIndicator accessibilityLabel="Carregando" />
+        <Spinner accessibilityLabel="Carregando" />
       </Screen>
     );
   }

@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable } from 'react-native';
+import { Alert, Platform, Pressable } from 'react-native';
 
 import {
   AcademyLogo,
@@ -13,9 +13,11 @@ import {
   EditBadge,
   FeedbackSheet,
   Icon,
+  PhotoCropper,
   Screen,
   Text,
   TextButton,
+  Spinner,
 } from '@components';
 import { useSignOut } from '@domain/Auth';
 import { activeMemberships, membershipLabel } from '@domain/Membership';
@@ -164,6 +166,8 @@ function ProfileHeader({
   // The picker / confirmation opens after the sheet is gone (one modal at a time).
   const pendingAction = useRef<PhotoAction | null>(null);
   const busy = avatar.change.isPending || avatar.remove.isPending;
+  // The picked photo waiting on the crop screen (mirror: iOS front camera).
+  const [cropping, setCropping] = useState<{ uri: string; mirror: boolean } | null>(null);
 
   const pick = async (from: 'camera' | 'library') => {
     const options = squarePickerOptions(from);
@@ -180,10 +184,13 @@ function ProfileHeader({
     if (!asset) return;
     // On iOS, the captured profile photo comes back mirrored after the native camera flow.
     // Correct the saved avatar and its thumbnail; gallery images are already oriented as chosen.
-    avatar.change.mutate(
-      { uri: asset.uri, previousPath: avatarPath, mirror: from === 'camera' && Platform.OS === 'ios' },
-      { onSuccess: () => haptics.success() },
-    );
+    setCropping({ uri: asset.uri, mirror: from === 'camera' && Platform.OS === 'ios' });
+  };
+
+  const cropped = (uri: string) => {
+    const mirror = cropping?.mirror ?? false;
+    setCropping(null);
+    avatar.change.mutate({ uri, previousPath: avatarPath, mirror }, { onSuccess: () => haptics.success() });
   };
 
   const remove = async () => {
@@ -230,7 +237,7 @@ function ProfileHeader({
           inset={spacing.s16}
         />
       </Box>
-      {busy ? <ActivityIndicator accessibilityLabel="Salvando foto" /> : null}
+      {busy ? <Spinner accessibilityLabel="Salvando foto" /> : null}
       <Text variant="title" textAlign="center" accessibilityRole="header">
         {fullName}
       </Text>
@@ -241,6 +248,14 @@ function ProfileHeader({
           {errorMessage(error)}
         </Text>
       ) : null}
+
+      <PhotoCropper
+        source={cropping?.uri ?? null}
+        shape="circle"
+        mirrored={cropping?.mirror ?? false}
+        onCancel={() => setCropping(null)}
+        onDone={cropped}
+      />
 
       <BottomSheet
         visible={sheetOpen}

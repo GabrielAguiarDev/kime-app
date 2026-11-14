@@ -1,3 +1,5 @@
+import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+
 import { useAppTheme } from '@theme';
 
 import { Box } from '../Box/Box';
@@ -21,9 +23,11 @@ export function MascotBalloon({ message }: MascotBalloonProps) {
 
   return (
     <Box flexDirection="row" alignItems="center" gap="s12" accessible accessibilityLabel={message}>
-      {/* TODO(motion): mascot popping in and the balloon appearing. */}
-      <KimiMascot size="feedback" animated />
-      <Box flex={1} justifyContent="center">
+      {/* The mascot pops in, then the balloon fades in beside it. */}
+      <Animated.View entering={ZoomIn.duration(240)}>
+        <KimiMascot size="feedback" animated />
+      </Animated.View>
+      <Animated.View entering={FadeIn.delay(140).duration(220)} style={{ flex: 1, justifyContent: 'center' }}>
         <Box
           backgroundColor="surface"
           borderColor="border"
@@ -47,7 +51,7 @@ export function MascotBalloon({ message }: MascotBalloonProps) {
           borderBottomWidth={border.width}
           style={{ left: -pointer / 2 + border.width / 2, transform: [{ rotate: '45deg' }] }}
         />
-      </Box>
+      </Animated.View>
     </Box>
   );
 }

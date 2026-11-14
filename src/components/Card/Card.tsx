@@ -48,7 +48,9 @@ export function Card({
     return (
       <Box style={{ paddingTop: offset, paddingBottom: room }}>
         <Box
-          backgroundColor={edgeHeight > 0 ? 'edge' : 'transparent'}
+          // Constant color when tappable (the face covers it when the edge is hidden): toggling to
+          // 'transparent' and back makes Android drop the border radius, showing square corners.
+          backgroundColor={tappable ? 'edge' : 'transparent'}
           borderRadius="lg"
           style={{ paddingBottom: edgeHeight }}
         >

@@ -47,3 +47,9 @@ yarn.lock
 # local native module build output
 modules/*/android/build/
 modules/*/android/.cxx/
+modules/*/android/.gradle/
+
+# build artifacts
+*.apk
+*.aab
+*.ipa

@@ -1,8 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, Share } from 'react-native';
+import { Pressable, Share } from 'react-native';
 
-import { Box, Button, Card, Icon, Text, TextButton, Toast, useToast } from '@components';
+import { Box, Button, Card, Icon, Text, TextButton, Toast, useToast, Spinner } from '@components';
 import type { CodeType } from '@domain/Gym';
 import { useAppTheme } from '@theme';
 import { joinCodeMessage } from '@utils/deepLinks';
@@ -51,7 +51,7 @@ export function InviteCodeCard({
       <Box>
         <CopyArea onPress={code ? () => void copy() : undefined} code={code} label={label}>
           <Text variant="captionCaps">{label}</Text>
-          {loading ? <ActivityIndicator /> : null}
+          {loading ? <Spinner /> : null}
           {code ? (
             <Text variant="displayLg" letterSpacing={4}>
               {code}

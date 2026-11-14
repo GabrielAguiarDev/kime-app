@@ -1,5 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
+import { Platform, TurboModuleRegistry } from 'react-native';
 
 import { profileService } from '@domain/Profile';
 import { profileApi } from '@domain/Profile/profileApi';
@@ -103,7 +104,65 @@ async function signInWithApple(): Promise<boolean> {
   }
 }
 
+/**
+ * Google sign-in is configured for this platform (client ids in the env) and the
+ * native module is in the binary (an older dev build / Expo Go does not have it).
+ */
+// Google OAuth client ids (optional: without them the Google button is hidden). Web client:
+// the audience of the id token sent to Supabase. iOS client: the native iOS sheet.
+// EXPO_PUBLIC_* are inlined at build time: static access only.
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || undefined;
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || undefined;
+
+function isGoogleSignInAvailable(): boolean {
+  if (!GOOGLE_WEB_CLIENT_ID) return false;
+  if (Platform.OS === 'ios' && !GOOGLE_IOS_CLIENT_ID) return false;
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') return false;
+  return TurboModuleRegistry.get('RNGoogleSignin') != null;
+}
+
+// Loaded on demand: importing the library looks the native module up right away
+// and throws in a binary without it.
+type GoogleSignInLib = typeof import('@react-native-google-signin/google-signin');
+let googleLib: GoogleSignInLib | null = null;
+function loadGoogle(): GoogleSignInLib {
+  if (!googleLib) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy: native module may be absent
+    googleLib = require('@react-native-google-signin/google-signin') as GoogleSignInLib;
+    googleLib.GoogleSignin.configure({
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      iosClientId: GOOGLE_IOS_CLIENT_ID,
+    });
+  }
+  return googleLib;
+}
+
+/**
+ * Native Google sign-in → Supabase id token exchange (the token's audience is
+ * the web client, listed first in the Supabase Google provider).
+ * Returns false when the user cancels the native sheet.
+ */
+async function signInWithGoogle(): Promise<boolean> {
+  const { GoogleSignin, isCancelledResponse, isErrorWithCode, statusCodes } = loadGoogle();
+  try {
+    if (Platform.OS === 'android') await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    const response = await GoogleSignin.signIn();
+    if (isCancelledResponse(response)) return false;
+    const { idToken } = response.data;
+    if (!idToken) throw new Error('missing_identity_token');
+    await authApi.signInWithIdToken('google', idToken);
+    return true;
+  } catch (e) {
+    if (isErrorWithCode(e) && (e.code === statusCodes.SIGN_IN_CANCELLED || e.code === statusCodes.IN_PROGRESS)) {
+      return false;
+    }
+    throw toAppError(e);
+  }
+}
+
 async function signOut(): Promise<void> {
+  // Forget the Google account chosen in the native sheet, so the next sign-in can pick another one.
+  if (isGoogleSignInAvailable()) await loadGoogle().GoogleSignin.signOut().catch(() => undefined);
   try {
     await authApi.signOut();
   } catch (e) {
@@ -145,7 +204,7 @@ async function verifyEmailChange(email: string, code: string): Promise<{ email: 
 
 /**
  * Changes the password. Accounts with an e-mail password confirm the current
- * one first (sign-in with it); Apple-only accounts just set one.
+ * one first (sign-in with it); Apple/Google-only accounts just set one.
  */
 async function changePassword(input: { email: string; currentPassword: string | null; newPassword: string }): Promise<void> {
   try {
@@ -169,6 +228,8 @@ export const authService = {
   verifyEmailCode,
   resendSignUpCode,
   signInWithApple,
+  isGoogleSignInAvailable,
+  signInWithGoogle,
   signOut,
   deleteAccount,
   requestEmailChange,

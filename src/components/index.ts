@@ -1,6 +1,7 @@
 export { Box, type BoxProps } from './Box/Box';
 export { Text, type TextProps } from './Text/Text';
 export { Icon, type IconName } from './Icon/Icon';
+export { Spinner } from './Spinner/Spinner';
 export {
   Button,
   type ButtonProps,
@@ -25,6 +26,8 @@ export {
   bustWidth,
   useMascotPx,
 } from './KimiMascot/KimiMascot';
+export { MascotEyes } from './KimiMascot/MascotEyes';
+export type { MascotEyesShape } from './KimiMascot/eyeShapes';
 export { ProgressBar } from './ProgressBar/ProgressBar';
 export { WaterRing } from './WaterRing/WaterRing';
 export { BigCounter } from './BigCounter/BigCounter';
@@ -52,3 +55,4 @@ export { Toast, TOAST_MS, useToast } from './Toast/Toast';
 export { PersonList, PersonRow, type PersonAction } from './PersonRow/PersonRow';
 export { WheelPicker } from './WheelPicker/WheelPicker';
 export type { WheelOption } from './WheelPicker/types';
+export { PhotoCropper, type CropShape } from './PhotoCropper/PhotoCropper';

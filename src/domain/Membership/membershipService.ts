@@ -2,7 +2,7 @@ import { toAppError } from '@infra/supabase';
 
 import { membershipAdapter } from './membershipAdapter';
 import { membershipApi } from './membershipApi';
-import type { GymMember, Membership, PendingRequest } from './membershipTypes';
+import type { GymMember, InactiveStudent, Membership, PendingRequest } from './membershipTypes';
 
 async function listMine(userId: string): Promise<Membership[]> {
   try {
@@ -72,7 +72,23 @@ async function transferOwnership(gymId: string, membershipId: string): Promise<v
   }
 }
 
+async function listInactive(gymId: string): Promise<InactiveStudent[]> {
+  try {
+    const rows = await membershipApi.listInactive(gymId);
+    return rows.map((r) => ({
+      membershipId: r.membership_id,
+      userId: r.user_id,
+      lastClassDate: r.last_class_date,
+      joinedOn: r.joined_on,
+      inactiveSince: r.inactive_since,
+    }));
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
+
 export const membershipService = {
+  listInactive,
   transferOwnership,
   listMine,
   listByGym,

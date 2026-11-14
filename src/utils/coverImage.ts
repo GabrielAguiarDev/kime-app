@@ -36,7 +36,7 @@ export async function prepareCoverImage(uri: string): Promise<{ bytes: ArrayBuff
   return { bytes: base64ToArrayBuffer(result.base64), contentType: 'image/jpeg', extension: 'jpg' };
 }
 
-/** Same trade-off as `squarePickerOptions`: no crop screen on the iOS library (slow legacy picker). */
+/** No system crop screen on the iOS library: `allowsEditing` swaps in the slow legacy picker. */
 export function coverPickerOptions(from: 'camera' | 'library'): ImagePickerOptions {
   return {
     mediaTypes: 'images',
