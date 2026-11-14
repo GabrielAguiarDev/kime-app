@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-anydpi-v24/glance_switch_thumb_on.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/drawable-anydpi-v24/glance_switch_thumb_on.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-anydpi-v24/glance_switch_thumb_off.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/drawable-anydpi-v24/glance_switch_thumb_off.xml"
+    }
+]

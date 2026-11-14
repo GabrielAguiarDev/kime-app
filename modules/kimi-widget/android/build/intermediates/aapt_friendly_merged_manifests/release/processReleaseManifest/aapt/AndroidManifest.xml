@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="br.com.kimi.widget" >
+
+    <uses-sdk android:minSdkVersion="24" />
+    <!-- Round timer: foreground service (media playback: it plays the bells), awake while running. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+
+        <!-- Water widget (Jetpack Glance). Merged into the app manifest. -->
+        <receiver
+            android:name="br.com.kimi.widget.WaterWidgetReceiver"
+            android:exported="true"
+            android:label="@string/kimi_water_widget_name" >
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kimi_water_widget_info" />
+        </receiver>
+        <!-- Championship countdown (Jetpack Glance), competitors only. -->
+        <receiver
+            android:name="br.com.kimi.widget.CountdownWidgetReceiver"
+            android:exported="true"
+            android:label="@string/kimi_countdown_widget_name" >
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kimi_countdown_widget_info" />
+        </receiver>
+        <!-- Round timer engine: fixed notification + bells in the background. -->
+        <service
+            android:name="br.com.kimi.widget.RoundTimerService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+    </application>
+
+</manifest>

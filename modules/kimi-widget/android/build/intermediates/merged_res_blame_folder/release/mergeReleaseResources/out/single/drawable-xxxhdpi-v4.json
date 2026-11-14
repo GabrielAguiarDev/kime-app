@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-xxxhdpi-v4/ic_call_answer_video.png",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/drawable-xxxhdpi-v4/ic_call_answer_video.png"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-xxxhdpi-v4/ic_call_answer_video_low.png",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/drawable-xxxhdpi-v4/ic_call_answer_video_low.png"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-xxxhdpi-v4/ic_call_answer.png",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/drawable-xxxhdpi-v4/ic_call_answer.png"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-xxxhdpi-v4/ic_call_answer_low.png",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/drawable-xxxhdpi-v4/ic_call_answer_low.png"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-xxxhdpi-v4/ic_call_decline_low.png",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/drawable-xxxhdpi-v4/ic_call_decline_low.png"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-xxxhdpi-v4/ic_call_decline.png",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/drawable-xxxhdpi-v4/ic_call_decline.png"
+    }
+]

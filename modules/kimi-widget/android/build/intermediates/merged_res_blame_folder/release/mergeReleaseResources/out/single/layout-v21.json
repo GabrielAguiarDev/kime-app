@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/layout-v21/notification_action_tombstone.xml",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/layout-v21/notification_action_tombstone.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/layout-v21/notification_template_custom_big.xml",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/layout-v21/notification_template_custom_big.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/layout-v21/notification_action.xml",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/layout-v21/notification_action.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/layout-v21/notification_template_icon_group.xml",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/layout-v21/notification_template_icon_group.xml"
+    }
+]

@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/xml/kimi_countdown_widget_info.xml",
+        "source": "br.com.kimi.widget.kimi-widget-main-3:/xml/kimi_countdown_widget_info.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/xml/kimi_water_widget_info.xml",
+        "source": "br.com.kimi.widget.kimi-widget-main-3:/xml/kimi_water_widget_info.xml"
+    }
+]

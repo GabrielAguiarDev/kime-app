@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-v31/glance_error_layout_background.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/drawable-v31/glance_error_layout_background.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-v31/glance_loading_layout_background.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/drawable-v31/glance_loading_layout_background.xml"
+    }
+]

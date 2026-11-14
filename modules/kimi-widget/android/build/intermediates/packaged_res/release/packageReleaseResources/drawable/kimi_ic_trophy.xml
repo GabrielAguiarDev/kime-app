@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Trophy outline (empty state of the countdown widget). Tinted by the widget. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24"
+  android:viewportHeight="24">
+  <path
+    android:fillColor="#00000000"
+    android:strokeColor="#FFFFFFFF"
+    android:strokeWidth="2"
+    android:strokeLineJoin="round"
+    android:pathData="M7,3h10v6a5,5 0,0 1,-10 0z" />
+  <path
+    android:fillColor="#00000000"
+    android:strokeColor="#FFFFFFFF"
+    android:strokeWidth="2"
+    android:strokeLineJoin="round"
+    android:pathData="M7,5H4v2a3,3 0,0 0,3 3M17,5h3v2a3,3 0,0 1,-3 3M12,14v4M8,21h8M9,18h6" />
+</vector>

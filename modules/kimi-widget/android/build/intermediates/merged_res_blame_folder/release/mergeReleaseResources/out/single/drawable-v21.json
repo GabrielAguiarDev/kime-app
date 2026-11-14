@@ -1,0 +1,6 @@
+[
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/drawable-v21/notification_action_background.xml",
+        "source": "br.com.kimi.widget.kimi-widget-core-1.13.1-13:/drawable-v21/notification_action_background.xml"
+    }
+]

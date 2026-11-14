@@ -1,0 +1,82 @@
+{
+    "logs": [
+        {
+            "outputFile": "br.com.kimi.widget.kimi-widget-mergeReleaseResources-0:/values-da/values-da.xml",
+            "map": [
+                {
+                    "source": "/Volumes/T7/gradle/caches/9.4.1/transforms/4b72733c77e1525b8e646c1674f5cb6c/transformed/core-1.13.1/res/values-da/values-da.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,151,253,350,448,555,664,782",
+                        "endColumns": "95,101,96,97,106,108,117,100",
+                        "endOffsets": "146,248,345,443,550,659,777,878"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,5,6,7,8,12",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,151,253,350,448,555,664,1216",
+                        "endColumns": "95,101,96,97,106,108,117,100",
+                        "endOffsets": "146,248,345,443,550,659,777,1312"
+                    }
+                },
+                {
+                    "source": "/Volumes/T7/gradle/caches/9.4.1/transforms/5438a8034b074cdd819739ba60faf868/transformed/glance-appwidget-1.1.1/res/values-da/values-da.xml",
+                    "from": {
+                        "startLines": "2,3,4",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,260,371",
+                        "endColumns": "204,110,117",
+                        "endOffsets": "255,366,484"
+                    },
+                    "to": {
+                        "startLines": "9,10,11",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "782,987,1098",
+                        "endColumns": "204,110,117",
+                        "endOffsets": "982,1093,1211"
+                    }
+                }
+            ]
+        },
+        {
+            "outputFile": "br.com.kimi.widget.kimi-widget-release-2:/values-da/values-da.xml",
+            "map": [
+                {
+                    "source": "/Volumes/T7/gradle/caches/9.4.1/transforms/4b72733c77e1525b8e646c1674f5cb6c/transformed/core-1.13.1/res/values-da/values-da.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,151,253,350,448,555,664,782",
+                        "endColumns": "95,101,96,97,106,108,117,100",
+                        "endOffsets": "146,248,345,443,550,659,777,878"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,5,6,7,8,12",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,151,253,350,448,555,664,1216",
+                        "endColumns": "95,101,96,97,106,108,117,100",
+                        "endOffsets": "146,248,345,443,550,659,777,1312"
+                    }
+                },
+                {
+                    "source": "/Volumes/T7/gradle/caches/9.4.1/transforms/5438a8034b074cdd819739ba60faf868/transformed/glance-appwidget-1.1.1/res/values-da/values-da.xml",
+                    "from": {
+                        "startLines": "2,3,4",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,260,371",
+                        "endColumns": "204,110,117",
+                        "endOffsets": "255,366,484"
+                    },
+                    "to": {
+                        "startLines": "9,10,11",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "782,987,1098",
+                        "endColumns": "204,110,117",
+                        "endOffsets": "982,1093,1211"
+                    }
+                }
+            ]
+        }
+    ]
+}

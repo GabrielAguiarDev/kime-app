@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/interpolator/glance_btn_checkbox_unchecked_mtrl_animation_interpolator_1.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/interpolator/glance_btn_checkbox_unchecked_mtrl_animation_interpolator_1.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/interpolator/glance_btn_checkbox_checked_mtrl_animation_interpolator_0.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/interpolator/glance_btn_checkbox_checked_mtrl_animation_interpolator_0.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/interpolator/glance_btn_checkbox_checked_mtrl_animation_interpolator_1.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/interpolator/glance_btn_checkbox_checked_mtrl_animation_interpolator_1.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/interpolator/glance_btn_radio_to_off_mtrl_animation_interpolator_0.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/interpolator/glance_btn_radio_to_off_mtrl_animation_interpolator_0.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/interpolator/glance_btn_radio_to_on_mtrl_animation_interpolator_0.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/interpolator/glance_btn_radio_to_on_mtrl_animation_interpolator_0.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/interpolator/glance_btn_checkbox_unchecked_mtrl_animation_interpolator_0.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/interpolator/glance_btn_checkbox_unchecked_mtrl_animation_interpolator_0.xml"
+    }
+]

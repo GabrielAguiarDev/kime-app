@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/raw/kimi_clapper.wav",
+        "source": "br.com.kimi.widget.kimi-widget-main-3:/raw/kimi_clapper.wav"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/raw/kimi_bell_triple.wav",
+        "source": "br.com.kimi.widget.kimi-widget-main-3:/raw/kimi_bell_triple.wav"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/raw/glance_appwidget_keep.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/raw/glance_appwidget_keep.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/raw/kimi_bell.wav",
+        "source": "br.com.kimi.widget.kimi-widget-main-3:/raw/kimi_bell.wav"
+    }
+]

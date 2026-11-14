@@ -1,0 +1,19 @@
+<lint-module
+    format="1"
+    dir="/Volumes/T7/Studies/kime-app/modules/kimi-widget/android"
+    name=":kimi-widget"
+    type="LIBRARY"
+    maven="br.com.kimi:kimi-widget:1.0.0"
+    agpVersion="9.2.1"
+    buildFolder="build"
+    bootClassPath="/Volumes/T7/Android/sdk/platforms/android-37.0/android.jar:/Volumes/T7/Android/sdk/build-tools/36.0.0/core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-37.0"
+    neverShrinking="true"
+    highlightGradualR8Api="false">
+  <lintOptions
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="release"/>
+</lint-module>

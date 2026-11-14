@@ -1,0 +1,38 @@
+[
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/color/glance_white_disabled_material_anim.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/color/glance_white_disabled_material_anim.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/color/glance_switch_off_key_shadow.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/color/glance_switch_off_key_shadow.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/color/glance_switch_off_ambient_shadow.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/color/glance_switch_off_ambient_shadow.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/color/glance_default_check_box.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/color/glance_default_check_box.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/color/glance_default_switch_track.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/color/glance_default_switch_track.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/color/glance_switch_on_key_shadow.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/color/glance_switch_on_key_shadow.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/color/glance_default_switch_thumb.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/color/glance_default_switch_thumb.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/color/glance_default_radio_button.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/color/glance_default_radio_button.xml"
+    },
+    {
+        "merged": "br.com.kimi.widget.kimi-widget-release-2:/color/glance_switch_on_ambient_shadow.xml",
+        "source": "br.com.kimi.widget.kimi-widget-glance-appwidget-1.1.1-15:/color/glance_switch_on_ambient_shadow.xml"
+    }
+]

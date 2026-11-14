@@ -1,0 +1,9 @@
+br.com.kimi.widget.kimi-widget-pngs-0 /Volumes/T7/Studies/kime-app/modules/kimi-widget/android/build/generated/res/pngs/release
+br.com.kimi.widget.kimi-widget-updated_navigation_xml-1 /Volumes/T7/Studies/kime-app/modules/kimi-widget/android/build/generated/updated_navigation_xml/release
+br.com.kimi.widget.kimi-widget-mergeReleaseResources-2 /Volumes/T7/Studies/kime-app/modules/kimi-widget/android/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+br.com.kimi.widget.kimi-widget-mergeReleaseResources-3 /Volumes/T7/Studies/kime-app/modules/kimi-widget/android/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+br.com.kimi.widget.kimi-widget-release-4 /Volumes/T7/Studies/kime-app/modules/kimi-widget/android/build/intermediates/merged_res/release/mergeReleaseResources
+br.com.kimi.widget.kimi-widget-release-5 /Volumes/T7/Studies/kime-app/modules/kimi-widget/android/build/intermediates/packaged_res/release/packageReleaseResources
+br.com.kimi.widget.kimi-widget-main-6 /Volumes/T7/Studies/kime-app/modules/kimi-widget/android/src/main/res
+br.com.kimi.widget.kimi-widget-release-7 /Volumes/T7/Studies/kime-app/modules/kimi-widget/android/src/release/res
+gradleHome-0 /Volumes/T7/gradle
