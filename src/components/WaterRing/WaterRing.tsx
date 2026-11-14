@@ -1,7 +1,7 @@
 import { useReducedMotion } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
-import { waterDayState } from '@domain/Water';
+import { formatVolume, waterDayState } from '@domain/Water';
 import { useAppTheme } from '@theme';
 import { useTweened } from '@utils/useTweened';
 
@@ -19,7 +19,6 @@ interface WaterRingProps {
   hideLabel?: boolean;
 }
 
-const formatMl = (ml: number) => ml.toLocaleString('pt-BR');
 
 // Motion (user decision: the ring filling is an exception to "no animations", see 8).
 const FILL_MS = 700;
@@ -54,8 +53,8 @@ export function WaterRing({ consumedMl, goalMl, isLimit = false, size, hideLabel
       accessibilityValue={goalMl ? { min: 0, max: goalMl, now: Math.min(consumedMl, goalMl) } : undefined}
       accessibilityLabel={
         goalMl
-          ? `${formatMl(consumedMl)} de ${formatMl(goalMl)} ml${state === 'over' ? ', você passou do limite de hoje' : state === 'done' ? (isLimit ? ', limite cumprido' : ', meta batida') : ''}`
-          : `${formatMl(consumedMl)} ml hoje`
+          ? `${formatVolume(consumedMl)} de ${formatVolume(goalMl)}${state === 'over' ? ', você passou do limite de hoje' : state === 'done' ? (isLimit ? ', limite cumprido' : ', meta batida') : ''}`
+          : `${formatVolume(consumedMl)} hoje`
       }
     >
       <Svg width={diameter} height={diameter} style={{ position: 'absolute' }}>
@@ -78,14 +77,14 @@ export function WaterRing({ consumedMl, goalMl, isLimit = false, size, hideLabel
       {hideLabel ? null : (
         <Box width={Math.max(0, diameter - stroke * 2 - 32)} alignItems="center" gap="s4">
           <Text variant="displayLg" textAlign="center" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
-            {formatMl(consumedMl)}
+            {formatVolume(consumedMl)}
           </Text>
           <Text variant="caption" textAlign="center">
-            {goalMl ? `${isLimit ? 'Limite' : 'Meta'} de hoje` : 'ml hoje'}
+            {goalMl ? `${isLimit ? 'Limite' : 'Meta'} de hoje` : 'hoje'}
           </Text>
           {goalMl ? (
             <Text variant="bodyStrong" textAlign="center" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
-              {formatMl(goalMl)} ml
+              {formatVolume(goalMl)}
             </Text>
           ) : null}
         </Box>

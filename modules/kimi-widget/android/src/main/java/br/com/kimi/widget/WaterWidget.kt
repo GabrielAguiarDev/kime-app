@@ -131,6 +131,14 @@ private fun openApp(context: Context, uri: String): Action =
 
 private fun formatMl(ml: Int): String = NumberFormat.getIntegerInstance(Locale("pt", "BR")).format(ml)
 
+/** Totals and goals (same rule as formatVolume in the app): "4,5 L" from 1 liter on, "500 ml" below. */
+private fun formatVolume(ml: Int): String {
+  if (ml < 1000) return "${formatMl(ml)} ml"
+  val liters = Math.round(ml / 100.0) / 10.0
+  val format = NumberFormat.getNumberInstance(Locale("pt", "BR")).apply { maximumFractionDigits = 1 }
+  return "${format.format(liters)} L"
+}
+
 @Composable
 private fun WidgetContent(state: WaterState) {
   val context = LocalContext.current
@@ -194,7 +202,7 @@ private fun SmallLayout(state: WaterState.Ready) {
       Ring(state, KimiTokens.Size.widgetRing)
       Spacer(GlanceModifier.width(KimiTokens.Space.s8))
       Column {
-        DisplayNumber(formatMl(state.totalMl), textWidth)
+        DisplayNumber(formatVolume(state.totalMl), textWidth)
         GoalCaption(state, maxLines = 2)
       }
     }
@@ -210,7 +218,7 @@ private fun MediumLayout(state: WaterState.Ready) {
     Spacer(GlanceModifier.width(KimiTokens.Space.s16))
     Column(modifier = GlanceModifier.defaultWeight()) {
       DisplayNumber(
-        "${formatMl(state.totalMl)} ml",
+        formatVolume(state.totalMl),
         LocalSize.current.width - WIDGET_PADDING * 2 - KimiTokens.Size.widgetRingMedium - KimiTokens.Space.s16,
       )
       GoalCaption(state)
@@ -230,7 +238,7 @@ private fun GoalCaption(state: WaterState.Ready, maxLines: Int = 1) {
       goal == null -> "Informe seu peso no app"
       over -> "Você passou do limite de hoje"
       reached -> if (state.isLimit) "Limite do dia cumprido" else "Meta do dia batida"
-      else -> "${if (state.isLimit) "Limite" else "Meta"} de hoje: ${formatMl(goal)} ml"
+      else -> "${if (state.isLimit) "Limite" else "Meta"} de hoje: ${formatVolume(goal)}"
     },
     maxLines = maxLines,
     style = TextStyle(

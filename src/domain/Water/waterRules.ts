@@ -83,3 +83,13 @@ export function remoteLogsToAdd(local: WaterLog[], remote: WaterLog[]): WaterLog
 export function crossedGoal(beforeMl: number, afterMl: number, goalMl: number | null): boolean {
   return goalMl !== null && goalMl > 0 && beforeMl < goalMl && afterMl >= goalMl;
 }
+
+/**
+ * Amount of water for display (totals, goals, what is left): from 1 liter on, liters with one
+ * decimal ("4,5 L", "2 L"); below it, ml ("500 ml"). Bottle sizes stay in ml.
+ */
+export function formatVolume(ml: number): string {
+  if (Math.abs(ml) < 1000) return `${Math.round(ml).toLocaleString('pt-BR')} ml`;
+  const liters = Math.round(ml / 100) / 10;
+  return `${liters.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} L`;
+}

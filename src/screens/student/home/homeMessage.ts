@@ -1,3 +1,4 @@
+import { formatVolume } from '@domain/Water/waterRules';
 import { missing } from '@utils/plural';
 
 /**
@@ -47,7 +48,7 @@ export function homeMessage(i: HomeMessageInput): string {
   if (i.water && i.water.goalMl && !i.water.isLimit && i.nowTime >= LATE_WATER_TIME) {
     const left = i.water.goalMl - i.water.totalMl;
     if (i.water.totalMl < i.water.goalMl * LATE_WATER_SHARE && left > 0) {
-      return `Faltam ${left.toLocaleString('pt-BR')} ml para a sua meta de hoje.`;
+      return `Faltam ${formatVolume(left)} para a sua meta de hoje.`;
     }
   }
   if (i.belt && i.belt.left > 0 && i.belt.left <= BELT_CLOSE) {

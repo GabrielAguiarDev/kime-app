@@ -1,6 +1,6 @@
 import { FeedbackSheet } from '@components';
 
-import { formatMl } from './format';
+import { formatVolume } from '@domain/Water';
 
 /** "Meta do dia batida." / "Limite do dia cumprido." (Início and Água). */
 export function WaterGoalSheet({
@@ -17,7 +17,7 @@ export function WaterGoalSheet({
     <FeedbackSheet
       tone="water"
       title={isLimit ? 'Limite do dia cumprido.' : 'Meta do dia batida.'}
-      message={`${formatMl(totalMl)} ml hoje.`}
+      message={`${formatVolume(totalMl)} hoje.`}
       pose="streak"
       animated
       actionLabel="Continuar"

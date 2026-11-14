@@ -8,6 +8,7 @@ import {
   BOTTLE_MAX_ML,
   BOTTLE_MIN_ML,
   BOTTLE_PRESETS,
+  formatVolume,
   isValidBottle,
   ML_PER_KG,
 } from '@domain/Water';
@@ -127,7 +128,7 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
             <Text variant="caption" color="danger">Não foi possível verificar o plano do professor. Tente novamente.</Text>
           ) : planned.isLocked ? (
             <Text variant="body" color="textMuted">
-              {planned.plannedToday ? `Meta de hoje: ${formatMl(planned.plannedToday)} ml. ` : ''}
+              {planned.plannedToday ? `Meta de hoje: ${formatVolume(planned.plannedToday)}. ` : ''}
               Seu professor definiu um plano de água. A edição da sua meta fica bloqueada até o plano ser finalizado pelo professor.
             </Text>
           ) : (
@@ -138,7 +139,7 @@ function SettingsForm({ profile, userId, onDone }: { profile: Profile; userId?: 
                   {goal && profile.weightKg ? (
                     <>
                       <Text variant="caption">Meta do dia</Text>
-                      <Text variant="heading">{`${formatMl(goal)} ml`}</Text>
+                      <Text variant="heading">{formatVolume(goal)}</Text>
                       <Text variant="caption">
                         {`${formatBodyNumber(profile.weightKg)} kg × ${ML_PER_KG} ml por kg`}
                       </Text>
