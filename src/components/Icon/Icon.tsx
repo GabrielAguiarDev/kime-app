@@ -28,6 +28,7 @@ import { DeviceRotate } from 'phosphor-react-native/src/icons/DeviceRotate';
 import { DotsSixVertical } from 'phosphor-react-native/src/icons/DotsSixVertical';
 import { Drop } from 'phosphor-react-native/src/icons/Drop';
 import { Fire } from 'phosphor-react-native/src/icons/Fire';
+import { GoogleLogo } from 'phosphor-react-native/src/icons/GoogleLogo';
 import { ForkKnife } from 'phosphor-react-native/src/icons/ForkKnife';
 import { GearSix } from 'phosphor-react-native/src/icons/GearSix';
 import { GraduationCap } from 'phosphor-react-native/src/icons/GraduationCap';
@@ -102,6 +103,7 @@ const ICONS = {
   deactivate: Prohibit,
   trash: Trash,
   apple: AppleLogo,
+  google: GoogleLogo,
   back: ArrowLeft,
   barbell: Barbell,
   bug: Bug,

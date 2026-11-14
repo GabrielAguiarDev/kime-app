@@ -2714,7 +2714,7 @@ export type Database = {
           overdue_months: string[]
         }[]
       }
-      my_discipline: { Args: never; Returns: Json }
+      my_discipline: { Args: { p_academy_id: string }; Returns: Json }
       my_water_days: {
         Args: never
         Returns: {

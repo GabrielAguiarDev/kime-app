@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
-import { useState, type ComponentRef, type Ref } from 'react';
-import { Alert, View, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useRef, useState, type ComponentRef, type Ref } from 'react';
+import { Alert, Platform, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   BottomSheet,
@@ -40,11 +41,55 @@ import { RankingHeader } from './RankingHeader';
 import { days, points } from './rankingFormat';
 import { useOpenPerson } from '@screens/team/useOpenPerson';
 
+/** Native header drawn over the scroll content, for the "own row off screen" check. */
+const HEADER_HEIGHT = Platform.OS === 'ios' ? 44 : 64;
+
+/**
+ * Ranking (its own screen, from the Início card of students and staff). Student:
+ * while their own row is off screen, a copy is pinned at the bottom.
+ */
 export function RankingScreen() {
-  const { active } = useActiveGym();
+  const { active, isStaff } = useActiveGym();
+  const academyId = active?.gymId;
+  const { userId } = useSession();
+  const { selected } = useActiveModality();
+  const today = useAcademyToday(academyId);
+  const period = today.data ? rankingPeriod(today.data) : undefined;
+  const ranking = useRanking(academyId, isStaff ? undefined : selected?.id, period);
+  const ownEntry = (ranking.data ?? []).find((e) => e.userId === userId);
+  const openPerson = useOpenPerson();
+
+  const ownRowRef = useRef<ComponentRef<typeof View>>(null);
+  const [ownOffscreen, setOwnOffscreen] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const checkOwnRow = useCallback(() => {
+    const node = ownRowRef.current;
+    if (!node) return setOwnOffscreen(false);
+    node.measureInWindow((_x, y, _width, height) => {
+      if (!height) return;
+      setOwnOffscreen(y < insets.top + HEADER_HEIGHT || y + height > windowHeight - insets.bottom);
+    });
+  }, [insets.top, insets.bottom, windowHeight]);
+
+  const pinned =
+    !isStaff && ownOffscreen && ownEntry?.status === 'ranked' && ownEntry.position != null ? ownEntry : null;
+
   return (
-    <Screen nativeHeader title="Ranking" onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
-      {active ? <RankingView academyId={active.gymId} /> : null}
+    <Screen
+      nativeHeader
+      title="Ranking"
+      onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      onScroll={isStaff ? undefined : checkOwnRow}
+      footer={pinned ? <RankingRow entry={pinned} isSelf pinned onOpen={(id) => openPerson(id)?.()} /> : undefined}
+    >
+      {academyId ? (
+        <RankingView
+          academyId={academyId}
+          ownRowRef={isStaff ? undefined : ownRowRef}
+          onOwnRowLayout={isStaff ? undefined : () => requestAnimationFrame(checkOwnRow)}
+        />
+      ) : null}
     </Screen>
   );
 }

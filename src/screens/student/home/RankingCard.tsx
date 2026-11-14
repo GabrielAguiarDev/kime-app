@@ -5,7 +5,7 @@ import { RANKING_CONFIG, type RankingEntry } from '@domain/Ranking';
 import { useAppTheme } from '@theme';
 import { missing } from '@utils/plural';
 
-export const openTeamRanking = () => router.navigate({ pathname: '/(tabs)/team', params: { view: 'ranking' } });
+export const openRanking = () => router.push('/ranking');
 
 /**
  * Ranking of the selected modality; opens Equipe → Ranking. Ranked: the
@@ -27,7 +27,7 @@ export function RankingCard({ entries, userId }: { entries: RankingEntry[]; user
       : null;
 
   return (
-    <Card gap="s16" onPress={openTeamRanking} accessibilityLabel="Ranking da modalidade. Abrir">
+    <Card gap="s16" onPress={openRanking} accessibilityLabel="Ranking da modalidade. Abrir">
       <Text variant="captionCaps">Ranking</Text>
       <Box flexDirection="row" alignItems="center" gap="s16">
         <Box flex={1} gap="s4">

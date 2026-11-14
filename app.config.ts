@@ -2,6 +2,20 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 import tokens from './tokens.json';
 
+// Google sign-in on iOS: the native sheet returns through the reversed iOS client id
+// ("123-abc.apps.googleusercontent.com" → "com.googleusercontent.apps.123-abc").
+// Android needs no plugin (no Firebase). Without the env var the plugin stays out:
+// with no options it would switch to the Firebase setup (google-services files).
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const googleSignIn: [string, { iosUrlScheme: string }][] = googleIosClientId
+  ? [
+      [
+        '@react-native-google-signin/google-signin',
+        { iosUrlScheme: `com.googleusercontent.apps.${googleIosClientId.replace('.apps.googleusercontent.com', '')}` },
+      ],
+    ]
+  : [];
+
 /**
  * Extends app.json with values that come from tokens.json (single source of truth),
  * so no color is hard-coded in the native config.
@@ -21,6 +35,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...(config.plugins ?? []),
     'expo-secure-store',
     'expo-sharing',
+    ...googleSignIn,
     [
       'expo-splash-screen',
       {

@@ -49,8 +49,9 @@ export function SignUpScreen() {
           />
           <TextButton
             title="Já tenho conta"
-            // Swaps for the sign-in in the same stack: back still returns to the code.
-            onPress={() => router.replace('/sign-in')}
+            // Came from the sign-in: back to it. Otherwise (from the code screen) swaps for
+            // the sign-in in the same stack, so back still returns to the code.
+            onPress={() => router.dismissTo('/sign-in')}
           />
         </>
       }

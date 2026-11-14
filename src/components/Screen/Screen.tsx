@@ -19,6 +19,10 @@ import { Icon, type IconName } from "../Icon/Icon";
 import { HeaderButton } from "../NativeHeader/NativeHeader";
 import { Text } from "../Text/Text";
 
+// Android: extra room between a fixed footer and the system navigation bar /
+// home indicator, so the main button is not hit by accident.
+const FOOTER_GAP = Platform.OS === "android" ? 16 : 0;
+
 interface ScreenProps {
   children: ReactNode;
   title?: string;
@@ -216,7 +220,7 @@ export function Screen({
         (footer ? (
           <Box
             paddingHorizontal="screenMargin"
-            style={{ paddingBottom }}
+            style={{ paddingBottom: paddingBottom + FOOTER_GAP }}
             gap="s12"
           >
             {footer}
@@ -275,7 +279,7 @@ function NativeHeaderScreen({
   // Android: the compact header has no large title to space the content from it.
   const contentTop = Platform.OS === "android" ? spacing.s16 : 0;
   const bottomContent = !feedback && footer ? (
-    <Box paddingHorizontal="screenMargin" paddingTop="s12" style={{ paddingBottom: safeBottom }} gap="s12">
+    <Box paddingHorizontal="screenMargin" paddingTop="s12" style={{ paddingBottom: safeBottom + FOOTER_GAP }} gap="s12">
       {footer}
     </Box>
   ) : null;

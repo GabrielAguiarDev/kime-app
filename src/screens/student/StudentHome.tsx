@@ -45,7 +45,7 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   const period = today.data ? rankingPeriod(today.data) : undefined;
   const ranking = useRanking(academyId, selected?.id, period);
   const water = useLogBottle();
-  const discipline = useDiscipline(userId);
+  const discipline = useDiscipline(userId, academyId);
 
   const finance = useMyFinance();
 

@@ -9,6 +9,7 @@ export {
   useResendSignUpCode,
   useSignIn,
   useSignInWithApple,
+  useSignInWithGoogle,
   useSignOut,
   useSignUp,
   useVerifyEmailCode,

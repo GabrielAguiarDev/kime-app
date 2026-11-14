@@ -7,6 +7,7 @@
     "@expo-google-fonts/barlow-condensed": "0.4.1",
     "@expo-google-fonts/inter": "0.4.2",
     "@expo/ui": "58.0.27",
+    "@react-native-google-signin/google-signin": "^17.0.0",
     "@shopify/restyle": "2.4.5",
     "@supabase/supabase-js": "2.118.0",
     "@tanstack/react-query": "5.105.3",

@@ -21,6 +21,13 @@ interface AvatarProps {
   expandable?: boolean;
 }
 
+/**
+ * Image cache key of each file: the thumbnail and the full photo must never share one,
+ * or a 128 px thumbnail cached first is shown for the full photo (blurry). `:full` also
+ * skips the full-photo entries cached under the bare path before this fix.
+ */
+const fullCacheKey = (path: string) => `${path}:full`;
+
 export function nameInitials(name: string): string {
   // Only words that start with a letter: "Ana Lima (você)" → "AL", not "A(".
   const words = name.trim().split(/\s+/).filter((w) => w[0]!.toLowerCase() !== w[0]!.toUpperCase());
@@ -59,7 +66,13 @@ export function Avatar({ name, path, size = 'small', competitor = false, expanda
       accessibilityLabel={path ? `Foto de ${name}` : `Iniciais de ${name}`}
     >
       {url.data ? (
-        <Image source={{ uri: url.data, cacheKey: path ?? undefined }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={0} onError={() => setFailedThumbnailPath(thumbnailPath ?? null)} />
+        <Image
+          source={{ uri: url.data, cacheKey: useThumbnail ? thumbnailPath : path ? fullCacheKey(path) : undefined }}
+          style={{ width: '100%', height: '100%' }}
+          contentFit="cover"
+          transition={0}
+          onError={() => setFailedThumbnailPath(thumbnailPath ?? null)}
+        />
       ) : (
         <Text variant={size === 'large' ? 'title' : 'bodyStrong'} color="accent">
           {nameInitials(name)}
@@ -121,7 +134,7 @@ function ExpandablePhoto({ name, path, px, children }: { name: string; path: str
       {full.data ? (
         <PhotoViewer
           uri={full.data}
-          cacheKey={path}
+          cacheKey={fullCacheKey(path)}
           origin={origin}
           accessibilityLabel={`Foto de ${name}`}
           onClose={() => setOrigin(null)}

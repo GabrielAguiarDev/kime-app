@@ -14,6 +14,7 @@ import {
   type DisciplineWeekState,
 } from '@domain/Streaks';
 import { SheetForm } from '@screens/professor/shared';
+import { useActiveGym } from '@services/activeGym';
 import { useSession } from '@services/session';
 import { useAppTheme, type ColorToken } from '@theme';
 
@@ -37,7 +38,8 @@ const WEEK_LOOK: Record<DisciplineWeekState, { color: ColorToken; label: string 
 export function StreaksScreen() {
   const { size } = useAppTheme();
   const { userId } = useSession();
-  const discipline = useDiscipline(userId);
+  const { active } = useActiveGym();
+  const discipline = useDiscipline(userId, active?.gymId);
   const [info, setInfo] = useState(false);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -50,7 +52,7 @@ export function StreaksScreen() {
           <Timeline discipline={discipline.data} />
           <Box flexDirection="row" alignItems="center" gap="s8">
             <Text variant="body" color="textMuted" flex={1}>
-              {`A semana conta com ${DISCIPLINE_RULE.classes} aula confirmada e a meta de água batida em ${DISCIPLINE_RULE.waterDays} dias.`}
+              {`A semana conta com ${DISCIPLINE_RULE.classes} aula confirmada nesta academia e a meta de água batida todos os dias.`}
             </Text>
             <Pressable
               onPress={() => setInfo(true)}
@@ -188,7 +190,7 @@ function RuleDetails() {
   return (
     <SheetForm title="Como funciona a disciplina">
       <Rule title="Semana cumprida">
-        {`De segunda a domingo: pelo menos ${DISCIPLINE_RULE.classes} aula confirmada pelo professor, em qualquer modalidade, e a meta de água batida em ${DISCIPLINE_RULE.waterDays} dos 7 dias. Em dia de limite de água, o dia conta entre 90% e 100% do limite.`}
+        {`De segunda a domingo: pelo menos ${DISCIPLINE_RULE.classes} aula confirmada pelo professor nesta academia, em qualquer modalidade, e a meta de água batida em todos os 7 dias. Em dia de limite de água, o dia conta entre 90% e 100% do limite.`}
       </Rule>
       <Rule title="Semana em andamento">
         A semana atual só conta como perdida quando termina. Uma aula aguardando confirmação ainda pode garantir a semana.

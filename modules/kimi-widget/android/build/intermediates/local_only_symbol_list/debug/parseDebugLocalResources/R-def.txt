@@ -4,6 +4,7 @@ drawable kimi_ic_bottle
 drawable kimi_ic_timer
 drawable kimi_ic_trophy
 drawable kimi_thirsty
+font kimi_barlow_condensed_extrabold
 raw kimi_bell
 raw kimi_bell_triple
 raw kimi_clapper

@@ -26,6 +26,8 @@ export {
   bustWidth,
   useMascotPx,
 } from './KimiMascot/KimiMascot';
+export { MascotEyes } from './KimiMascot/MascotEyes';
+export type { MascotEyesShape } from './KimiMascot/eyeShapes';
 export { ProgressBar } from './ProgressBar/ProgressBar';
 export { WaterRing } from './WaterRing/WaterRing';
 export { BigCounter } from './BigCounter/BigCounter';

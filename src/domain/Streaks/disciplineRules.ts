@@ -2,8 +2,8 @@ import type { Discipline, DisciplineDay, DisciplineWater, DisciplineWeekState } 
 
 /** The rule as the database applies it (texts only; the database decides). */
 export const DISCIPLINE_RULE = {
-  /** Days with the water goal met in the week. */
-  waterDays: 5,
+  /** Days with the water goal met in the week (every day; weeks before 2026-11-09 needed 5). */
+  waterDays: 7,
   /** Classes confirmed by the professor in the week. */
   classes: 1,
   /** Done weeks in a row that earn a freeze. */
@@ -52,7 +52,7 @@ export function weekProgress(d: Pick<Discipline, 'days'>) {
   };
 }
 
-/** "Água 3/5 · Treino 1/1" (each part capped at its target). */
+/** "Água 3/7 · Treino 1/1" (each part capped at its target). */
 export function weekProgressText(d: Pick<Discipline, 'days'>): string {
   const p = weekProgress(d);
   const water = Math.min(p.waterDays, DISCIPLINE_RULE.waterDays);

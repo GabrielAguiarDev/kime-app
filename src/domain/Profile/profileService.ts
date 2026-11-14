@@ -78,10 +78,14 @@ async function updatePersonalData(userId: string, input: PersonalData): Promise<
 /** Signed URLs last an hour; the query refreshes them before that. */
 export const AVATAR_URL_TTL_SECONDS = 60 * 60;
 
+/** Full profile photo: sharp in the full-screen viewer (the list thumbnails are 128 px). */
+const AVATAR_SIZE = 1024;
+const AVATAR_QUALITY = 0.9;
+
 /** New photo: resize/compress, upload, point the profile at it, then drop the old file (best effort). */
 async function changeAvatar(userId: string, uri: string, previousPath: string | null, mirror = false): Promise<void> {
   try {
-    const { bytes, contentType, extension } = await prepareSquareImage(uri, undefined, mirror);
+    const { bytes, contentType, extension } = await prepareSquareImage(uri, AVATAR_SIZE, mirror, AVATAR_QUALITY);
     const path = await profileApi.uploadAvatar(userId, bytes, contentType, extension);
     const thumb = await prepareSquareImage(uri, 128, mirror);
     const thumbPath = path.replace('/avatar-', '/thumb-');

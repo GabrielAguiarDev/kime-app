@@ -33,6 +33,14 @@ export function useSignInWithApple() {
   });
 }
 
+export function useSignInWithGoogle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => authService.signInWithGoogle(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [QueryKeys.MyProfile] }),
+  });
+}
+
 /** How long "Sair da conta" waits for pending water logs to reach the server. */
 const SIGN_OUT_SYNC_MS = 5_000;
 

@@ -43,10 +43,10 @@ describe('week progress', () => {
     expect(weekProgress(parseDiscipline(raw)!)).toEqual({ waterDays: 2, classes: 1, pending: 1 });
   });
 
-  it('"Água 2/5 · Treino 1/1", capped at the targets', () => {
-    expect(weekProgressText(parseDiscipline(raw)!)).toBe('Água 2/5 · Treino 1/1');
+  it('"Água 2/7 · Treino 1/1", capped at the targets', () => {
+    expect(weekProgressText(parseDiscipline(raw)!)).toBe('Água 2/7 · Treino 1/1');
     const full = { days: Array.from({ length: 7 }, (_, i) => ({ day: `d${i}`, water: 'done' as const, confirmed: 2, pending: 0 })) };
-    expect(weekProgressText(full)).toBe('Água 5/5 · Treino 1/1');
+    expect(weekProgressText(full)).toBe('Água 7/7 · Treino 1/1');
   });
 
   it('weeks label', () => {

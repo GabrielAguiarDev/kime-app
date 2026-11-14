@@ -2,6 +2,7 @@ int drawable kimi_ic_bottle 0x0
 int drawable kimi_ic_timer 0x0
 int drawable kimi_ic_trophy 0x0
 int drawable kimi_thirsty 0x0
+int font kimi_barlow_condensed_extrabold 0x0
 int raw kimi_bell 0x0
 int raw kimi_bell_triple 0x0
 int raw kimi_clapper 0x0

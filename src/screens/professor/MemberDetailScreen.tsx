@@ -24,7 +24,6 @@ import {
   beltName,
   beltProgress,
   beltsOf,
-  trainedModalities,
   useAwardBelt,
   useBeltHistory,
   useBelts,
@@ -129,7 +128,12 @@ function StudentDetail({ academyId, member }: { academyId: string; member: GymMe
   const failed = [modalityStats, modalities, belts].filter((q) => q.isError);
   const own = (modalityStats.data ?? []).filter((s) => s.membershipId === member.id);
   const allModalities = modalities.data ?? [];
-  const trained = trainedModalities(allModalities, own);
+  // Only the student's modalities here: active links, or past training (classes or a belt).
+  // Never every modality of the academy (a student with no class yet saw them all).
+  const linkedIds = new Set(member.modalities.map((l) => l.modalityId));
+  const trained = allModalities.filter(
+    (m) => linkedIds.has(m.id) || own.some((st) => st.modalityId === m.id && (st.confirmedTotal > 0 || !!st.beltId)),
+  );
   const selected = trained.find((m) => m.id === selectedId) ?? trained[0] ?? null;
   const withBelts = allModalities.filter((m) => m.usesBelts);
 

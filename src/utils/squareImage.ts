@@ -3,7 +3,7 @@ import type { ImagePickerOptions } from 'expo-image-picker';
 
 import type { CropRect } from './cropRect';
 
-/** Square images (academy logo, profile photo) are stored at this size: small enough for the 2 MB buckets. */
+/** Default side of stored square images (academy logo); the profile photo uses 1024. Small enough for the 2 MB buckets. */
 export const SQUARE_IMAGE_SIZE = 512;
 
 /** base64 → bytes (Hermes ships atob). */
@@ -16,13 +16,14 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 
 /**
  * The picker may crop to a square (`aspect: [1, 1]`), but not always (iOS
- * library, cameras that ignore it): center-crops to the shorter side anyway, then resizes to 512×512 and
+ * library, cameras that ignore it): center-crops to the shorter side anyway, then resizes to `size` and
  * compresses as JPEG before the upload.
  */
 export async function prepareSquareImage(
   uri: string,
   size: number = SQUARE_IMAGE_SIZE,
   mirror = false,
+  compress = 0.8,
 ): Promise<{ bytes: ArrayBuffer; contentType: string; extension: string }> {
   const original = await ImageManipulator.manipulate(uri).renderAsync();
   const side = Math.min(original.width, original.height);
@@ -38,7 +39,7 @@ export async function prepareSquareImage(
   if (mirror) context.flip(FlipType.Horizontal);
   context.resize({ width: size, height: size });
   const image = await context.renderAsync();
-  const result = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
+  const result = await image.saveAsync({ format: SaveFormat.JPEG, compress, base64: true });
   if (!result.base64) throw new Error('unknown');
   return { bytes: base64ToArrayBuffer(result.base64), contentType: 'image/jpeg', extension: 'jpg' };
 }

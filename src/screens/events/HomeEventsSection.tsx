@@ -53,7 +53,8 @@ const STAFF_HOME_EVENTS = 2;
 
 /**
  * Início, "Eventos" (owner / professor): the next events with who is going,
- * "Ver todos" and "Novo evento".
+ * "Ver todos" and "Novo evento". Nothing without an upcoming event (events are
+ * rare): they are created from /eventos (confetti icon in the Aulas header).
  */
 export function StaffEventsSection({ academyId, today }: { academyId: string; today: LocalDate }) {
   const theme = useAppTheme();
@@ -65,6 +66,7 @@ export function StaffEventsSection({ academyId, today }: { academyId: string; to
   // in the layout, so the space around "Eventos" matches the other sections.
   const showAll = (events.data ?? []).length > 0;
   const headerPull = showAll ? -(theme.size.button - theme.textVariants.captionCaps.lineHeight) / 2 : 0;
+  if (upcoming.length === 0) return null;
 
   return (
     <Box gap="s12">
@@ -75,11 +77,6 @@ export function StaffEventsSection({ academyId, today }: { academyId: string; to
       {upcoming.slice(0, STAFF_HOME_EVENTS).map((e) => (
         <EventCard key={e.id} event={e} today={today} going={goingCount(answers, e.id)} faces />
       ))}
-      {events.data && upcoming.length === 0 ? (
-        <Text variant="body" color="textMuted">
-          Nenhum evento marcado.
-        </Text>
-      ) : null}
       <Button title="Novo evento" icon="newEvent" variant="secondary" onPress={newEvent} />
     </Box>
   );

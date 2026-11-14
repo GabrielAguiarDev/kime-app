@@ -25,7 +25,7 @@ export function AchievementScreen() {
   const { userId } = useSession();
   const { active } = useActiveGym();
   const stats = useMemberStats(active?.gymId);
-  const discipline = useDiscipline(userId);
+  const discipline = useDiscipline(userId, active?.gymId);
 
   useEffect(() => {
     haptics.success();
