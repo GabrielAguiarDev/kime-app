@@ -52,4 +52,8 @@ export enum QueryKeys {
   FinanceExpenses = 'FinanceExpenses',
   FinanceReport = 'FinanceReport',
   MyFinanceStatus = 'MyFinanceStatus',
+  PublicPlans = 'PublicPlans',
+  SupportTickets = 'SupportTickets',
+  SupportTicket = 'SupportTicket',
+  PlatformNotices = 'PlatformNotices',
 }

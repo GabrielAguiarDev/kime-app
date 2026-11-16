@@ -6,7 +6,9 @@ import { gymApi } from './gymApi';
 import { prepareLogo } from './gymLogo';
 import { normalizeCode } from './gymRules';
 import type { CodeLookup, CodeType, GymSettings, InviteCodes, JoinResult } from './gymTypes';
-import type { PlanTier } from './plans';
+import type { Plan } from './plans';
+import { plansAdapter } from './plansAdapter';
+import { plansApi } from './plansApi';
 import { toSetupModalities, type SignupModality } from './signupRules';
 
 async function create(name: string, modalities: string[]): Promise<string> {
@@ -24,7 +26,8 @@ async function create(name: string, modalities: string[]): Promise<string> {
  */
 async function createWithSetup(input: {
   name: string;
-  planTier: PlanTier | null;
+  /** Code of an active plan (academies.plan_tier); null = none chosen. */
+  planTier: string | null;
   modalities: SignupModality[];
   logoUri: string | null;
 }): Promise<{ gymId: string; logoSaved: boolean }> {
@@ -116,6 +119,14 @@ async function changeLogo(gymId: string, uri: string, previousPath: string | nul
   }
 }
 
+/** Active plans of the sign-up, in display order. */
+async function listPublicPlans(): Promise<Plan[]> {
+  try {
+    return (await plansApi.listPublic()).map(plansAdapter.toPlan);
+  } catch (e) {
+    throw toAppError(e);
+  }
+}
 
 export const gymService = {
   create,
@@ -127,4 +138,5 @@ export const gymService = {
   getSettings,
   updateSettings,
   changeLogo,
+  listPublicPlans,
 };

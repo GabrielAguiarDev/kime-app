@@ -150,6 +150,10 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
             <Stack.Screen name="evento/index" options={header} />
             {/* Academy notices (members and staff; not gated by the fee block). */}
             <Stack.Screen name="avisos" options={header} />
+            {/* Help and support with the Kimi team (every member; not gated by the fee block). */}
+            <Stack.Screen name="suporte/index" options={header} />
+            <Stack.Screen name="suporte/novo" options={header} />
+            <Stack.Screen name="suporte/[ticketId]" options={header} />
             <Stack.Screen name="colega/[userId]" options={header} />
             <Stack.Screen name="agua/widget" options={header} />
             {/* The only screen that may turn landscape (the user's choice, set by the screen). */}

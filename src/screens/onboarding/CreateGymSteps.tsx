@@ -10,13 +10,11 @@ import {
   MODALITY_NAME_MAX,
   monthlyPriceFor,
   normalizeModalityName,
-  PLANS,
   SIGNUP_MODALITIES,
   studentLimitLabel,
-  TRIAL_DAYS,
   usesBeltsByDefault,
   type BillingPeriod,
-  type PlanTier,
+  type Plan,
   type SignupModality,
 } from '@domain/Gym';
 import { useAppTheme } from '@theme';
@@ -24,45 +22,54 @@ import { haptics } from '@utils/haptics';
 import { squarePickerOptions } from '@utils/squareImage';
 
 // ---------------------------------------------------------------- plans ---
+/**
+ * Plans from the catalog (list_public_plans). The trial and the annual
+ * discount are the same for every plan in the usual catalog; when they
+ * differ, the text and the toggle follow the selected plan.
+ */
 export function PlanStep({
-  tier,
-  onTier,
+  plans,
+  selected,
+  onSelect,
   period,
   onPeriod,
 }: {
-  tier: PlanTier;
-  onTier: (t: PlanTier) => void;
+  plans: Plan[];
+  selected: Plan;
+  onSelect: (code: string) => void;
   period: BillingPeriod;
   onPeriod: (p: BillingPeriod) => void;
 }) {
   const iconInline = useAppTheme().size.iconInline;
+  const sameTrial = plans.every((p) => p.trialDays === selected.trialDays);
+  const discount = annualDiscountLabel(selected);
   return (
     <Box gap="s16">
       <Text variant="body" color="textMuted">
-        {TRIAL_DAYS} dias grátis em qualquer plano. Você pode trocar depois.
+        {trialText(selected, sameTrial)}
       </Text>
       <ChoiceRow
         accessibilityLabel="Período de cobrança"
         options={[
           { value: 'monthly', label: 'Mensal' },
-          { value: 'annual', label: `Anual ${annualDiscountLabel()}` },
+          { value: 'annual', label: discount ? `Anual ${discount}` : 'Anual' },
         ]}
         value={period}
         onChange={onPeriod}
       />
-      {PLANS.map((plan) => {
-        const selected = plan.tier === tier;
+      {plans.map((plan) => {
+        const isSelected = plan.code === selected.code;
         const price = formatBrl(monthlyPriceFor(plan, period));
         return (
           <Card
-            key={plan.tier}
-            selected={selected}
-            onPress={() => onTier(plan.tier)}
+            key={plan.code}
+            selected={isSelected}
+            onPress={() => onSelect(plan.code)}
             accessibilityLabel={`${plan.name}${plan.popular ? ', mais escolhido' : ''}: ${price} por mês. ${studentLimitLabel(plan)}`}
             gap="s12"
           >
             <Box flexDirection="row" alignItems="center" gap="s8">
-              <Text variant="heading" color={selected ? 'accent' : 'text'} flex={1}>
+              <Text variant="heading" color={isSelected ? 'accent' : 'text'} flex={1}>
                 {plan.name}
               </Text>
               {plan.popular ? (
@@ -84,8 +91,8 @@ export function PlanStep({
               {period === 'annual' ? `Cobrado anualmente · ${studentLimitLabel(plan)}` : studentLimitLabel(plan)}
             </Text>
             <Box gap="s8">
-              {plan.benefits.map((b) => (
-                <Box key={b} flexDirection="row" alignItems="center" gap="s8">
+              {plan.benefits.map((b, i) => (
+                <Box key={`${i}-${b}`} flexDirection="row" alignItems="center" gap="s8">
                   <Icon name="done" color="success" size={iconInline} />
                   <Text variant="body">{b}</Text>
                 </Box>
@@ -96,6 +103,13 @@ export function PlanStep({
       })}
     </Box>
   );
+}
+
+/** "14 dias grátis em qualquer plano." / "7 dias grátis no plano Essencial." (trial of the selected plan). */
+function trialText(selected: Plan, sameForAll: boolean): string {
+  if (selected.trialDays <= 0) return 'Você pode trocar de plano depois.';
+  const days = selected.trialDays === 1 ? '1 dia grátis' : `${selected.trialDays} dias grátis`;
+  return sameForAll ? `${days} em qualquer plano. Você pode trocar depois.` : `${days} no plano ${selected.name}. Você pode trocar depois.`;
 }
 
 // ----------------------------------------------------------------- name ---

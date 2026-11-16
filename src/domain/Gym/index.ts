@@ -12,3 +12,4 @@ export {
   useStudentCode,
 } from './useCases/useCodes';
 export { useGymSettings, useGymSettingsMutations } from './useCases/useGymSettings';
+export { usePublicPlans } from './useCases/usePublicPlans';

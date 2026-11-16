@@ -1,11 +1,13 @@
 import {
-  ANNUAL_DISCOUNT,
-  DEFAULT_PLAN,
+  annualDiscountLabel,
+  defaultPlanCode,
   formatBrl,
   monthlyPriceFor,
-  PLANS,
   studentLimitLabel,
+  type Plan,
 } from '../plans';
+import { plansAdapter } from '../plansAdapter';
+import type { PlanRowApi } from '../plansApi';
 import {
   isValidAcademyName,
   isValidModalitySelection,
@@ -15,18 +17,73 @@ import {
   usesBeltsByDefault,
 } from '../signupRules';
 
-describe('plans (illustrative config)', () => {
-  it('three plans, the middle one is the most chosen and the default', () => {
-    expect(PLANS.map((p) => p.tier)).toEqual(['starter', 'pro', 'elite']);
-    expect(PLANS.filter((p) => p.popular).map((p) => p.tier)).toEqual(['pro']);
-    expect(DEFAULT_PLAN).toBe('pro');
-    for (const p of PLANS) expect(p.benefits.length).toBeGreaterThanOrEqual(3);
+/** Rows as list_public_plans returns them (cents, percent). */
+const ROWS: PlanRowApi[] = [
+  {
+    code: 'starter',
+    name: 'Essencial',
+    monthly_price_cents: 9900,
+    annual_discount_pct: 20,
+    student_limit: 50,
+    benefits: ['Presença por check-in', 'Horários e modalidades'],
+    trial_days: 14,
+    is_popular: false,
+  },
+  {
+    code: 'pro',
+    name: 'Profissional',
+    monthly_price_cents: 17900,
+    annual_discount_pct: 20,
+    student_limit: 150,
+    benefits: ['Tudo do Essencial', 'Faixas e graduações'],
+    trial_days: 14,
+    is_popular: true,
+  },
+  {
+    code: 'elite',
+    name: 'Elite',
+    monthly_price_cents: 29990,
+    annual_discount_pct: 0,
+    student_limit: null,
+    benefits: [],
+    trial_days: 0,
+    is_popular: false,
+  },
+];
+const PLANS: Plan[] = ROWS.map(plansAdapter.toPlan);
+
+describe('plans (catalog from the database)', () => {
+  it('adapter converts cents to reais and percent to a fraction', () => {
+    expect(PLANS[1]).toEqual({
+      code: 'pro',
+      name: 'Profissional',
+      monthlyPrice: 179,
+      annualDiscount: 0.2,
+      studentLimit: 150,
+      benefits: ['Tudo do Essencial', 'Faixas e graduações'],
+      trialDays: 14,
+      popular: true,
+    });
+    expect(PLANS[2]!.monthlyPrice).toBe(299.9);
+    expect(PLANS[2]!.studentLimit).toBeNull();
   });
 
-  it('annual price is the discounted monthly equivalent', () => {
+  it('default plan: the popular one, else the first, null without plans', () => {
+    expect(defaultPlanCode(PLANS)).toBe('pro');
+    expect(defaultPlanCode(PLANS.map((p) => ({ ...p, popular: false })))).toBe('starter');
+    expect(defaultPlanCode([])).toBeNull();
+  });
+
+  it("annual price uses the plan's own discount", () => {
     const pro = PLANS[1]!;
-    expect(monthlyPriceFor(pro, 'monthly')).toBe(pro.monthlyPrice);
-    expect(monthlyPriceFor(pro, 'annual')).toBeCloseTo(pro.monthlyPrice * (1 - ANNUAL_DISCOUNT), 2);
+    expect(monthlyPriceFor(pro, 'monthly')).toBe(179);
+    expect(monthlyPriceFor(pro, 'annual')).toBe(143.2);
+    expect(monthlyPriceFor(PLANS[2]!, 'annual')).toBe(299.9);
+  });
+
+  it('annual discount label, none at 0%', () => {
+    expect(annualDiscountLabel(PLANS[0]!)).toBe('-20%');
+    expect(annualDiscountLabel(PLANS[2]!)).toBeNull();
   });
 
   it('formats prices and limits', () => {

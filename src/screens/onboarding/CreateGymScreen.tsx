@@ -2,15 +2,15 @@ import { router, Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Share } from 'react-native';
 
-import { BigCounter, Box, Button, Card, KimiMascot, ProgressBar, Screen, Text, TextButton, Spinner } from '@components';
+import { BigCounter, Box, Button, Card, KimiMascot, LoadError, ProgressBar, Screen, Text, TextButton, Spinner } from '@components';
 import {
-  DEFAULT_PLAN,
+  defaultPlanCode,
   isValidAcademyName,
   isValidModalitySelection,
   useCreateGymWithSetup,
+  usePublicPlans,
   useStudentCode,
   type BillingPeriod,
-  type PlanTier,
 } from '@domain/Gym';
 import { errorMessage } from '@infra';
 import { academySignup } from '@services/access';
@@ -33,8 +33,10 @@ const TITLES: Record<Step, string> = {
 /**
  * /create-gym — academy sign-up, one question per screen (Duolingo style):
  * progress on top, back, primary action fixed at the bottom, "Pular" on the
- * optional step. Plans (visual only, no billing) → name → logo (optional) →
- * modalities → "Sua academia está pronta".
+ * optional step. Plans (from the catalog, list_public_plans; no billing yet) →
+ * name → logo (optional) → modalities → "Sua academia está pronta". Without
+ * the catalog (loading, error, empty) the flow does not go on: a plan is
+ * required by the sign-up RPC.
  *
  * Everything lives in this screen's state: the academy is created only when
  * the modalities step is confirmed, in ONE call (academy, owner, modalities,
@@ -47,7 +49,9 @@ const TITLES: Record<Step, string> = {
  */
 export function CreateGymScreen() {
   const [step, setStep] = useState<Step | 'done'>('plan');
-  const [tier, setTier] = useState<PlanTier>(DEFAULT_PLAN);
+  const plans = usePublicPlans();
+  // Null until the person picks one: the default comes from the catalog.
+  const [tier, setTier] = useState<string | null>(null);
   const [period, setPeriod] = useState<BillingPeriod>('monthly');
   const [name, setName] = useState('');
   const [logoUri, setLogoUri] = useState<string | null>(null);
@@ -85,6 +89,14 @@ export function CreateGymScreen() {
     return <Done gymId={create.data.gymId} name={name.trim()} logoSaved={create.data.logoSaved} />;
   }
 
+  const planList = plans.data ?? [];
+  const planCode = tier ?? defaultPlanCode(planList);
+  // A picked plan that left the catalog falls back to the default.
+  const selectedPlan =
+    planList.find((p) => p.code === planCode) ?? planList.find((p) => p.code === defaultPlanCode(planList)) ?? null;
+  // A failed background refresh keeps the plans already loaded.
+  const plansFailed = (plans.isError && !plans.data) || (!!plans.data && plans.data.length === 0);
+
   const modalities = toSignupModalities(choices, otherName);
   const modalitiesOk = isValidModalitySelection(modalities);
   const nameOk = isValidAcademyName(name);
@@ -94,7 +106,7 @@ export function CreateGymScreen() {
     submitting.current = true;
     academySignup.start();
     create.mutate(
-      { name, planTier: tier, modalities, logoUri },
+      { name, planTier: selectedPlan?.code ?? null, modalities, logoUri },
       {
         onSuccess: () => {
           haptics.success();
@@ -110,12 +122,18 @@ export function CreateGymScreen() {
 
   const footer =
     step === 'plan' ? (
-      <>
-        <Button title="Começar teste grátis" onPress={next} />
-        <Text variant="caption" textAlign="center">
-          Cobrança ainda não ativa nesta versão
-        </Text>
-      </>
+      plansFailed ? undefined : (
+        <>
+          <Button
+            title={selectedPlan && selectedPlan.trialDays <= 0 ? 'Continuar' : 'Começar teste grátis'}
+            disabled={!selectedPlan}
+            onPress={next}
+          />
+          <Text variant="caption" textAlign="center">
+            Cobrança ainda não ativa nesta versão
+          </Text>
+        </>
+      )
     ) : step === 'name' ? (
       <Button title="Continuar" disabled={!nameOk} onPress={next} />
     ) : step === 'logo' ? (
@@ -143,7 +161,15 @@ export function CreateGymScreen() {
         title={TITLES[step as Step]}
         footer={footer}
       >
-        {step === 'plan' ? <PlanStep tier={tier} onTier={setTier} period={period} onPeriod={setPeriod} /> : null}
+        {step === 'plan' ? (
+          plans.isLoading ? (
+            <Spinner accessibilityLabel="Carregando planos" />
+          ) : plansFailed || !selectedPlan ? (
+            <LoadError title="Não foi possível carregar os planos" onRetry={() => void plans.refetch()} />
+          ) : (
+            <PlanStep plans={planList} selected={selectedPlan} onSelect={setTier} period={period} onPeriod={setPeriod} />
+          )
+        ) : null}
         {step === 'name' ? <NameStep name={name} onName={setName} onSubmit={() => nameOk && next()} /> : null}
         {step === 'logo' ? <LogoStep name={name.trim()} logoUri={logoUri} onLogo={setLogoUri} /> : null}
         {step === 'modalities' ? (

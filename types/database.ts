@@ -56,6 +56,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "academies_plan_tier_fkey"
+            columns: ["plan_tier"]
+            isOneToOne: false
+            referencedRelation: "platform_plans"
+            referencedColumns: ["code"]
+          },
         ]
       }
       academy_announcements: {
@@ -1009,6 +1016,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "class_schedules_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "class_schedules_modality_fkey"
             columns: ["modality_id", "academy_id"]
             isOneToOne: false
@@ -1083,76 +1097,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "class_schedules"
             referencedColumns: ["id", "academy_id"]
-          },
-        ]
-      }
-      discipline_streaks: {
-        Row: {
-          current_weeks: number
-          freezes: number
-          record_weeks: number
-          updated_at: string
-          user_id: string
-          week_done: boolean
-          week_start: string
-        }
-        Insert: {
-          current_weeks?: number
-          freezes?: number
-          record_weeks?: number
-          updated_at?: string
-          user_id: string
-          week_done?: boolean
-          week_start: string
-        }
-        Update: {
-          current_weeks?: number
-          freezes?: number
-          record_weeks?: number
-          updated_at?: string
-          user_id?: string
-          week_done?: boolean
-          week_start?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "discipline_streaks_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      discipline_weeks: {
-        Row: {
-          confirmed_classes: number
-          state: string
-          user_id: string
-          water_days: number
-          week_start: string
-        }
-        Insert: {
-          confirmed_classes: number
-          state: string
-          user_id: string
-          water_days: number
-          week_start: string
-        }
-        Update: {
-          confirmed_classes?: number
-          state?: string
-          user_id?: string
-          water_days?: number
-          week_start?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "discipline_weeks_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -1233,6 +1177,96 @@ export type Database = {
           {
             foreignKeyName: "diet_plans_athlete_id_fkey"
             columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discipline_streaks: {
+        Row: {
+          academy_id: string
+          current_weeks: number
+          freezes: number
+          record_weeks: number
+          updated_at: string
+          user_id: string
+          week_done: boolean
+          week_start: string
+        }
+        Insert: {
+          academy_id: string
+          current_weeks?: number
+          freezes?: number
+          record_weeks?: number
+          updated_at?: string
+          user_id: string
+          week_done?: boolean
+          week_start: string
+        }
+        Update: {
+          academy_id?: string
+          current_weeks?: number
+          freezes?: number
+          record_weeks?: number
+          updated_at?: string
+          user_id?: string
+          week_done?: boolean
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discipline_streaks_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discipline_streaks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discipline_weeks: {
+        Row: {
+          academy_id: string
+          confirmed_classes: number
+          state: string
+          user_id: string
+          water_days: number
+          week_start: string
+        }
+        Insert: {
+          academy_id: string
+          confirmed_classes: number
+          state: string
+          user_id: string
+          water_days: number
+          week_start: string
+        }
+        Update: {
+          academy_id?: string
+          confirmed_classes?: number
+          state?: string
+          user_id?: string
+          water_days?: number
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discipline_weeks_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discipline_weeks_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1505,7 +1539,50 @@ export type Database = {
           modality_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "instructor_belts_belt_id_modality_id_fkey"
+            columns: ["belt_id", "modality_id"]
+            isOneToOne: false
+            referencedRelation: "modality_belts"
+            referencedColumns: ["id", "modality_id"]
+          },
+          {
+            foreignKeyName: "instructor_belts_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "instructor_class_stats"
+            referencedColumns: ["membership_id"]
+          },
+          {
+            foreignKeyName: "instructor_belts_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "membership_class_stats"
+            referencedColumns: ["membership_id"]
+          },
+          {
+            foreignKeyName: "instructor_belts_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_belts_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "modality_class_stats"
+            referencedColumns: ["membership_id"]
+          },
+          {
+            foreignKeyName: "instructor_belts_modality_id_academy_id_fkey"
+            columns: ["modality_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "academy_modalities"
+            referencedColumns: ["id", "academy_id"]
+          },
+        ]
       }
       instructor_modalities: {
         Row: {
@@ -1526,7 +1603,43 @@ export type Database = {
           membership_id?: string
           modality_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "instructor_modalities_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "instructor_class_stats"
+            referencedColumns: ["membership_id"]
+          },
+          {
+            foreignKeyName: "instructor_modalities_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "membership_class_stats"
+            referencedColumns: ["membership_id"]
+          },
+          {
+            foreignKeyName: "instructor_modalities_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_modalities_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "modality_class_stats"
+            referencedColumns: ["membership_id"]
+          },
+          {
+            foreignKeyName: "instructor_modalities_modality_id_academy_id_fkey"
+            columns: ["modality_id", "academy_id"]
+            isOneToOne: false
+            referencedRelation: "academy_modalities"
+            referencedColumns: ["id", "academy_id"]
+          },
+        ]
       }
       instructor_profiles: {
         Row: {
@@ -1556,7 +1669,15 @@ export type Database = {
           user_id?: string
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "instructor_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       memberships: {
         Row: {
@@ -1722,6 +1843,120 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "platform_announcements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_announcement_dismissals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_announcements: {
+        Row: {
+          audience: string
+          body: string
+          created_at: string
+          created_by: string | null
+          ends_on: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience: string
+          body: string
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_plans: {
+        Row: {
+          annual_discount_pct: number
+          benefits: string[]
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_popular: boolean
+          monthly_price_cents: number
+          name: string
+          position: number
+          student_limit: number | null
+          trial_days: number
+          updated_at: string
+        }
+        Insert: {
+          annual_discount_pct?: number
+          benefits?: string[]
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          monthly_price_cents: number
+          name: string
+          position?: number
+          student_limit?: number | null
+          trial_days?: number
+          updated_at?: string
+        }
+        Update: {
+          annual_discount_pct?: number
+          benefits?: string[]
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          monthly_price_cents?: number
+          name?: string
+          position?: number
+          student_limit?: number | null
+          trial_days?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -2144,6 +2379,105 @@ export type Database = {
           },
         ]
       }
+      support_messages: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          is_staff: boolean
+          ticket_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          is_staff?: boolean
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          academy_id: string | null
+          closed_at: string | null
+          created_at: string
+          id: string
+          last_message_at: string
+          number: number
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          academy_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          number?: never
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          academy_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          number?: never
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       timer_presets: {
         Row: {
           academy_id: string
@@ -2212,6 +2546,59 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "modality_class_stats"
             referencedColumns: ["modality_id"]
+          },
+        ]
+      }
+      tv_displays: {
+        Row: {
+          academy_id: string | null
+          display_user_id: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          paired_at: string | null
+          paired_by: string | null
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          state_version: number
+          timer_state: Json | null
+          updated_at: string
+        }
+        Insert: {
+          academy_id?: string | null
+          display_user_id: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          paired_at?: string | null
+          paired_by?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          state_version?: number
+          timer_state?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          academy_id?: string | null
+          display_user_id?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          paired_at?: string | null
+          paired_by?: string | null
+          pairing_code?: string | null
+          pairing_expires_at?: string | null
+          state_version?: number
+          timer_state?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_displays_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2481,14 +2868,14 @@ export type Database = {
         Args: { p_academy_id: string }
         Returns: {
           academy_id: string
-          author_avatar_path: string | null
-          author_name: string | null
+          author_avatar_path: string
+          author_name: string
           body: string
           created_at: string
-          created_by: string | null
-          expires_on: string | null
+          created_by: string
+          expires_on: string
           id: string
-          modality_id: string | null
+          modality_id: string
           pinned: boolean
           updated_at: string
         }[]
@@ -2514,6 +2901,306 @@ export type Database = {
         Returns: {
           academy_id: string
         }[]
+      }
+      admin_academy_modalities: {
+        Args: { p_academy_id: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
+      admin_add_customer_note: {
+        Args: { p_academy_id: string; p_body: string; p_kind: string }
+        Returns: string
+      }
+      admin_create_invoice: {
+        Args: {
+          p_academy_id: string
+          p_amount_cents: number
+          p_description: string
+          p_due_date: string
+          p_reference_month: string
+        }
+        Returns: string
+      }
+      admin_dashboard: { Args: never; Returns: Json }
+      admin_decide_membership: {
+        Args: {
+          p_approve: boolean
+          p_membership_id: string
+          p_modality_ids?: string[]
+        }
+        Returns: undefined
+      }
+      admin_delete_customer_note: {
+        Args: { p_note_id: string }
+        Returns: undefined
+      }
+      admin_delete_platform_announcement: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      admin_generate_invoices: {
+        Args: { p_due_day?: number; p_month: string }
+        Returns: number
+      }
+      admin_get_academy: {
+        Args: { p_academy_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          inactive_after_days: number
+          logo_path: string
+          name: string
+          owner_email: string
+          owner_id: string
+          owner_name: string
+          plan_tier: string
+          timezone: string
+        }[]
+      }
+      admin_get_customer: { Args: { p_academy_id: string }; Returns: Json }
+      admin_get_ticket: { Args: { p_ticket_id: string }; Returns: Json }
+      admin_get_user: { Args: { p_user_id: string }; Returns: Json }
+      admin_is_admin: { Args: never; Returns: boolean }
+      admin_list_academies: {
+        Args: { p_search?: string }
+        Returns: {
+          created_at: string
+          id: string
+          logo_path: string
+          name: string
+          owner_email: string
+          owner_id: string
+          owner_name: string
+          pending: number
+          plan_tier: string
+          staff: number
+          students: number
+        }[]
+      }
+      admin_list_customers: {
+        Args: { p_search?: string }
+        Returns: {
+          academy_id: string
+          billing_period: string
+          created_at: string
+          last_note_at: string
+          logo_path: string
+          mrr_cents: number
+          name: string
+          open_tickets: number
+          overdue_cents: number
+          owner_email: string
+          owner_id: string
+          owner_name: string
+          owner_whatsapp: string
+          plan_code: string
+          plan_name: string
+          status: string
+          students: number
+          trial_ends_at: string
+        }[]
+      }
+      admin_list_invoices: {
+        Args: { p_from?: string; p_status?: string; p_to?: string }
+        Returns: {
+          academy_id: string
+          academy_name: string
+          amount_cents: number
+          created_at: string
+          description: string
+          due_date: string
+          id: string
+          is_overdue: boolean
+          number: number
+          paid_on: string
+          payment_method: string
+          provider: string
+          reference_month: string
+          status: string
+        }[]
+      }
+      admin_list_members: {
+        Args: { p_academy_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string
+          email: string
+          full_name: string
+          is_competitor: boolean
+          membership_id: string
+          modalities: Json
+          role: Database["public"]["Enums"]["membership_role"]
+          status: Database["public"]["Enums"]["membership_status"]
+          user_id: string
+        }[]
+      }
+      admin_list_plans: {
+        Args: never
+        Returns: {
+          academies: number
+          annual_discount_pct: number
+          benefits: string[]
+          code: string
+          id: string
+          is_active: boolean
+          is_popular: boolean
+          monthly_price_cents: number
+          name: string
+          sort_position: number
+          student_limit: number
+          trial_days: number
+        }[]
+      }
+      admin_list_platform_announcements: {
+        Args: never
+        Returns: {
+          audience: string
+          body: string
+          created_at: string
+          dismissals: number
+          ends_on: string
+          id: string
+          is_live: boolean
+          title: string
+          updated_at: string
+        }[]
+      }
+      admin_list_tickets: {
+        Args: { p_search?: string; p_status?: string }
+        Returns: {
+          academy_id: string
+          academy_name: string
+          created_at: string
+          id: string
+          last_message_at: string
+          messages: number
+          number: number
+          priority: string
+          status: string
+          subject: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }[]
+      }
+      admin_list_users: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          academies: number
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          last_sign_in_at: string
+          total_count: number
+        }[]
+      }
+      admin_overview: {
+        Args: never
+        Returns: {
+          academies: number
+          active_staff: number
+          active_students: number
+          pending_requests: number
+          users: number
+        }[]
+      }
+      admin_remove_membership: {
+        Args: { p_membership_id: string }
+        Returns: undefined
+      }
+      admin_reply_ticket: {
+        Args: { p_body: string; p_close?: boolean; p_ticket_id: string }
+        Returns: undefined
+      }
+      admin_report: { Args: { p_months?: number }; Returns: Json }
+      admin_save_plan: {
+        Args: {
+          p_annual_discount_pct: number
+          p_benefits: string[]
+          p_code: string
+          p_id: string
+          p_is_active: boolean
+          p_is_popular: boolean
+          p_monthly_price_cents: number
+          p_name: string
+          p_position: number
+          p_student_limit: number
+          p_trial_days: number
+        }
+        Returns: string
+      }
+      admin_save_platform_announcement: {
+        Args: {
+          p_audience: string
+          p_body: string
+          p_ends_on: string
+          p_id: string
+          p_title: string
+        }
+        Returns: string
+      }
+      admin_set_competitor: {
+        Args: { p_enrollment_id: string; p_is_competitor: boolean }
+        Returns: undefined
+      }
+      admin_set_invoice_status: {
+        Args: {
+          p_invoice_id: string
+          p_paid_on?: string
+          p_payment_method?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      admin_set_member_role: {
+        Args: {
+          p_membership_id: string
+          p_modality_ids?: string[]
+          p_role: Database["public"]["Enums"]["membership_role"]
+        }
+        Returns: undefined
+      }
+      admin_set_student_modalities: {
+        Args: { p_membership_id: string; p_modality_ids: string[] }
+        Returns: undefined
+      }
+      admin_set_ticket: {
+        Args: { p_priority: string; p_status: string; p_ticket_id: string }
+        Returns: undefined
+      }
+      admin_update_academy: {
+        Args: {
+          p_academy_id: string
+          p_inactive_after_days: number
+          p_name: string
+        }
+        Returns: undefined
+      }
+      admin_update_profile: {
+        Args: {
+          p_birth_date: string
+          p_full_name: string
+          p_height_cm: number
+          p_reach_cm: number
+          p_sex: string
+          p_user_id: string
+          p_weight_kg: number
+        }
+        Returns: undefined
+      }
+      admin_update_subscription: {
+        Args: {
+          p_academy_id: string
+          p_billing_period: string
+          p_custom_price_cents: number
+          p_plan_code: string
+          p_status: string
+          p_trial_ends_at: string
+        }
+        Returns: undefined
       }
       approve_student: {
         Args: { p_membership_id: string; p_modality_ids: string[] }
@@ -2574,6 +3261,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      close_support_ticket: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       copy_diet_day: {
         Args: {
           p_academy_id: string
@@ -2602,7 +3293,38 @@ export type Database = {
         }
         Returns: string
       }
+      create_support_ticket: {
+        Args: { p_academy_id?: string; p_body: string; p_subject: string }
+        Returns: string
+      }
+      create_tv_pairing: {
+        Args: never
+        Returns: {
+          academy_id: string | null
+          display_user_id: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          paired_at: string | null
+          paired_by: string | null
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          state_version: number
+          timer_state: Json | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tv_displays"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_my_account: { Args: never; Returns: undefined }
+      dismiss_platform_announcement: {
+        Args: { p_announcement_id: string }
+        Returns: undefined
+      }
       fight_record_summary: {
         Args: { p_academy_id: string; p_athlete_id: string }
         Returns: {
@@ -2637,13 +3359,13 @@ export type Database = {
       get_instructor_profile: {
         Args: { p_academy_id: string; p_user_id: string }
         Returns: {
-          avatar_path: string | null
+          avatar_path: string
           belts: Json
-          bio: string | null
+          bio: string
           competitors_count: number
           full_name: string
           graduations_count: number
-          instagram: string | null
+          instagram: string
           member_since: string
           membership_id: string
           modality_ids: string[]
@@ -2651,7 +3373,7 @@ export type Database = {
           schedules: Json
           show_contacts_to_students: boolean
           user_id: string
-          whatsapp: string | null
+          whatsapp: string
         }[]
       }
       get_profile_details: {
@@ -2669,7 +3391,7 @@ export type Database = {
         Returns: {
           inactive_since: string
           joined_on: string
-          last_class_date: string | null
+          last_class_date: string
           membership_id: string
           user_id: string
         }[]
@@ -2699,6 +3421,19 @@ export type Database = {
           user_id: string
         }[]
       }
+      list_public_plans: {
+        Args: never
+        Returns: {
+          annual_discount_pct: number
+          benefits: string[]
+          code: string
+          is_popular: boolean
+          monthly_price_cents: number
+          name: string
+          student_limit: number
+          trial_days: number
+        }[]
+      }
       lookup_invite_code: {
         Args: { p_code: string }
         Returns: {
@@ -2707,6 +3442,7 @@ export type Database = {
           logo_path: string
         }[]
       }
+      my_discipline: { Args: { p_academy_id: string }; Returns: Json }
       my_finance_status: {
         Args: { p_academy_id: string }
         Returns: {
@@ -2714,7 +3450,6 @@ export type Database = {
           overdue_months: string[]
         }[]
       }
-      my_discipline: { Args: { p_academy_id: string }; Returns: Json }
       my_water_days: {
         Args: never
         Returns: {
@@ -2722,6 +3457,40 @@ export type Database = {
           goal_ml: number
           is_limit: boolean
           total_ml: number
+        }[]
+      }
+      pair_tv: {
+        Args: { p_academy_id: string; p_code: string; p_name: string }
+        Returns: {
+          academy_id: string | null
+          display_user_id: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          paired_at: string | null
+          paired_by: string | null
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          state_version: number
+          timer_state: Json | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tv_displays"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      platform_announcements_feed: {
+        Args: never
+        Returns: {
+          audience: string
+          body: string
+          created_at: string
+          ends_on: string
+          id: string
+          title: string
         }[]
       }
       ranking_modalities: {
@@ -2750,6 +3519,10 @@ export type Database = {
       }
       reorder_modality_belts: {
         Args: { p_belt_ids: string[]; p_modality_id: string }
+        Returns: undefined
+      }
+      reply_support_ticket: {
+        Args: { p_body: string; p_ticket_id: string }
         Returns: undefined
       }
       respond_competitor_invite: {
@@ -2790,8 +3563,21 @@ export type Database = {
         }
         Returns: string
       }
+      server_now: { Args: never; Returns: string }
       set_championship_entries: {
         Args: { p_athlete_ids: string[]; p_championship_id: string }
+        Returns: undefined
+      }
+      set_instructor_belt: {
+        Args: {
+          p_belt_id: string
+          p_membership_id: string
+          p_modality_id: string
+        }
+        Returns: undefined
+      }
+      set_instructor_modalities: {
+        Args: { p_membership_id: string; p_modality_ids: string[] }
         Returns: undefined
       }
       set_previous_record: {
@@ -2816,14 +3602,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      set_instructor_belt: {
-        Args: { p_belt_id: string | null; p_membership_id: string; p_modality_id: string }
-        Returns: undefined
-      }
-      set_instructor_modalities: {
-        Args: { p_membership_id: string; p_modality_ids: string[] }
-        Returns: undefined
-      }
       set_student_modalities: {
         Args: { p_membership_id: string; p_modality_ids: string[] }
         Returns: undefined
@@ -2840,6 +3618,43 @@ export type Database = {
       transfer_ownership: {
         Args: { p_academy_id: string; p_membership_id: string }
         Returns: undefined
+      }
+      tv_academy_brand: {
+        Args: never
+        Returns: {
+          logo_path: string
+          name: string
+        }[]
+      }
+      tv_disconnect_self: { Args: never; Returns: undefined }
+      tv_heartbeat: { Args: never; Returns: undefined }
+      unpair_tv: { Args: { p_display_id: string }; Returns: undefined }
+      update_tv_timer: {
+        Args: {
+          p_display_id: string
+          p_expected_version: number
+          p_state: Json
+        }
+        Returns: {
+          academy_id: string | null
+          display_user_id: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          paired_at: string | null
+          paired_by: string | null
+          pairing_code: string | null
+          pairing_expires_at: string | null
+          state_version: number
+          timer_state: Json | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tv_displays"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {

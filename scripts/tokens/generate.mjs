@@ -10,6 +10,7 @@
  *   targets/widgets/KimiTokens.swift                                     iOS widget extension (SwiftUI / WidgetKit)
  *   modules/kimi-widget/android/src/main/java/br/com/kimi/widget/KimiTokens.kt  Android widget (Jetpack Glance)
  *   web/landing/tokens.css            Static landing page
+ *   web/admin/src/tokens.css          Admin web page (same CSS)
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -189,6 +190,7 @@ const outputs = {
   'targets/widgets/KimiTokens.swift': swift(),
   'modules/kimi-widget/android/src/main/java/br/com/kimi/widget/KimiTokens.kt': kotlin(),
   'web/landing/tokens.css': landingCss(),
+  'web/admin/src/tokens.css': landingCss(),
 };
 
 const check = process.argv.includes('--check');

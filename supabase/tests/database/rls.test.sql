@@ -75,9 +75,10 @@ select is(
    where grantee = 'anon' and table_schema = 'public'),
   0, 'anon has no table privilege in public');
 select is(
-  (select array_agg(routine_name::text) from information_schema.routine_privileges
+  (select array_agg(routine_name::text order by routine_name) from information_schema.routine_privileges
    where grantee in ('anon', 'PUBLIC') and routine_schema in ('public', 'private')),
-  array['lookup_invite_code'], 'the only function anon/PUBLIC can execute is lookup_invite_code');
+  array['list_public_plans', 'lookup_invite_code'],
+  'the only functions anon/PUBLIC can execute are list_public_plans (landing) and lookup_invite_code');
 select is(
   (select count(*)::int from pg_tables where schemaname = 'public' and not rowsecurity),
   0, 'RLS enabled on every public table');

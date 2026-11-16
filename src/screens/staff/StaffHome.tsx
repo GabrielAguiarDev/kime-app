@@ -20,6 +20,7 @@ import {
 import { countdownLabel, daysBetween, formatLocalDate, upcomingChampionships, useChampionships } from '@domain/Competition';
 import { usePendingRequests } from '@domain/Membership';
 import { rankingPeriod, useRanking } from '@domain/Ranking';
+import { PlatformNoticesSection } from '@screens/announcements/PlatformNoticesSection';
 import { StaffEventsSection } from '@screens/events/HomeEventsSection';
 import { OwnerFinanceCard } from '@screens/finance/OwnerFinanceCard';
 import { useActiveGym } from '@services/activeGym';
@@ -62,6 +63,8 @@ export function StaffHome() {
   return (
     // Same space above the first card as between the sections (the header has no large title here).
     <Box gap="s32" paddingTop="s32">
+      {/* Notice from the Kimi team (newest, until "Entendi"). */}
+      <PlatformNoticesSection />
       {all.length === 0 ? (
         <EmptyState
           title="Nenhum horário cadastrado."

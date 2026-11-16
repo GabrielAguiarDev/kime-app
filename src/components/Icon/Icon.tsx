@@ -43,6 +43,7 @@ import { Info } from 'phosphor-react-native/src/icons/Info';
 import { LinkBreak } from 'phosphor-react-native/src/icons/LinkBreak';
 import { ListChecks } from 'phosphor-react-native/src/icons/ListChecks';
 import { EnvelopeSimple } from 'phosphor-react-native/src/icons/EnvelopeSimple';
+import { Lifebuoy } from 'phosphor-react-native/src/icons/Lifebuoy';
 import { Lock } from 'phosphor-react-native/src/icons/Lock';
 import { Medal } from 'phosphor-react-native/src/icons/Medal';
 import { Minus } from 'phosphor-react-native/src/icons/Minus';
@@ -147,6 +148,8 @@ const ICONS = {
   announcement: Megaphone,
   pin: PushPin,
   inactive: Hourglass,
+  // Help and support.
+  support: Lifebuoy,
 } as const;
 
 export type IconName = keyof typeof ICONS;

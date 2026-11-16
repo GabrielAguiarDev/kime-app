@@ -593,4 +593,45 @@ Pendências planejadas: limitar tentativas em `pair_tv`; configurar domínio pr�
 
 ## Landing page
 
-`web/landing` é a página de apresentação do Kimi. É HTML/CSS estático, sem JavaScript, dependências ou acesso ao Supabase. Hospede essa pasta separadamente de `web/tv`. Para ver localmente: `cd web/landing && python3 -m http.server 4173`. O CSS de cores e espaçamentos (`web/landing/tokens.css`) é gerado de `tokens.json` por `npm run tokens`. Os links de download serão adicionados quando o app estiver nas lojas.
+`web/landing` é a página de apresentação do Kimi, em Vite + TypeScript sem framework (mesmo padrão de `web/tv`; migrada de HTML estático em 2026-11-16 a pedido do usuário). Refeita em 2026-11-16 com o BJJ Control como inspiração (decisões do usuário: manter o tema escuro do Kimi, mockups do app em CSS em vez de fotos, números e depoimentos com placeholders `[PREENCHER]` a trocar antes de publicar, botões "Em breve nas lojas" sem link). A seção de planos (`src/plans.ts`) busca `list_public_plans()` com `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (migration `20261116030000_public_plans_for_landing` libera só essa função para `anon`), com alternância mensal/anual no mesmo cálculo do app. Rodar: `cd web/landing && npm install && npm run dev` (porta 5175). Deploy: raiz `web/landing`, `npm ci && npm run build`, saída `dist`, com as duas variáveis. O CSS de cores e espaçamentos (`web/landing/tokens.css`) é gerado de `tokens.json` por `npm run tokens`. Os links de download serão adicionados quando o app estiver nas lojas.
+
+## Admin web (2026-11-16, pedido do usuário; `20261116000000_platform_admin` + `20261116010000_platform_admin_without_mfa`)
+
+`web/admin` é o painel da plataforma: vê todas as academias, membros e usuários e altera dados da academia (nome, plano, dias para "sumido"), vínculos (aprovar/recusar pedido, professor ↔ aluno, modalidades do aluno, competidor por modalidade, remover) e perfil (nome, nascimento, sexo, altura, peso, envergadura). Decisões do usuário: login com a conta do Kimi + lista de admins no banco; SÓ e-mail e senha (sem Google/Apple); pronto para publicar; transferir dono fica fora do admin.
+
+- **Acesso:** só contas em `private.platform_admins` (sem grant nenhum; só SQL). Para liberar alguém, no SQL editor do painel:
+  `insert into private.platform_admins (user_id, note) select id, 'motivo' from auth.users where email = '…';`
+  Para tirar: `delete from private.platform_admins where user_id = …;`
+  A conta precisa ter senha (contas criadas só com Google/Apple não entram).
+- **Login:** só e-mail + senha. O banco recusa sessão que não começou com senha (`amr`, erro `password_login_required`), então uma sessão por Google/Apple não usa o admin nem pela API. Sem segundo fator por enquanto (decisão do usuário, 2026-11-16): a primeira versão exigia TOTP (`aal2`) e a `20261116010000` tirou essa checagem de `private.require_platform_admin()`. Para voltar, recolocar a checagem de `aal2` ali e uma tela de código na página.
+- **Banco:** a página só chama as RPCs `admin_*` (SECURITY DEFINER, todas começam por `private.require_platform_admin()`; `admin_is_admin` é o único sem essa checagem, só diz se quem chama está na lista). Nenhuma política de tabela mudou. As escritas mantêm as regras do app: o dono nunca muda nem sai pelo admin; aluno ativo precisa de pelo menos uma modalidade da academia; competidor pelo admin entra direto, sem convite, e ao tirar o competidor (ou ao virar professor) as inscrições em campeonatos futuros da modalidade saem, como no app. Professor → aluno também apaga as `instructor_modalities` e tira a pessoa dos horários em que era responsável. O peso só é gravado quando muda (a próxima pesagem do app substitui). Toda escrita vai para `private.admin_audit_log` (admin, ação, alvo, antes/depois). Contas anônimas (TV) ficam fora da lista de usuários.
+- **Testes:** `supabase/tests/database/platform_admin.test.sql`. Ele percorre o catálogo: toda função `public.admin_*` nova precisa recusar não-admin e sessão por Google/Apple, ser SECURITY DEFINER com `search_path` vazio e não ser executável por `anon`; senão o teste quebra.
+- **Página:** Vite + React + TypeScript + react-router (rotas com `#`, então o host estático não precisa de regra de rewrite). Só a URL e a chave pública do Supabase (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, como na TV). Nunca usar a service role key. A sessão fica no localStorage com chave própria (`kimi-admin-auth`), separada da TV. Cores e espaçamentos em `web/admin/src/tokens.css`, gerado por `npm run tokens`.
+
+### Rodar localmente
+
+```sh
+cd web/admin
+cp .env.example .env.local   # URL e chave pública do projeto
+npm ci
+npm run dev                  # http://localhost:5174
+```
+
+### Deploy
+
+Projeto estático com raiz `web/admin`, comando `npm ci && npm run build`, saída `dist`, as duas variáveis `VITE_*` configuradas, servido por HTTPS e de preferência num subdomínio só dele (ex.: `admin.…`), fora da origem da TV e da landing. Os cabeçalhos de segurança (CSP, sem iframe, `noindex`) estão em `web/admin/vercel.json` (Vercel) e `web/admin/public/_headers` (Netlify/Cloudflare Pages); em outro host, replicar. A CSP libera só `*.supabase.co`: se o Supabase usar domínio próprio, incluir o domínio nos dois arquivos. A página também tem `noindex` e `robots.txt`.
+
+## Sistema da plataforma (2026-11-16, pedido do usuário; `20261116020000_platform_system`)
+
+O admin virou o sistema de gestão do Kimi. Decisões do usuário: cobrança preparada para gateway (Mercado Pago ou Stripe), mas sem integrar nada por enquanto (pagamentos registrados à mão no admin); catálogo de planos no banco e o app lê de lá; suporte aberto pelo app e respondido no admin; extras: avisos para academias, exportar CSV e notas internas por cliente.
+
+- **Planos (`public.platform_plans`):** código fixo (`starter`, `pro`, `elite` vieram do antigo `src/domain/Gym/plans.ts`), nome, preço mensal em centavos, desconto anual (%), limite de alunos (null = ilimitado; só informativo, nada bloqueia ainda), benefícios, dias de teste, destaque (um só) e à venda. `academies.plan_tier` virou FK para o código. O cadastro do app chama `list_public_plans()` (só os à venda) e `create_academy_with_setup` aceita qualquer plano à venda (`invalid_plan_tier` senão). O admin pode deixar uma academia num plano fora de venda.
+- **Assinaturas (`private.academy_subscriptions`, uma por academia):** criada por gatilho junto com a academia, em teste pelos dias do plano (as antigas ganharam teste contado da criação). Situação `trialing | active | past_due | canceled`, período `monthly | annual`, preço negociado opcional (null = preço do plano; o anual é 12 meses com desconto). `provider` / `provider_*_id` ficam para o gateway (`manual` hoje). O plano da assinatura é o `academies.plan_tier` (alterado pela tela do cliente). MRR = assinaturas ativas ou em atraso, anual dividido por 12.
+- **Faturas (`private.platform_invoices`):** valores em centavos; uma fatura ativa por academia e mês. "Gerar faturas do mês" cria para assinaturas ativas/em atraso sem fatura no mês (anual: uma a cada 12 meses). Em aberto → paga (data + forma) → desfazer; em aberto → cancelada (o mês pode ser cobrado de novo). "Em atraso" = em aberto com vencimento passado. A fatura guarda o nome da academia e sobrevive à exclusão dela.
+- **Notas internas (`private.customer_notes`):** por academia, só no admin.
+- **Suporte (`public.support_tickets` / `support_messages`):** o usuário lê só os próprios chamados (RLS) e escreve só pelas RPCs `create_support_ticket` (no máximo 5 aguardando suporte), `reply_support_ticket` (reabre) e `close_support_ticket`. Situação: `open` (aguardando o Kimi), `answered` (o Kimi respondeu), `closed`. No app: Perfil → Ajuda → "Ajuda e suporte" (`src/app/suporte/*`, só membros aprovados, fora do bloqueio de mensalidade); respostas do Kimi aparecem como "Suporte Kimi".
+- **Avisos da plataforma (`public.platform_announcements`):** público donos, donos + professores ou todos os membros (por qualquer vínculo ativo), último dia opcional (fuso de São Paulo). `platform_announcements_feed()` já filtra; dispensar (`dismiss_platform_announcement`) vale para a conta. No app, a Início (staff e aluno) mostra só o mais recente, com "Entendi" (`PlatformNoticesSection`).
+- **Admin web:** Dashboard, Clientes, Financeiro, Relatórios, Suporte, Academias, Usuários, Planos e Avisos; CSV nas listas e relatórios (separador `;` e BOM, abre direto no Excel). Gráficos sem biblioteca (`components/BarChart.tsx`), cores `--chart-1`/`--chart-2` validadas para o fundo escuro.
+- **Testes:** `supabase/tests/database/platform_system.test.sql`; o `platform_admin.test.sql` cobre automaticamente toda RPC `admin_*` nova.
+- **Tipos:** `types/database.ts` foi gerado do banco LOCAL nesta mudança. Depois do `db push`, regenerar do remoto (`npm run db:types`).
+

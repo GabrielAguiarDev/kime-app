@@ -39,7 +39,7 @@ import { squarePickerOptions } from '@utils/squareImage';
  * and, for competitors, the cartel of the selected modality (opens the fight
  * history), then grouped sections — Academia (one row → Academias screen),
  * Água (staff), Gestão da academia (owner), Treinos and Preferências
- * (students) and Conta.
+ * (students), Ajuda (support tickets) and Conta.
  */
 export function ProfileScreen() {
   const { userId } = useSession();
@@ -119,6 +119,10 @@ export function ProfileScreen() {
             <RankingSwitch />
           </Section>
         ) : null}
+
+        <Section title="Ajuda">
+          <ManageCard title="Ajuda e suporte" icon="support" onPress={() => router.push('/suporte')} />
+        </Section>
 
         <Section title="Conta">
           <ManageCard title="Meus dados" icon="user" onPress={() => router.push('/conta/dados')} />
@@ -312,7 +316,7 @@ function ManageCard({
   onPress,
 }: {
   title: string;
-  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'drop' | 'share' | 'chart' | 'home' | 'money';
+  icon: 'settings' | 'calendar' | 'belt' | 'user' | 'trophy' | 'drop' | 'share' | 'chart' | 'home' | 'money' | 'support';
   onPress: () => void;
 }) {
   return (

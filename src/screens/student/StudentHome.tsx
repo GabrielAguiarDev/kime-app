@@ -11,6 +11,7 @@ import { rankingPeriod, useRanking } from '@domain/Ranking';
 import { useDiscipline } from '@domain/Streaks';
 import { waterDayState } from '@domain/Water';
 import { StudentAnnouncementsSection } from '@screens/announcements/HomeAnnouncementsSection';
+import { PlatformNoticesSection } from '@screens/announcements/PlatformNoticesSection';
 import { CompetitorInviteCard } from '@screens/competition/CompetitorInviteCard';
 import { StudentEventsSection } from '@screens/events/HomeEventsSection';
 import { BlockedNotice, FinanceNotice, useMyFinance } from '@screens/finance/StudentFinance';
@@ -53,6 +54,7 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
   if (finance.blocked) {
     return (
       <Box gap="s24" paddingTop="s16">
+        <PlatformNoticesSection />
         <BlockedNotice compact />
         {academyId && today.data ? <StudentAnnouncementsSection academyId={academyId} today={today.data} /> : null}
         <WaterCard />
@@ -87,6 +89,8 @@ export function StudentHome({ onJoinedTeam }: { onJoinedTeam: () => void }) {
 
   return (
     <Box gap="s24" paddingTop="s16">
+      {/* Notice from the Kimi team (newest, until "Entendi"). */}
+      <PlatformNoticesSection />
       <FinanceNotice />
 
       <StudentAnnouncementsSection academyId={academyId} today={today.data} />

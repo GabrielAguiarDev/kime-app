@@ -44,6 +44,10 @@ export type AppErrorCode =
   | 'not_a_student'
   | 'invalid_modality'
   | 'not_found'
+  | 'invalid_subject'
+  | 'invalid_message'
+  | 'too_many_open_tickets'
+  | 'too_many_messages'
   | 'already_present'
   | 'modality_in_use'
   | 'belt_in_use'
@@ -102,6 +106,10 @@ const KNOWN_CODES: readonly AppErrorCode[] = [
   'not_a_student',
   'invalid_modality',
   'not_found',
+  'invalid_subject',
+  'invalid_message',
+  'too_many_open_tickets',
+  'too_many_messages',
   'rate_limited',
 ];
 
@@ -220,6 +228,11 @@ const MESSAGES: Record<AppErrorCode, string> = {
   not_a_student: 'Só alunos têm mensalidade.',
   invalid_modality: 'Escolha modalidades desta academia.',
   not_found: 'Não encontrado. Ele pode ter sido removido.',
+  invalid_subject: 'O assunto precisa ter entre 3 e 120 caracteres.',
+  invalid_message: 'A mensagem precisa ter entre 1 e 4.000 caracteres.',
+  // Limit of 5 open tickets: create_support_ticket (20261116020000_platform_system).
+  too_many_open_tickets: 'Você já tem 5 chamados aguardando o suporte. Aguarde a resposta de um deles.',
+  too_many_messages: 'Você enviou muitas mensagens neste chamado. Aguarde um pouco antes de mandar outra.',
   weight_day_taken: 'Já existe um peso registrado neste dia.',
   modality_in_use: 'Esta modalidade tem horários cadastrados. Remova os horários dela antes.',
   belt_in_use: 'Esta faixa já foi entregue a alunos e fica no histórico deles. Ela não pode ser removida.',

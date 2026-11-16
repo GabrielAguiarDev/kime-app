@@ -77,7 +77,8 @@ export function useSetInstructorBelt(academyId: string, membershipId: string) {
       const { error } = await supabase.rpc('set_instructor_belt', {
         p_membership_id: membershipId,
         p_modality_id: modalityId,
-        p_belt_id: beltId,
+        // Null clears the belt (the RPC accepts it); the generated type says string.
+        p_belt_id: beltId as string,
       });
       if (error) throw toAppError(error);
     },
