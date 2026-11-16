@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Platform } from 'react-native';
 
 import { Box, Button, Screen, Text, TextButton, TextField } from '@components';
+import { BrandLogo } from '@components/BrandLogo/BrandLogo';
 import { isValidEmail, normalizeEmail, useSignIn } from '@domain/Auth';
 import { AppError, errorMessage } from '@infra';
 import { AcademyCard } from '@screens/entry/AcademyCard';
@@ -44,7 +45,7 @@ export function SignInScreen() {
         ) : (
           <Box marginTop="s48" marginBottom="s16">
             <SignInHero>
-              <Text variant="displayXl">KIMI</Text>
+              <BrandLogo width={160} />
               <Text variant="bodyStrong">
                 {asProfessor ? 'Entre para cuidar das suas aulas.' : 'Entre para ver seus treinos.'}
               </Text>

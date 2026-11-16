@@ -13,19 +13,17 @@ import Animated, {
 import Svg, { Circle } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { Box, KimiMascot, Text, type KimiMascotHandle } from '@components';
+import { Box, KimiMascot, type KimiMascotHandle } from '@components';
 import { useAppTheme } from '@theme';
 import { haptics } from '@utils/haptics';
 
-/** "KIMI" has finished rising (ms from the start). */
-const TEXT_DONE_MS = 1400;
-/** Pause with the name and the mascot on screen before leaving, so both can be seen. */
+/** Smoke has cleared and the ninja's expression is visible (ms from the start). */
+const REVEAL_DONE_MS = 1400;
+/** Pause with the ninja on screen before leaving. */
 const HOLD_MS = 600;
 /** The intro never leaves before this (ms from the start). */
-export const INTRO_MIN_MS = TEXT_DONE_MS + HOLD_MS;
+export const INTRO_MIN_MS = REVEAL_DONE_MS + HOLD_MS;
 const EXIT_MS = 250;
-/** Text rises this much while it appears. */
-const TEXT_RISE = 12;
 
 /**
  * Smoke timeline (ms), one continuous motion: the clouds are born small on the feet line and
@@ -76,15 +74,13 @@ const CLOUD_BASE = 200;
 /**
  * The poses are centered on the head; in guard the body (trunk and legs) has its center at
  * x 640 of 1254, not 627. Only here, the mascot (and the smoke, drawn around it) moves left
- * by that fraction of its width (~1%), so the body is centered on screen, on the same
- * vertical line as "KIMI". The headband tips may go past it to the right.
+ * by that fraction of its width (~1%), so the body is centered on screen.
+ * The headband tips may go past the center to the right.
  */
 const BODY_CENTER_SHIFT = (640 - 627) / 1254;
 
 /** Feet line of the ninja (pt from the mascot center, 200 mascot): where the clouds are born. */
 const FEET_Y = 92;
-
-const out = Easing.out(Easing.cubic);
 
 function SmokeCloud({ time, cloud, k }: { time: SharedValue<number>; cloud: (typeof CLOUDS)[number]; k: number }) {
   const style = useAnimatedStyle(() => {
@@ -130,9 +126,9 @@ interface AppIntroProps {
  * The native splash is only the background color; it hides as soon as this layer is laid
  * out, so the handoff is invisible. The ninja is never seen appearing: the smoke (in front)
  * rises from his feet until it covers him, he is switched on behind it, and the smoke clears
- * in place to reveal him; then a blink, angry brows and "KIMI". Leaves after INTRO_MIN_MS once the app is
+ * in place to reveal him; then a blink and angry brows. Leaves after INTRO_MIN_MS once the app is
  * ready; while it is not, the ninja stays with the eye micro-animations. "Reduce motion":
- * no smoke, no scale; static mascot and text with a plain fade.
+ * no smoke or scale; the mascot appears with a plain fade.
  */
 export function AppIntro({ ready, onDone }: AppIntroProps) {
   const reduceMotion = useReducedMotion();
@@ -146,7 +142,6 @@ export function AppIntro({ ready, onDone }: AppIntroProps) {
 
   const smoke = useSharedValue(0);
   const ninja = useSharedValue(0); // opacity 0 → 1
-  const text = useSharedValue(0); // 0 hidden → 1 shown
   const exit = useSharedValue(0); // 0 → 1 leaving
 
   const start = useCallback(() => {
@@ -163,8 +158,7 @@ export function AppIntro({ ready, onDone }: AppIntroProps) {
       // At once (no fade, no scale), already hidden behind the smoke.
       ninja.set(withDelay(NINJA_ON_MS, withTiming(1, { duration: 0 })));
     }
-    text.set(withDelay(1100, withTiming(1, { duration: 300, easing: out })));
-  }, [reduceMotion, smoke, ninja, text]);
+  }, [reduceMotion, smoke, ninja]);
 
   // Haptic as the smoke starts clearing, then the blink and the angry brows; minimum time on screen.
   useEffect(() => {
@@ -194,11 +188,6 @@ export function AppIntro({ ready, onDone }: AppIntroProps) {
     transform: [{ scale: reduceMotion ? 1 : 1 - 0.08 * exit.value }],
   }));
   const ninjaStyle = useAnimatedStyle(() => ({ opacity: ninja.value }));
-  const textStyle = useAnimatedStyle(() => ({
-    opacity: text.value,
-    transform: [{ translateY: reduceMotion ? 0 : TEXT_RISE * (1 - text.value) }],
-  }));
-
   return (
     <Animated.View style={[StyleSheet.absoluteFill, layerStyle]} onLayout={start} accessibilityViewIsModal>
       <Box flex={1} backgroundColor="bg" alignItems="center" justifyContent="center">
@@ -216,11 +205,6 @@ export function AppIntro({ ready, onDone }: AppIntroProps) {
               </Box>
             )}
           </Box>
-          <Animated.View style={textStyle}>
-            <Text variant="displayXl">
-              KIMI
-            </Text>
-          </Animated.View>
         </Animated.View>
       </Box>
     </Animated.View>

@@ -154,8 +154,7 @@ export function Layout() {
           {openTickets > 0 && <span className="dot" aria-hidden="true" />}
         </button>
         <div className="brand">
-          <img src="/kimi.png" alt="" />
-          <span className="brand-name">KIMI</span>
+          <img src="/kimi-wordmark.svg" alt="Kimi" />
         </div>
       </header>
       <div className={drawer.open ? 'drawer-backdrop open' : 'drawer-backdrop'} onClick={() => drawer.setOpen(false)} aria-hidden="true" />
@@ -163,8 +162,7 @@ export function Layout() {
       <aside id="sidebar" ref={drawer.panel} className={drawer.open ? 'sidebar open' : 'sidebar'} aria-label="Menu">
         <div className="sidebar-head">
           <div className="brand">
-            <img src="/kimi.png" alt="" />
-            <span className="brand-name">KIMI</span>
+            <img src="/kimi-wordmark.svg" alt="Kimi" />
           </div>
           <button type="button" className="icon-btn drawer-close" aria-label="Fechar menu" onClick={() => drawer.setOpen(false)}>
             <X size={20} weight="bold" aria-hidden="true" />

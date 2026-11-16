@@ -23,8 +23,7 @@ export function Login() {
     <div className="center-page">
       <form className="card auth-card" onSubmit={submit}>
         <div className="brand brand-large">
-          <img src="/kimi.png" alt="" />
-          <span className="brand-name">KIMI</span>
+          <img src="/kimi-wordmark.svg" alt="Kimi" />
         </div>
         <p className="muted">Área exclusiva da equipe do Kimi. Entre com o e-mail e a senha da sua conta.</p>
         <label className="field">

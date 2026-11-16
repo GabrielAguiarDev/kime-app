@@ -104,8 +104,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
   useEventNotifications(ready);
 
   // App intro over the app while it loads, once per cold start (screens/intro/AppIntro).
-  // It hides the native splash (background color only) once it is laid out; it needs the
-  // fonts for "KIMI".
+  // It hides the native splash (background color only) once it is laid out.
   const [introDone, setIntroDone] = useState(false);
   const endIntro = useCallback(() => setIntroDone(true), []);
 

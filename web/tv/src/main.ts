@@ -30,7 +30,7 @@ const soundBytes: Record<string, ArrayBuffer> = {};
 const files = { roundStart: 'bell.wav', roundEnd: 'bell-triple.wav', warning: 'clapper.wav' };
 let wakeLock: { release: () => Promise<void> } | null = null;
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]!);
-const brand = () => `<div class="brand"><img src="/kimi.png" alt=""><span>KIMI</span></div>`;
+const brand = () => `<div class="brand"><img src="/kimi-wordmark.svg" alt="Kimi"></div>`;
 const toolbar = () => `<div class="toolbar">${display?.academy_id ? '<button id="disconnect" type="button">Desconectar</button>' : ''}<button id="fullscreen" type="button">Tela cheia</button></div>`;
 function bindControls() {
   document.querySelector<HTMLButtonElement>('#fullscreen')?.addEventListener('click', () => void document.documentElement.requestFullscreen?.());

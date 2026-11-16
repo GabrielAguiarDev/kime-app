@@ -77,11 +77,9 @@ a:focus-visible {
   gap:12px
 }
 .brand img {
-  border-radius:var(--radius-md)
-}
-.brand span,.footer-inner>span:first-child {
-  font:800 34px/1 Barlow Condensed,Impact,sans-serif;
-  letter-spacing:.05em
+  display:block;
+  width:84px;
+  height:auto
 }
 .main-nav {
   margin-left:auto;
@@ -865,8 +863,9 @@ details[open]:not(.is-closing) .plus::after {
   padding-block:48px 32px
 }
 .footer-logo {
-  font:800 34px/1 Barlow Condensed,Impact,sans-serif;
-  letter-spacing:.05em
+  display:block;
+  width:84px;
+  height:auto
 }
 .footer-brand p {
   margin:8px 0 0;
@@ -932,11 +931,7 @@ details[open]:not(.is-closing) .plus::after {
     min-height:70px
   }
   .brand img {
-    width:34px;
-    height:34px
-  }
-  .brand span {
-    font-size:29px
+    width:78px
   }
   .hero {
     padding-block:48px 56px;
