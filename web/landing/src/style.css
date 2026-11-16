@@ -492,7 +492,23 @@ h1 em {
   background:var(--color-bg);
   border:2px solid var(--color-border);
   border-bottom:4px solid var(--color-edge);
-  border-radius:var(--radius-lg)
+  border-radius:var(--radius-lg);
+  transition:border-color .2s
+}
+.feature-card:hover,.faq-item:hover {
+  border-color:var(--color-edge)
+}
+.feature-card > p,.faq-item > p {
+  transition:opacity .2s
+}
+details[open] > p {
+  animation:accordion-fade .3s ease-out
+}
+details.is-closing > p {
+  opacity:0
+}
+@keyframes accordion-fade {
+  from { opacity:0 }
 }
 .feature-card summary {
   display:grid;
@@ -534,7 +550,11 @@ h1 em {
   width:32px;
   height:32px;
   border:2px solid var(--color-border);
-  border-radius:50%
+  border-radius:50%;
+  transition:border-color .2s,transform .26s cubic-bezier(.2,.7,.2,1)
+}
+summary:hover .plus {
+  border-color:var(--color-accent)
 }
 .plus::before,.plus::after {
   content:"";
@@ -547,10 +567,14 @@ h1 em {
   background:var(--color-accent)
 }
 .plus::after {
-  transform:rotate(90deg)
+  transform:rotate(90deg);
+  transition:transform .26s cubic-bezier(.2,.7,.2,1)
 }
-details[open] .plus::after {
-  display:none
+details[open]:not(.is-closing) .plus {
+  transform:rotate(180deg)
+}
+details[open]:not(.is-closing) .plus::after {
+  transform:rotate(0deg)
 }
 
 /* Audience */
@@ -969,8 +993,11 @@ details[open] .plus::after {
   html {
     scroll-behavior:auto
   }
-  .button {
+  .button,.plus,.plus::after {
     transition:none
+  }
+  details[open] > p {
+    animation:none
   }
   .button:hover {
     transform:none
